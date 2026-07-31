@@ -1,1 +1,85 @@
-
+healthforecast-frontend/
+│
+├── public/
+│
+├── src/
+│   ├── assets/
+│   │    ├── images/
+│   │    ├── icons/
+│   │
+│   ├── components/
+│   │    ├── Navbar.jsx
+│   │    ├── Sidebar.jsx
+│   │    ├── Footer.jsx
+│   │    ├── Loader.jsx
+│   │    ├── ProtectedRoute.jsx
+│   │    ├── PatientCard.jsx
+│   │    ├── RiskCard.jsx
+│   │    ├── ReportCard.jsx
+│   │    ├── StatCard.jsx
+│   │    ├── Charts/
+│   │
+│   ├── pages/
+│   │
+│   │── Authentication/
+│   │      Login.jsx
+│   │      Register.jsx
+│   │      ForgotPassword.jsx
+│   │
+│   │── Dashboard/
+│   │      Dashboard.jsx
+│   │
+│   │── Patients/
+│   │      Patients.jsx
+│   │      AddPatient.jsx
+│   │      EditPatient.jsx
+│   │      PatientDetails.jsx
+│   │
+│   │── RiskPrediction/
+│   │      PredictRisk.jsx
+│   │      PredictionHistory.jsx
+│   │
+│   │── Readmission/
+│   │      ReadmissionPrediction.jsx
+│   │
+│   │── Treatment/
+│   │      TreatmentEffectiveness.jsx
+│   │
+│   │── Recommendations/
+│   │      ClinicalDecision.jsx
+│   │
+│   │── Analytics/
+│   │      Analytics.jsx
+│   │      HospitalPerformance.jsx
+│   │
+│   │── Reports/
+│   │      Reports.jsx
+│   │
+│   │── Research/
+│   │      PopulationHealth.jsx
+│   │
+│   │── Admin/
+│   │      Users.jsx
+│   │      Roles.jsx
+│   │      ModelManagement.jsx
+│   │
+│   ├── services/
+│   │      api.js
+│   │      authService.js
+│   │      patientService.js
+│   │      predictionService.js
+│   │
+│   ├── context/
+│   │      AuthContext.jsx
+│   │
+│   ├── hooks/
+│   │
+│   ├── routes/
+│   │      AppRoutes.jsx
+│   │
+│   ├── App.jsx
+│   ├── main.jsx
+│
+├── package.json
+├── tailwind.config.js
+└── vite.config.js
