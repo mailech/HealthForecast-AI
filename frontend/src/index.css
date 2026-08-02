@@ -1,0 +1,468 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-subtle: #f1f5f9;
+  
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  
+  --border-color: #e2e8f0;
+  --border-subtle: #cbd5e1;
+  
+  --primary-50: #eff6ff;
+  --primary-100: #dbeafe;
+  --primary-500: #3b82f6;
+  --primary-600: #2563eb;
+  --primary-700: #1d4ed8;
+  --primary-800: #1e40af;
+  
+  --success-50: #ecfdf5;
+  --success-500: #10b981;
+  --success-700: #047857;
+
+  --warning-50: #fffbeb;
+  --warning-500: #f59e0b;
+  --warning-700: #b45309;
+
+  --danger-50: #fef2f2;
+  --danger-500: #ef4444;
+  --danger-700: #b91c1c;
+
+  --purple-50: #f5f3ff;
+  --purple-600: #7c3aed;
+
+  --teal-50: #f0fdfa;
+  --teal-600: #0d9488;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--primary-600);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Card Styling */
+.card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.btn-primary {
+  background-color: var(--primary-600);
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-700);
+}
+
+.btn-secondary {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.btn-secondary:hover {
+  background-color: var(--bg-subtle);
+}
+
+.btn-danger {
+  background-color: var(--danger-500);
+  color: #ffffff;
+}
+
+.btn-danger:hover {
+  background-color: var(--danger-700);
+}
+
+/* Inputs & Form Controls */
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.375rem;
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-control:focus {
+  border-color: var(--primary-600);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-subtle);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 3px;
+}
+
+/* ============================================
+   RESPONSIVE STYLES — Mobile & Tablet
+   ============================================ */
+
+/* --- Tablet breakpoint (≤1024px) --- */
+@media (max-width: 1024px) {
+  .landing-hero h1 {
+    font-size: 2.25rem !important;
+  }
+
+  .landing-hero p {
+    font-size: 1rem !important;
+  }
+
+  .landing-section-title {
+    font-size: 1.75rem !important;
+  }
+
+  /* Stack dashboard 2/3-column grids so charts get full width */
+  .dashboard-content-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Stack research export banner */
+  .research-export-banner {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
+  }
+}
+
+/* --- Mobile breakpoint (≤768px) --- */
+@media (max-width: 768px) {
+
+  /* --- Sidebar: off-canvas drawer --- */
+  .sidebar {
+    transform: translateX(-100%);
+  }
+
+  .sidebar--open {
+    transform: translateX(0) !important;
+  }
+
+  .sidebar--open ~ .sidebar-backdrop,
+  .sidebar-backdrop {
+    display: block !important;
+  }
+
+  .sidebar-close-btn {
+    display: flex !important;
+  }
+
+  /* --- Navbar: full width, hamburger visible --- */
+  .dashboard-navbar {
+    left: 0 !important;
+    padding: 0 1rem !important;
+    gap: 0.5rem;
+  }
+
+  .navbar-hamburger {
+    display: flex !important;
+  }
+
+  .navbar-title {
+    font-size: 1rem !important;
+  }
+
+  .navbar-search {
+    display: none !important;
+  }
+
+  .navbar-user-info {
+    display: none !important;
+  }
+
+  .navbar-user-pill {
+    padding-left: 0 !important;
+    border-left: none !important;
+  }
+
+  /* --- Main content: remove sidebar margin --- */
+  .dashboard-main {
+    margin-left: 0 !important;
+    padding: 1rem !important;
+  }
+
+  /* --- Cards: smaller padding --- */
+  .card {
+    padding: 1rem;
+  }
+
+  /* --- Table responsive: horizontal scroll enabled via wrapper --- */
+  table {
+    font-size: 0.8125rem;
+  }
+
+  table th,
+  table td {
+    padding: 0.5rem !important;
+    white-space: nowrap;
+  }
+
+  /* --- Landing Page Header Nav --- */
+  .landing-nav-links {
+    display: none !important;
+  }
+
+  .landing-header-cta .btn-secondary {
+    display: none !important;
+  }
+
+  .landing-hero h1 {
+    font-size: 1.75rem !important;
+  }
+
+  .landing-hero p {
+    font-size: 0.9375rem !important;
+  }
+
+  .landing-section-title {
+    font-size: 1.5rem !important;
+  }
+
+  /* --- Landing footer grid: stack columns --- */
+  .landing-footer-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+  }
+
+  /* --- AI Simulator: stack the controls/output vertically --- */
+  .landing-simulator-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+  }
+
+  /* --- Patient filters: stack to single column --- */
+  .patient-filters-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* --- Patient detail: stack to single column --- */
+  .patient-detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* --- Patient header: stack vertically --- */
+  .patient-header-flex {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1rem !important;
+  }
+
+  .patient-header-right {
+    text-align: left !important;
+  }
+
+  /* --- Admission encounter grid: 2 cols instead of 4 --- */
+  .encounter-stats-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* --- Dashboard 2-column/3-column grids: stack to 1 col --- */
+  .dashboard-content-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* --- Research export banner: stack --- */
+  .research-export-banner {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
+  }
+
+  /* --- Register 2-col form: stack --- */
+  .register-2col {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* --- Add patient modal --- */
+  .modal-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .modal-card {
+    max-width: 100% !important;
+    margin: 0.5rem !important;
+    padding: 1.25rem !important;
+  }
+
+  /* --- Stat card values: slightly smaller on mobile --- */
+  .stat-value {
+    font-size: 1.5rem !important;
+  }
+
+  /* --- Metric bar in hero: stack 2-column --- */
+  .landing-metrics-grid {
+    grid-template-columns: 1fr 1fr !important;
+    padding: 1.25rem !important;
+    gap: 1rem !important;
+  }
+
+  .landing-metrics-grid > div {
+    text-align: center;
+  }
+
+  /* --- Role cards grid --- */
+  .landing-roles-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* --- Features grid --- */
+  .landing-features-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* --- Patient list header: stack the title + button --- */
+  .patient-list-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
+  }
+
+  .patient-list-header .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* --- AI Risk Score box in patient detail: stack --- */
+  .risk-forecast-flex {
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+
+  /* --- Encounter header flex --- */
+  .encounter-header-flex {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.5rem !important;
+  }
+}
+
+/* --- Small phone breakpoint (≤480px) --- */
+@media (max-width: 480px) {
+  .dashboard-main {
+    padding: 0.75rem !important;
+  }
+
+  .card {
+    padding: 0.875rem;
+    border-radius: var(--radius-md);
+  }
+
+  .btn {
+    font-size: 0.8125rem;
+    padding: 0.5rem 0.875rem;
+  }
+
+  .landing-hero h1 {
+    font-size: 1.5rem !important;
+  }
+
+  .landing-metrics-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .landing-hero-cta-buttons {
+    flex-direction: column !important;
+    width: 100%;
+  }
+
+  .landing-hero-cta-buttons .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Login/register demo buttons grid */
+  .login-demo-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .encounter-stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Modal footer: stack buttons */
+  .modal-footer {
+    flex-direction: column !important;
+  }
+
+  .modal-footer .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
