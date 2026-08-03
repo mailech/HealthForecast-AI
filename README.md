@@ -56,39 +56,4 @@ npm run dev
 
 ---
 
-## 🐙 Step-by-Step Instructions to Push Code into GitHub Branch
 
-Follow these exact commands in your shell terminal:
-
-```bash
-# Step 1: Navigate to the project directory
-cd C:\Users\mades\.gemini\antigravity\scratch\healthforecast-ai
-
-# Step 2: Initialize a new Git repository
-git init
-
-# Step 3: Check status of files
-git status
-
-# Step 4: Stage all project files
-git add .
-
-# Step 5: Commit changes with a descriptive commit message
-git commit -m "feat: complete HealthForecast AI frontend web app with RBAC and AI risk prediction"
-
-# Step 6: Create and checkout your target GitHub feature branch
-git checkout -b feature/healthforecast-ai-frontend
-
-# Step 7: Connect your local repository to your remote GitHub repository
-# Replace YOUR_GITHUB_USERNAME and YOUR_REPO_NAME with your GitHub credentials:
-git remote add origin https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME.git
-
-# Step 8: Push the feature branch to GitHub
-git push -u origin feature/healthforecast-ai-frontend
-```
-
-### 💡 Alternative: Push directly to `main` branch:
-```bash
-git branch -M main
-git push -u origin main
-```
