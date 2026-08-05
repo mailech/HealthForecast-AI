@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login API Test</title>
+</head>
+<body>
+
+<h2>Login Test</h2>
+
+<button onclick="login()">Login</button>
+
+<pre id="result"></pre>
+
+<script>
+async function login() {
+
+    const response = await fetch("http://127.0.0.1:5000/api/login", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            username: "admin",
+            password: "admin123"
+        })
+    });
+
+    const data = await response.json();
+
+    document.getElementById("result").innerText =
+        JSON.stringify(data, null, 4);
+}
+</script>
+
+</body>
+</html>

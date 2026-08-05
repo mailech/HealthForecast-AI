@@ -1,0 +1,21 @@
+age,gender,disease,risk
+56,Male,Heart Disease,High
+42,Female,Diabetes,Medium
+65,Male,Kidney Disease,High
+37,Female,Asthma,Low
+28,Male,Asthma,Low
+71,Female,Heart Disease,High
+50,Male,Diabetes,Medium
+34,Female,Fever,Low
+60,Male,Heart Disease,High
+45,Female,Kidney Disease,Medium
+22,Male,Fever,Low
+39,Female,Diabetes,Medium
+67,Male,Heart Disease,High
+31,Female,Asthma,Low
+55,Male,Kidney Disease,High
+48,Female,Heart Disease,Medium
+29,Male,Fever,Low
+63,Female,Diabetes,High
+41,Male,Asthma,Low
+58,Female,Kidney Disease,High

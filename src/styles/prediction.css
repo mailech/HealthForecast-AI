@@ -1,0 +1,100 @@
+.prediction-page {
+    padding: 30px;
+}
+
+.prediction-page h1 {
+    color: #23408e;
+    margin-bottom: 25px;
+    font-size: 40px;
+}
+
+.prediction-form {
+    background: white;
+    padding: 30px;
+    border-radius: 18px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    max-width: 650px;
+}
+
+.prediction-form input,
+.prediction-form select {
+    width: 100%;
+    padding: 14px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    outline: none;
+    font-size: 16px;
+    transition: 0.3s;
+}
+
+.prediction-form input:focus,
+.prediction-form select:focus {
+    border-color: #2f62e8;
+    box-shadow: 0 0 6px rgba(47,98,232,0.3);
+}
+
+.prediction-form button {
+    background: #2f62e8;
+    color: white;
+    border: none;
+    padding: 15px;
+    font-size: 17px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.prediction-form button:hover {
+    background: #1f4fd6;
+}
+
+.result-card {
+    margin-top: 20px;
+    background: #f8f9ff;
+    border-left: 6px solid #2f62e8;
+    border-radius: 12px;
+    padding: 25px;
+}
+
+.result-card h2 {
+    margin-bottom: 15px;
+    color: #23408e;
+}
+
+.result-card h3 {
+    margin-bottom: 15px;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.result-card p {
+    margin: 10px 0;
+    font-size: 17px;
+    color: #444;
+}
+
+.result-card strong {
+    color: #222;
+}
+
+@media (max-width: 768px) {
+
+    .prediction-page {
+        padding: 20px;
+    }
+
+    .prediction-page h1 {
+        font-size: 30px;
+    }
+
+    .prediction-form {
+        padding: 20px;
+    }
+
+    .result-card {
+        padding: 20px;
+    }
+}
