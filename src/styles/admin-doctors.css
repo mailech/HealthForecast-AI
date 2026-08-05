@@ -1,0 +1,70 @@
+.doctor-page{
+    padding:25px;
+}
+
+.page-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+}
+
+.add-btn{
+    background:#2563eb;
+    color:white;
+    border:none;
+    padding:12px 20px;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.search-box{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:white;
+    padding:12px;
+    border-radius:10px;
+    margin-bottom:20px;
+}
+
+.search-box input{
+    width:100%;
+    border:none;
+    outline:none;
+}
+
+.doctor-table{
+    width:100%;
+    border-collapse:collapse;
+    background:white;
+    border-radius:10px;
+    overflow:hidden;
+}
+
+.doctor-table th{
+    background:#2563eb;
+    color:white;
+    padding:15px;
+}
+
+.doctor-table td{
+    padding:15px;
+    text-align:center;
+    border-bottom:1px solid #eee;
+}
+
+.doctor-table button{
+    margin:0 5px;
+    padding:8px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    background:#2563eb;
+    color:white;
+}
+
+.active-status{
+    color:green;
+    font-weight:bold;
+}

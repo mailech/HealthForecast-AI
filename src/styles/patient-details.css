@@ -1,0 +1,48 @@
+.patient-details{
+    padding:25px;
+}
+
+.profile-card{
+    display:flex;
+    gap:20px;
+    background:white;
+    padding:25px;
+    border-radius:15px;
+    box-shadow:0 5px 15px rgba(0,0,0,.08);
+    margin-bottom:25px;
+}
+
+.profile-card img{
+    width:120px;
+    height:120px;
+    border-radius:50%;
+}
+
+.details-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:20px;
+}
+
+.detail-card,
+.prediction-card,
+.recommendation-card{
+    background:white;
+    padding:20px;
+    border-radius:15px;
+    box-shadow:0 5px 15px rgba(0,0,0,.08);
+}
+
+.prediction-card{
+    background:#fee2e2;
+    text-align:center;
+}
+
+.prediction-card h1{
+    color:#dc2626;
+    font-size:40px;
+}
+
+.recommendation-card{
+    background:#ecfeff;
+}
