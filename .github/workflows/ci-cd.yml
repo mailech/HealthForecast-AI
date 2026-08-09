@@ -1,0 +1,107 @@
+name: HealthForecast AI CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master, dev ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  # Job 1: Frontend Unit Testing & Linting
+  test-frontend:
+    name: Frontend Unit Testing (Vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Run Vitest Unit Tests
+        run: |
+          cd frontend
+          npm test
+
+      - name: Build Production Frontend Assets
+        run: |
+          cd frontend
+          npm run build
+
+  # Job 2: Backend Integration Testing
+  test-backend:
+    name: Backend API Integration Testing (Jest & Supertest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install Backend Dependencies
+        run: |
+          cd backend
+          npm ci
+
+      - name: Run Supertest Integration Tests
+        run: |
+          cd backend
+          npm test
+
+  # Job 3: Machine Learning Model Microservice Build & Test
+  test-ml-service:
+    name: Python ML Microservice Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: 'pip'
+
+      - name: Install ML Dependencies
+        run: |
+          cd ml_service
+          pip install -r requirements.txt
+
+      - name: Train ML Model & Export Artifacts
+        run: |
+          cd ml_service
+          python train_model.py
+
+  # Job 4: Multi-Container Docker Build Verification
+  docker-build:
+    name: Multi-Container Docker Build
+    needs: [test-frontend, test-backend, test-ml-service]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Multi-Container Services via Docker Compose
+        run: |
+          docker compose build
+
+  # Job 5: Automated Deployment Trigger
+  deploy:
+    name: Deploy to Production Cloud (Vercel / Render / AWS)
+    needs: [docker-build]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy Confirmation Notification
+        run: |
+          echo "HealthForecast AI CI/CD Pipeline: All test suites passed cleanly!"
+          echo "Triggering deployment to Vercel (Frontend) and Render/Railway (Backend & ML Engine)..."
