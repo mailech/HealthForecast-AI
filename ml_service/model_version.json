@@ -1,0 +1,32 @@
+{
+  "model_name": "HealthForecast-RandomForest-Classifier",
+  "version": "v2.4.0",
+  "algorithm": "RandomForestClassifier",
+  "n_estimators": 120,
+  "features": [
+    "age",
+    "glucose",
+    "bp_systolic",
+    "bp_diastolic",
+    "bmi",
+    "previous_admissions"
+  ],
+  "feature_importances": {
+    "age": 0.2197,
+    "glucose": 0.2544,
+    "bp_systolic": 0.1554,
+    "bp_diastolic": 0.1096,
+    "bmi": 0.1126,
+    "previous_admissions": 0.1482
+  },
+  "metrics": {
+    "accuracy": 0.8033,
+    "roc_auc": 0.7536,
+    "precision": 0.5052,
+    "recall": 0.4118
+  },
+  "artifact_files": [
+    "model.pkl",
+    "scaler.pkl"
+  ]
+}

@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # Frontend Web Client (Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - healthforecast-net
+    restart: always
+
+  # Node.js Express Backend & WebSockets API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - MONGO_URI=mongodb://23u41a4257_db_user:QW8Gh1zIXudbQJQj@ac-aj7rx9n-shard-00-00.9iasjtp.mongodb.net:27017,ac-aj7rx9n-shard-00-01.9iasjtp.mongodb.net:27017,ac-aj7rx9n-shard-00-02.9iasjtp.mongodb.net:27017/?ssl=true&replicaSet=atlas-hbr9qy-shard-0&authSource=admin&appName=HealthForecastDB
+      - ML_SERVICE_URL=http://ml_service:8000
+      - JWT_SECRET=healthforecast_secret_jwt_key_2026
+    depends_on:
+      - ml_service
+    networks:
+      - healthforecast-net
+    restart: always
+
+  # Python FastAPI ML Predictive Microservice
+  ml_service:
+    build:
+      context: ./ml_service
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    networks:
+      - healthforecast-net
+    restart: always
+
+networks:
+  healthforecast-net:
+    driver: bridge
