@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-serif: "Source Serif 4", Georgia, serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", monospace;
+}
+
+body {
+  background-color: #F7F9FB;
+  color: #0F1B2D;
+}
+
+/* Signature element: risk indicator bar. A gradient track with a marker at
+   the patient's probability so risk reads at a glance down a whole table,
+   not just as a colored badge repeated 50 times. */
+.risk-track {
+  position: relative;
+  height: 6px;
+  width: 72px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #2E9E5B 0%, #D6952E 50%, #D6423E 100%);
+}
+
+.risk-marker {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 12px;
+  background: #0F1B2D;
+  border-radius: 1px;
+}
+
+.scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: #E5EAF0; border-radius: 3px; }

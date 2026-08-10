@@ -1,0 +1,17 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+.env
+dev.db
+
+# Node / Next.js
+node_modules/
+.next/
+*.tsbuildinfo
+npm-debug.log*
+sss
+# Editor / OS
+.vscode/
+.DS_Store
+Thumbs.db
