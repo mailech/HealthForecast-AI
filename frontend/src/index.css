@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-pista-50: #f4f9ee;
+  --color-pista-100: #e6f3d9;
+  --color-pista-200: #d0e8b8;
+  --color-pista-300: #b3d98c;
+  --color-pista-400: #93c95e;
+  --color-pista-500: #7ab83e;
+  --color-pista-600: #5f9530;
+  --color-pista-700: #4a7327;
+  --color-pista-800: #3d5c23;
+  --color-pista-900: #344d20;
+}
+
+body {
+  font-family: var(--font-sans);
+}
