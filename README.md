@@ -63,7 +63,8 @@ cd backend
 pip install -r requirements.txt
 python download_dataset.py
 python seed.py
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --port 8000 // py -m uvicorn app.main:app --reload --port 8000
+
 
 # Frontend (new terminal)
 cd frontend
