@@ -1,0 +1,57 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: healthforecast
+      POSTGRES_PASSWORD: healthforecast123
+      POSTGRES_DB: healthforecast_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U healthforecast -d healthforecast_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mongodb:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: healthforecast
+      POSTGRES_PASSWORD: healthforecast123
+      POSTGRES_DB: healthforecast_db
+      MONGODB_URL: mongodb://mongodb:27017
+    volumes:
+      - ./backend/data:/app/data
+      - ./backend/models:/app/models
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "python seed.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:8000
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  mongo_data:
