@@ -34,10 +34,12 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=400, detail="Email is already registered")
     
-    # Ensure role is valid
+    # Ensure role is valid and forbid system_admin from public registration
     valid_roles = [r.value for r in UserRole]
     if user_in.role not in valid_roles:
         raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of {valid_roles}")
+    if user_in.role == UserRole.SYSTEM_ADMIN.value:
+        raise HTTPException(status_code=403, detail="System Administrator accounts cannot be created via public registration")
 
     new_user = User(
         email=user_in.email,

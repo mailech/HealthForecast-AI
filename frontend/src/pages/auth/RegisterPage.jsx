@@ -138,7 +138,6 @@ export const RegisterPage = () => {
                 <option value="doctor">Doctor / Attending Physician</option>
                 <option value="hospital_admin">Hospital Administrator</option>
                 <option value="researcher">Healthcare Researcher</option>
-                <option value="system_admin">System Administrator</option>
               </select>
             </div>
 
