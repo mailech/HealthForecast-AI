@@ -1,6 +1,7 @@
 import os
 from pydantic_settings import BaseSettings
 
+
 class Settings(BaseSettings):
     PROJECT_NAME: str = "HealthForecast AI"
     VERSION: str = "1.0.0"
@@ -12,5 +13,6 @@ class Settings(BaseSettings):
 
     class Config:
         case_sensitive = True
+
 
 settings = Settings()

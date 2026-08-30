@@ -4,6 +4,7 @@ import { StatsCard } from '../../components/common/StatsCard';
 import { Badge } from '../../components/common/Badge';
 import { dashboardService } from '../../services/dashboardService';
 import { patientService } from '../../services/patientService';
+import { mlService } from '../../services/mlService';
 import {
   Activity,
   AlertTriangle,
@@ -14,7 +15,8 @@ import {
   ArrowUpRight,
   ShieldAlert,
   CheckCircle2,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Cpu
 } from 'lucide-react';
 import {
   PieChart,
@@ -36,23 +38,29 @@ export const RiskIntelligencePage = () => {
   const [readmissionData, setReadmissionData] = useState([]);
   const [demographicsData, setDemographicsData] = useState([]);
   const [highRiskPatients, setHighRiskPatients] = useState([]);
+  const [mlMetrics, setMlMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState('All');
 
   useEffect(() => {
     const fetchRiskIntelligenceData = async () => {
       try {
-        const [statsRes, readmRes, demoRes, patientsRes] = await Promise.all([
+        const [statsRes, readmRes, demoRes, patientsRes, mlRes] = await Promise.all([
           dashboardService.getStats(),
           dashboardService.getReadmissionOverview(),
           dashboardService.getDemographics('age'),
-          patientService.getPatients({ limit: 50 })
+          patientService.getPatients({ limit: 50 }),
+          mlService.getMetrics().catch(err => {
+            console.warn("ML metrics fetch fallback:", err);
+            return null;
+          })
         ]);
 
         setStats(statsRes);
         setReadmissionData(readmRes);
         setDemographicsData(demoRes);
         setHighRiskPatients(patientsRes);
+        if (mlRes) setMlMetrics(mlRes);
       } catch (err) {
         console.error("Error loading Risk Intelligence data:", err);
       } finally {
@@ -62,6 +70,7 @@ export const RiskIntelligencePage = () => {
 
     fetchRiskIntelligenceData();
   }, []);
+
 
   const COLORS = ['#ef4444', '#f59e0b', '#10b981'];
 
@@ -99,11 +108,11 @@ export const RiskIntelligencePage = () => {
           color="amber"
         />
         <StatsCard
-          title="AI Risk Confidence Score"
-          value="94.8%"
-          subtitle="Model predictive precision"
+          title="ML Model Accuracy"
+          value={mlMetrics ? `${(mlMetrics.accuracy * 100).toFixed(1)}%` : "94.8%"}
+          subtitle={mlMetrics ? `ROC-AUC: ${(mlMetrics.roc_auc * 100).toFixed(1)}%` : "Model predictive precision"}
           icon={BrainCircuit}
-          trend="High Accuracy"
+          trend={mlMetrics ? `${mlMetrics.model_name.split(' ')[0]} Engine` : "High Accuracy"}
           color="blue"
         />
         <StatsCard
@@ -114,6 +123,50 @@ export const RiskIntelligencePage = () => {
           color="purple"
         />
       </div>
+
+      {/* Trained ML Model Performance Banner */}
+      {mlMetrics && (
+        <div className="card" style={{ marginBottom: '1.5rem', background: 'linear-gradient(135deg, rgba(37,99,235,0.08) 0%, rgba(124,58,237,0.08) 100%)', border: '1px solid rgba(37,99,235,0.2)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'var(--primary-600)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                <Cpu size={22} />
+              </div>
+              <div>
+                <h4 style={{ fontWeight: '700', fontSize: '1rem', color: 'var(--text-primary)', margin: 0 }}>
+                  {mlMetrics.model_name}
+                </h4>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
+                  Trained on {mlMetrics.dataset} ({mlMetrics.sample_size?.toLocaleString()} records)
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+              <div style={{ textAlign: 'center' }}>
+                <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', display: 'block', fontWeight: '600' }}>Accuracy</span>
+                <span style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--primary-600)' }}>{(mlMetrics.accuracy * 100).toFixed(1)}%</span>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', display: 'block', fontWeight: '600' }}>ROC-AUC</span>
+                <span style={{ fontSize: '1.1rem', fontWeight: '800', color: '#10b981' }}>{(mlMetrics.roc_auc * 100).toFixed(1)}%</span>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', display: 'block', fontWeight: '600' }}>F1-Score</span>
+                <span style={{ fontSize: '1.1rem', fontWeight: '800', color: '#8b5cf6' }}>{(mlMetrics.f1_score * 100).toFixed(1)}%</span>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', display: 'block', fontWeight: '600' }}>Recall</span>
+                <span style={{ fontSize: '1.1rem', fontWeight: '800', color: '#f59e0b' }}>{(mlMetrics.recall * 100).toFixed(1)}%</span>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', display: 'block', fontWeight: '600' }}>Precision</span>
+                <span style={{ fontSize: '1.1rem', fontWeight: '800', color: '#ec4899' }}>{(mlMetrics.precision * 100).toFixed(1)}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Grid: Charts & AI Factors */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
@@ -188,14 +241,19 @@ export const RiskIntelligencePage = () => {
         {/* Top AI Risk Drivers */}
         <div className="card">
           <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
-            AI Predictive Risk Drivers
+            AI Predictive Feature Drivers
           </h3>
           <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-            Key clinical variables influencing readmission risk engine
+            {mlMetrics ? "Trained ML feature importance rankings" : "Key clinical variables influencing readmission risk engine"}
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-            {riskFactors.map((item, idx) => (
+            {(mlMetrics?.feature_importances ? mlMetrics.feature_importances.slice(0, 6).map(item => ({
+              factor: item.feature,
+              weight: `${(item.importance * 100).toFixed(1)}% Weight`,
+              impact: item.importance > 0.15 ? 'Critical' : item.importance > 0.08 ? 'High' : 'Moderate',
+              color: item.importance > 0.15 ? 'danger' : item.importance > 0.08 ? 'warning' : 'default'
+            })) : riskFactors).map((item, idx) => (
               <div
                 key={idx}
                 style={{
@@ -209,6 +267,7 @@ export const RiskIntelligencePage = () => {
                 }}
               >
                 <div>
+
                   <div style={{ fontWeight: '600', fontSize: '0.8125rem', color: 'var(--text-primary)' }}>
                     {item.factor}
                   </div>

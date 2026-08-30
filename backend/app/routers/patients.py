@@ -13,45 +13,19 @@ from app.schemas.patient import (
 )
 from app.middleware.auth import get_current_user
 
+from app.ml.predictor import predictor
+
 router = APIRouter(prefix="/patients", tags=["Patient Management"])
 
 def calculate_patient_risk_prediction(data: PatientWithAdmissionCreate):
     """
     AI Clinical Risk Score Engine:
-    Computes a risk score (0-100%) based on clinical features:
-    - Number of prior inpatient visits (+18 per visit)
-    - Number of lab procedures (0.4 per lab)
-    - Number of medications (1.5 per med)
-    - HbA1c result (>8 or >7 increases risk)
-    - Glucose serum result (>200 or >300 increases risk)
-    - Time in hospital
+    Uses trained RandomForest Machine Learning Model (Diabetes 130-US Hospitals)
+    to compute continuous risk score (0-100%), risk category, and 30-day readmission forecast.
     """
-    base_score = (data.number_inpatient * 18.0) + (data.num_lab_procedures * 0.4) + (data.num_medications * 1.5)
-    
-    if data.A1Cresult == ">8":
-        base_score += 12.0
-    elif data.A1Cresult == ">7":
-        base_score += 6.0
-        
-    if data.max_glu_serum in [">200", ">300"]:
-        base_score += 10.0
-        
-    if data.time_in_hospital >= 7:
-        base_score += 8.0
-
-    risk_score = round(min(98.5, max(14.0, base_score)), 1)
-
-    if risk_score >= 65.0:
-        risk_category = "High"
-        readmitted = "<30"
-    elif risk_score >= 40.0:
-        risk_category = "Medium"
-        readmitted = ">30"
-    else:
-        risk_category = "Low"
-        readmitted = "NO"
-
+    risk_score, risk_category, readmitted, _ = predictor.predict(data)
     return risk_score, risk_category, readmitted
+
 
 @router.get("", response_model=Union[List[PatientResponse], List[AnonymizedPatientResponse]])
 def get_patients(

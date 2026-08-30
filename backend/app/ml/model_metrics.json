@@ -1,0 +1,73 @@
+{
+  "model_name": "RandomForest Clinical Readmission Classifier",
+  "dataset": "Diabetes 130-US Hospitals (101,766 records)",
+  "accuracy": 0.7273,
+  "precision": 0.1827,
+  "recall": 0.4157,
+  "f1_score": 0.2538,
+  "roc_auc": 0.6406,
+  "confusion_matrix": [
+    [
+      13860,
+      4223
+    ],
+    [
+      1327,
+      944
+    ]
+  ],
+  "feature_importances": [
+    {
+      "feature": "Prior Inpatient Visits",
+      "raw_name": "number_inpatient",
+      "importance": 0.1862
+    },
+    {
+      "feature": "Lab Procedures Count",
+      "raw_name": "num_lab_procedures",
+      "importance": 0.1269
+    },
+    {
+      "feature": "Medications Count",
+      "raw_name": "num_medications",
+      "importance": 0.111
+    },
+    {
+      "feature": "Hospitalization Duration (Days)",
+      "raw_name": "time_in_hospital",
+      "importance": 0.0811
+    },
+    {
+      "feature": "Patient Age Bracket",
+      "raw_name": "age_num",
+      "importance": 0.0691
+    },
+    {
+      "feature": "Number of Diagnoses",
+      "raw_name": "number_diagnoses",
+      "importance": 0.0615
+    },
+    {
+      "feature": "Clinical Procedures Count",
+      "raw_name": "num_procedures",
+      "importance": 0.0525
+    },
+    {
+      "feature": "Emergency Visits Count",
+      "raw_name": "number_emergency",
+      "importance": 0.0406
+    },
+    {
+      "feature": "Outpatient Visits Count",
+      "raw_name": "number_outpatient",
+      "importance": 0.036
+    },
+    {
+      "feature": "Race",
+      "raw_name": "race_enc",
+      "importance": 0.0341
+    }
+  ],
+  "sample_size": 101766,
+  "test_size": 20354
+}
