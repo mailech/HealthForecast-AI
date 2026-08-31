@@ -40,13 +40,23 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
 class RoleChecker:
     """
     Enforces role-based permissions (RBAC) on API routes.
+    Supports exact role titles and normalized snake_case strings.
     """
     def __init__(self, allowed_roles: list[str]):
         self.allowed_roles = allowed_roles
+        self.normalized_allowed = set()
+        for role in allowed_roles:
+            self.normalized_allowed.add(role)
+            self.normalized_allowed.add(role.lower())
+            self.normalized_allowed.add(role.lower().replace(" ", "_"))
 
     def __call__(self, current_user: dict = Depends(get_current_user)) -> dict:
-        user_role = current_user.get("role")
-        if user_role not in self.allowed_roles:
+        user_role = current_user.get("role", "")
+        normalized_user_role = user_role.lower().replace(" ", "_") if user_role else ""
+        
+        if (user_role not in self.normalized_allowed and 
+            user_role.lower() not in self.normalized_allowed and 
+            normalized_user_role not in self.normalized_allowed):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Operation forbidden. Required role in {self.allowed_roles}. Current role: '{user_role}'"

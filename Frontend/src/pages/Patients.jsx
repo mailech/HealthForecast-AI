@@ -2,59 +2,79 @@ import { useEffect, useState } from 'react';
 import {
   Box, Typography, Button, TextField, CircularProgress, Alert,
   Dialog, DialogTitle, DialogContent, DialogActions, Snackbar,
-  IconButton, Tooltip, Grid, MenuItem, Switch, FormControlLabel,
-  Stepper, Step, StepLabel, Divider, Chip
+  IconButton, Tooltip, Grid, MenuItem, Switch, Divider, Chip,
+  Table, TableBody, TableCell, TableHead, TableRow, Avatar,
+  InputAdornment, Stepper, Step, StepLabel, Paper
 } from '@mui/material';
-import { DataGrid } from '@mui/x-data-grid';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import PersonIcon from '@mui/icons-material/Person';
-import MedicalInformationIcon from '@mui/icons-material/MedicalInformation';
-import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
+import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
+import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
+import MedicalInformationRoundedIcon from '@mui/icons-material/MedicalInformationRounded';
+import LocalHospitalRoundedIcon from '@mui/icons-material/LocalHospitalRounded';
+import FilterListRoundedIcon from '@mui/icons-material/FilterListRounded';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
 
-const STEPS = ['Basic Information', 'Medical History', 'Admission History'];
+const STEPS = ['Basic Info', 'Medical History', 'Admission'];
 const GENDERS = ['Male', 'Female', 'Other'];
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const SMOKING = ['Never', 'Former', 'Current'];
 const ALCOHOL = ['None', 'Occasional', 'Moderate', 'Heavy'];
 
 const emptyForm = {
-  // Step 1
   patient_id: '', first_name: '', last_name: '', age: '', gender: '',
   date_of_birth: '', blood_group: '', height: '', weight: '',
   phone: '', email: '', address: '', hospital: '',
-  // Step 2
   diabetes: false, hypertension: false, heart_disease: false, kidney_disease: false,
   smoking_status: '', alcohol_consumption: '', allergies: '', previous_surgery: '', chronic_disease_notes: '',
-  // Step 3
   num_previous_admissions: '', admission_date: '', discharge_date: '',
   length_of_stay: '', icu_admission: false, admission_reason: '',
 };
 
-function FieldLabel({ children }) {
+function avatarColor(str) {
+  const colors = ['#1D4ED8', '#7C3AED', '#0891B2', '#059669', '#DC2626', '#D97706'];
+  let h = 0;
+  for (let i = 0; i < (str || '').length; i++) h = str.charCodeAt(i) + ((h << 5) - h);
+  return colors[Math.abs(h) % colors.length];
+}
+
+function FLabel({ children, required }) {
   return (
-    <Typography variant="caption" sx={{ color: '#6B7280', fontWeight: 600, mb: 0.5, display: 'block', textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '0.7rem' }}>
-      {children}
+    <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: '#475569', mb: 0.5, display: 'block', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+      {children}{required && <Box component="span" sx={{ color: '#EF4444', ml: 0.3 }}>*</Box>}
     </Typography>
   );
 }
 
-function StepIcon({ step, active, completed }) {
-  const icons = [<PersonIcon />, <MedicalInformationIcon />, <LocalHospitalIcon />];
+function FField({ name, label, form, onChange, errors, opts = {} }) {
   return (
-    <Box sx={{
-      width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      bgcolor: completed ? '#1565C0' : active ? '#1565C0' : '#E3F2FD',
-      color: completed || active ? '#fff' : '#1565C0',
-      transition: 'all 0.3s',
-      '& svg': { fontSize: 18 }
-    }}>
-      {icons[step]}
-    </Box>
+    <Grid item xs={12} sm={opts.full ? 12 : 6}>
+      <FLabel required={opts.required}>{label}</FLabel>
+      <TextField
+        name={name} value={form[name]} onChange={onChange}
+        fullWidth size="small"
+        error={!!errors[name]} helperText={errors[name]}
+        select={!!opts.options} type={opts.type || 'text'}
+        InputLabelProps={opts.type === 'date' ? { shrink: true } : undefined}
+        multiline={opts.multiline} rows={opts.multiline ? 2 : undefined}
+        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '9px', fontSize: '0.85rem' } }}
+      >
+        {opts.options?.map(o => <MenuItem key={o} value={o} sx={{ fontSize: '0.85rem' }}>{o}</MenuItem>)}
+      </TextField>
+    </Grid>
+  );
+}
+
+function FSwitch({ name, label, form, onChange }) {
+  return (
+    <Grid item xs={12} sm={6}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1.5, py: 1.2, borderRadius: '9px', border: `1.5px solid ${form[name] ? '#BFDBFE' : '#E2E8F0'}`, bgcolor: form[name] ? '#EFF6FF' : '#F8FAFC' }}>
+        <Typography sx={{ fontSize: '0.82rem', fontWeight: 500, color: '#374151' }}>{label}</Typography>
+        <Switch name={name} checked={!!form[name]} onChange={onChange} size="small" color="primary" />
+      </Box>
+    </Grid>
   );
 }
 
@@ -85,13 +105,11 @@ export default function Patients() {
   const handleDelete = async () => {
     try {
       await api.delete(`/api/v1/patients/${deleteId}`);
-      setSnackbar({ open: true, message: 'Patient deleted successfully.', severity: 'success' });
+      setSnackbar({ open: true, message: 'Patient deleted.', severity: 'success' });
       fetchPatients();
     } catch {
       setSnackbar({ open: true, message: 'Failed to delete patient.', severity: 'error' });
-    } finally {
-      setDeleteId(null);
-    }
+    } finally { setDeleteId(null); }
   };
 
   const handleChange = (e) => {
@@ -113,7 +131,6 @@ export default function Patients() {
 
   const handleNext = () => { if (validateStep()) setActiveStep(s => s + 1); };
   const handleBack = () => setActiveStep(s => s - 1);
-
   const openModal = () => { setForm(emptyForm); setActiveStep(0); setStepErrors({}); setModalOpen(true); };
   const closeModal = () => setModalOpen(false);
 
@@ -121,13 +138,16 @@ export default function Patients() {
     if (!validateStep()) return;
     setSaving(true);
     try {
+      // Only send fields that PatientCreate schema accepts
       const payload = {
-        ...form,
-        age: form.age ? Number(form.age) : undefined,
-        height: form.height ? Number(form.height) : undefined,
-        weight: form.weight ? Number(form.weight) : undefined,
-        num_previous_admissions: form.num_previous_admissions ? Number(form.num_previous_admissions) : undefined,
-        length_of_stay: form.length_of_stay ? Number(form.length_of_stay) : undefined,
+        patient_id: form.patient_id,
+        first_name: form.first_name,
+        last_name: form.last_name,
+        date_of_birth: form.date_of_birth || '2000-01-01',
+        gender: form.gender,
+        hospital: form.hospital,
+        ...(form.email ? { email: form.email } : {}),
+        ...(form.phone ? { phone: form.phone } : {}),
       };
       await api.post('/api/v1/patients', payload);
       setSnackbar({ open: true, message: 'Patient added successfully!', severity: 'success' });
@@ -135,248 +155,239 @@ export default function Patients() {
       fetchPatients();
     } catch (err) {
       setSnackbar({ open: true, message: err.response?.data?.detail || 'Failed to add patient.', severity: 'error' });
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
   const filtered = patients.filter(p =>
     p.patient_id?.toLowerCase().includes(search.toLowerCase()) ||
     p.first_name?.toLowerCase().includes(search.toLowerCase()) ||
-    p.last_name?.toLowerCase().includes(search.toLowerCase())
+    p.last_name?.toLowerCase().includes(search.toLowerCase()) ||
+    p.hospital?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const columns = [
-    { field: 'patient_id', headerName: 'Patient ID', flex: 1, minWidth: 120 },
-    { field: 'first_name', headerName: 'First Name', flex: 1, minWidth: 110 },
-    { field: 'last_name', headerName: 'Last Name', flex: 1, minWidth: 110 },
-    { field: 'gender', headerName: 'Gender', width: 90 },
-    { field: 'hospital', headerName: 'Hospital', flex: 1, minWidth: 130 },
-    { field: 'email', headerName: 'Email', flex: 1.2, minWidth: 160 },
-    { field: 'phone', headerName: 'Phone', flex: 1, minWidth: 120 },
-    {
-      field: 'actions', headerName: 'Actions', width: 140, sortable: false,
-      renderCell: (params) => (
-        <Box>
-          <Tooltip title="View">
-            <IconButton size="small" color="primary" onClick={() => navigate(`/patients/${params.row.patient_id}`)}>
-              <VisibilityIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Edit">
-            <IconButton size="small" color="info" onClick={() => navigate(`/patients/edit/${params.row.patient_id}`)}>
-              <EditIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Delete">
-            <IconButton size="small" color="error" onClick={() => setDeleteId(params.row.patient_id)}>
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      ),
-    },
-  ];
-
-  const tf = (name, label, opts = {}) => (
-    <Grid item xs={12} sm={opts.full ? 12 : 6} key={name}>
-      <FieldLabel>{label}</FieldLabel>
-      <TextField
-        name={name}
-        value={form[name]}
-        onChange={handleChange}
-        fullWidth
-        size="small"
-        error={!!stepErrors[name]}
-        helperText={stepErrors[name]}
-        select={!!opts.options}
-        type={opts.type || 'text'}
-        InputLabelProps={opts.type === 'date' ? { shrink: true } : undefined}
-        multiline={opts.multiline}
-        rows={opts.multiline ? 2 : undefined}
-        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
-      >
-        {opts.options?.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
-      </TextField>
-    </Grid>
-  );
-
-  const sw = (name, label) => (
-    <Grid item xs={12} sm={6} key={name}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1.5, borderRadius: '10px', border: '1px solid #E5E7EB', bgcolor: form[name] ? '#EFF6FF' : '#FAFAFA' }}>
-        <Typography variant="body2" fontWeight={600} color="#374151">{label}</Typography>
-        <Switch
-          name={name}
-          checked={!!form[name]}
-          onChange={handleChange}
-          color="primary"
-          size="small"
-        />
-      </Box>
-    </Grid>
-  );
+  const stepIcons = [<PersonRoundedIcon />, <MedicalInformationRoundedIcon />, <LocalHospitalRoundedIcon />];
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3, flexWrap: 'wrap', gap: 1.5 }}>
         <Box>
-          <Typography variant="h5" fontWeight={700} color="#1565C0">Patients</Typography>
-          <Typography variant="body2" color="text.secondary">Manage and monitor all patient records</Typography>
+          <Typography sx={{ fontWeight: 800, fontSize: '1.2rem', color: '#0F172A' }}>Patients</Typography>
+          <Typography sx={{ fontSize: '0.8rem', color: '#64748B', mt: 0.3 }}>Manage and monitor all patient records</Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={openModal}
-          sx={{ bgcolor: '#1565C0', borderRadius: 2, px: 3, py: 1, fontWeight: 600, boxShadow: '0 4px 14px rgba(21,101,192,0.3)' }}>
+        <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={openModal}
+          sx={{ bgcolor: '#1D4ED8', borderRadius: '10px', px: 2.5, py: 1, fontWeight: 600, fontSize: '0.82rem', boxShadow: '0 4px 12px rgba(29,78,216,0.25)', '&:hover': { bgcolor: '#1E40AF' } }}>
           Add Patient
         </Button>
       </Box>
 
-      <TextField
-        placeholder="Search by ID, name..."
-        size="small"
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        sx={{ mb: 2, width: { xs: '100%', sm: 320 }, '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
-      />
-
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>
-      ) : (
-        <Box sx={{ bgcolor: 'white', borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', py: 1, px: 1 }}>
-          <DataGrid
-            autoHeight
-            rows={filtered}
-            columns={columns}
-            getRowId={(row) => row.patient_id}
-            pageSizeOptions={[10, 25, 50]}
-            initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
-            disableRowSelectionOnClick
-            disableColumnMenu
-            rowHeight={52}
-            sx={{
-              border: 'none',
-              '& .MuiDataGrid-columnHeaders': { bgcolor: '#E3F2FD', fontWeight: 700, color: '#1A202C' },
-              '& .MuiDataGrid-cell': { py: 1.2 },
-              '& .MuiDataGrid-footerContainer': { borderTop: '1px solid #F0F2F5' },
-              '& .MuiDataGrid-virtualScroller': { bgcolor: '#FFFFFF' },
-            }}
-          />
+      {/* Search + Filter bar */}
+      <Box sx={{ display: 'flex', gap: 1.5, mb: 2.5, flexWrap: 'wrap' }}>
+        <TextField
+          placeholder="Search by ID, name, hospital..."
+          size="small" value={search} onChange={e => setSearch(e.target.value)}
+          InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon sx={{ fontSize: 17, color: '#94A3B8' }} /></InputAdornment> }}
+          sx={{ width: { xs: '100%', sm: 300 }, '& .MuiOutlinedInput-root': { borderRadius: '10px', fontSize: '0.85rem', bgcolor: '#fff' } }}
+        />
+        <Button variant="outlined" startIcon={<FilterListRoundedIcon />} size="small"
+          sx={{ borderRadius: '10px', borderColor: '#E2E8F0', color: '#64748B', fontSize: '0.8rem', '&:hover': { borderColor: '#CBD5E1', bgcolor: '#F8FAFC' } }}>
+          Filter
+        </Button>
+        <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center' }}>
+          <Typography sx={{ fontSize: '0.78rem', color: '#94A3B8' }}>{filtered.length} patient{filtered.length !== 1 ? 's' : ''}</Typography>
         </Box>
-      )}
+      </Box>
 
-      {/* Multi-Step Add Patient Modal */}
+      {error && <Alert severity="error" sx={{ mb: 2, borderRadius: '10px' }}>{error}</Alert>}
+
+      {/* Table */}
+      <Paper elevation={0} sx={{ borderRadius: '14px', border: '1px solid #F1F5F9', overflow: 'hidden' }}>
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress size={32} sx={{ color: '#3B82F6' }} /></Box>
+        ) : filtered.length === 0 ? (
+          <Box sx={{ py: 8, textAlign: 'center' }}>
+            <PersonRoundedIcon sx={{ fontSize: 48, color: '#CBD5E1', mb: 1 }} />
+            <Typography sx={{ fontWeight: 600, color: '#475569', fontSize: '0.9rem' }}>No patients found</Typography>
+            <Typography sx={{ fontSize: '0.78rem', color: '#94A3B8', mt: 0.5 }}>
+              {search ? 'Try a different search term.' : 'Add your first patient to get started.'}
+            </Typography>
+          </Box>
+        ) : (
+          <Box sx={{ overflowX: 'auto' }}>
+            <Table>
+              <TableHead>
+                <TableRow sx={{ '& th': { bgcolor: '#F8FAFC', fontWeight: 700, fontSize: '0.7rem', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #F1F5F9', py: 1.5, px: 2 } }}>
+                  <TableCell>Patient</TableCell>
+                  <TableCell>Patient ID</TableCell>
+                  <TableCell>Gender</TableCell>
+                  <TableCell>Hospital</TableCell>
+                  <TableCell>Contact</TableCell>
+                  <TableCell align="right">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filtered.map((p) => {
+                  const initials = `${p.first_name?.[0] || ''}${p.last_name?.[0] || ''}`.toUpperCase();
+                  const bg = avatarColor(p.patient_id);
+                  return (
+                    <TableRow key={p.patient_id} sx={{ '& td': { borderBottom: '1px solid #F8FAFC', py: 1.5, px: 2 }, '&:hover': { bgcolor: '#FAFCFF' }, '&:last-child td': { borderBottom: 'none' } }}>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <Avatar sx={{ width: 34, height: 34, bgcolor: bg, fontSize: '0.75rem', fontWeight: 700 }}>{initials}</Avatar>
+                          <Box>
+                            <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#0F172A' }}>{p.first_name} {p.last_name}</Typography>
+                            <Typography sx={{ fontSize: '0.72rem', color: '#94A3B8' }}>{p.date_of_birth || '—'}</Typography>
+                          </Box>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Chip label={p.patient_id} size="small" sx={{ bgcolor: '#EFF6FF', color: '#1D4ED8', fontWeight: 600, fontSize: '0.72rem', borderRadius: '6px' }} />
+                      </TableCell>
+                      <TableCell sx={{ fontSize: '0.82rem', color: '#475569' }}>{p.gender || '—'}</TableCell>
+                      <TableCell sx={{ fontSize: '0.82rem', color: '#475569' }}>{p.hospital || '—'}</TableCell>
+                      <TableCell>
+                        <Box>
+                          <Typography sx={{ fontSize: '0.78rem', color: '#475569' }}>{p.email || '—'}</Typography>
+                          <Typography sx={{ fontSize: '0.72rem', color: '#94A3B8' }}>{p.phone || ''}</Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
+                          <Tooltip title="Edit">
+                            <IconButton size="small" onClick={() => navigate(`/patients/edit/${p.patient_id}`)}
+                              sx={{ color: '#3B82F6', bgcolor: '#EFF6FF', borderRadius: '7px', '&:hover': { bgcolor: '#DBEAFE' } }}>
+                              <EditRoundedIcon sx={{ fontSize: 15 }} />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Delete">
+                            <IconButton size="small" onClick={() => setDeleteId(p.patient_id)}
+                              sx={{ color: '#EF4444', bgcolor: '#FEF2F2', borderRadius: '7px', '&:hover': { bgcolor: '#FEE2E2' } }}>
+                              <DeleteRoundedIcon sx={{ fontSize: 15 }} />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </Box>
+        )}
+      </Paper>
+
+      {/* Add Patient Modal */}
       <Dialog open={modalOpen} onClose={closeModal} maxWidth="md" fullWidth
-        PaperProps={{ sx: { borderRadius: '20px', overflow: 'hidden' } }}>
-        <DialogTitle sx={{ bgcolor: '#1565C0', color: '#fff', py: 2.5, px: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        PaperProps={{ sx: { borderRadius: '16px', overflow: 'hidden' } }}>
+        <DialogTitle sx={{ p: 0 }}>
+          <Box sx={{ px: 3, py: 2.5, bgcolor: '#0F172A', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Box>
-              <Typography variant="h6" fontWeight={700}>Add New Patient</Typography>
-              <Typography variant="caption" sx={{ opacity: 0.8 }}>Step {activeStep + 1} of {STEPS.length}</Typography>
+              <Typography sx={{ fontWeight: 700, color: '#F1F5F9', fontSize: '1rem' }}>Add New Patient</Typography>
+              <Typography sx={{ fontSize: '0.72rem', color: '#64748B', mt: 0.2 }}>Step {activeStep + 1} of {STEPS.length} — {STEPS[activeStep]}</Typography>
             </Box>
-            <Chip label={STEPS[activeStep]} sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: '#fff', fontWeight: 600 }} />
+            <Chip label={STEPS[activeStep]} size="small" sx={{ bgcolor: '#1E293B', color: '#94A3B8', fontWeight: 600, fontSize: '0.72rem' }} />
+          </Box>
+          <Box sx={{ px: 3, py: 2, bgcolor: '#F8FAFC', borderBottom: '1px solid #F1F5F9' }}>
+            <Stepper activeStep={activeStep} alternativeLabel>
+              {STEPS.map((label, i) => (
+                <Step key={label} completed={i < activeStep}>
+                  <StepLabel
+                    StepIconComponent={({ active, completed }) => (
+                      <Box sx={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: completed || active ? '#1D4ED8' : '#E2E8F0', color: completed || active ? '#fff' : '#94A3B8', '& svg': { fontSize: 16 } }}>
+                        {stepIcons[i]}
+                      </Box>
+                    )}
+                  >
+                    <Typography sx={{ fontSize: '0.72rem', fontWeight: activeStep === i ? 700 : 500, color: activeStep === i ? '#1D4ED8' : '#94A3B8' }}>{label}</Typography>
+                  </StepLabel>
+                </Step>
+              ))}
+            </Stepper>
           </Box>
         </DialogTitle>
 
-        <Box sx={{ px: 3, pt: 2.5, bgcolor: '#F8FAFF' }}>
-          <Stepper activeStep={activeStep} alternativeLabel>
-            {STEPS.map((label, i) => (
-              <Step key={label} completed={i < activeStep}>
-                <StepLabel StepIconComponent={({ active, completed }) => <StepIcon step={i} active={active} completed={completed} />}>
-                  <Typography variant="caption" fontWeight={activeStep === i ? 700 : 500} color={activeStep === i ? '#1565C0' : '#6B7280'}>
-                    {label}
-                  </Typography>
-                </StepLabel>
-              </Step>
-            ))}
-          </Stepper>
-        </Box>
-
-        <Divider />
-
-        <DialogContent sx={{ p: 3, bgcolor: '#F8FAFF', minHeight: 380 }}>
+        <DialogContent sx={{ p: 3, bgcolor: '#F8FAFC', minHeight: 360 }}>
           {activeStep === 0 && (
             <Grid container spacing={2}>
-              {tf('patient_id', 'Patient ID *')}
-              {tf('first_name', 'First Name *')}
-              {tf('last_name', 'Last Name *')}
-              {tf('age', 'Age', { type: 'number' })}
-              {tf('gender', 'Gender *', { options: GENDERS })}
-              {tf('date_of_birth', 'Date of Birth', { type: 'date' })}
-              {tf('blood_group', 'Blood Group', { options: BLOOD_GROUPS })}
-              {tf('height', 'Height (cm)', { type: 'number' })}
-              {tf('weight', 'Weight (kg)', { type: 'number' })}
-              {tf('phone', 'Phone')}
-              {tf('email', 'Email')}
-              {tf('hospital', 'Hospital *')}
-              {tf('address', 'Address', { full: true })}
+              <FField name="patient_id" label="Patient ID" form={form} onChange={handleChange} errors={stepErrors} opts={{ required: true }} />
+              <FField name="first_name" label="First Name" form={form} onChange={handleChange} errors={stepErrors} opts={{ required: true }} />
+              <FField name="last_name" label="Last Name" form={form} onChange={handleChange} errors={stepErrors} opts={{ required: true }} />
+              <FField name="age" label="Age" form={form} onChange={handleChange} errors={stepErrors} opts={{ type: 'number' }} />
+              <FField name="gender" label="Gender" form={form} onChange={handleChange} errors={stepErrors} opts={{ options: GENDERS, required: true }} />
+              <FField name="date_of_birth" label="Date of Birth" form={form} onChange={handleChange} errors={stepErrors} opts={{ type: 'date' }} />
+              <FField name="blood_group" label="Blood Group" form={form} onChange={handleChange} errors={stepErrors} opts={{ options: BLOOD_GROUPS }} />
+              <FField name="height" label="Height (cm)" form={form} onChange={handleChange} errors={stepErrors} opts={{ type: 'number' }} />
+              <FField name="weight" label="Weight (kg)" form={form} onChange={handleChange} errors={stepErrors} opts={{ type: 'number' }} />
+              <FField name="phone" label="Phone" form={form} onChange={handleChange} errors={stepErrors} />
+              <FField name="email" label="Email" form={form} onChange={handleChange} errors={stepErrors} />
+              <FField name="hospital" label="Hospital" form={form} onChange={handleChange} errors={stepErrors} opts={{ required: true }} />
+              <FField name="address" label="Address" form={form} onChange={handleChange} errors={stepErrors} opts={{ full: true }} />
             </Grid>
           )}
-
           {activeStep === 1 && (
             <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <Typography variant="subtitle2" fontWeight={700} color="#1565C0" mb={1}>Conditions</Typography>
-              </Grid>
-              {sw('diabetes', 'Diabetes')}
-              {sw('hypertension', 'Hypertension')}
-              {sw('heart_disease', 'Heart Disease')}
-              {sw('kidney_disease', 'Kidney Disease')}
-              {sw('icu_admission', 'ICU Admission History')}
-              <Grid item xs={12}><Divider /></Grid>
-              <Grid item xs={12}>
-                <Typography variant="subtitle2" fontWeight={700} color="#1565C0" mb={1}>Lifestyle & History</Typography>
-              </Grid>
-              {tf('smoking_status', 'Smoking Status', { options: SMOKING })}
-              {tf('alcohol_consumption', 'Alcohol Consumption', { options: ALCOHOL })}
-              {tf('allergies', 'Allergies', { full: true })}
-              {tf('previous_surgery', 'Previous Surgery', { full: true })}
-              {tf('chronic_disease_notes', 'Chronic Disease Notes', { full: true, multiline: true })}
+              <Grid item xs={12}><Typography sx={{ fontWeight: 700, fontSize: '0.8rem', color: '#1D4ED8', mb: 0.5 }}>Medical Conditions</Typography></Grid>
+              <FSwitch name="diabetes" label="Diabetes" form={form} onChange={handleChange} />
+              <FSwitch name="hypertension" label="Hypertension" form={form} onChange={handleChange} />
+              <FSwitch name="heart_disease" label="Heart Disease" form={form} onChange={handleChange} />
+              <FSwitch name="kidney_disease" label="Kidney Disease" form={form} onChange={handleChange} />
+              <FSwitch name="icu_admission" label="ICU Admission History" form={form} onChange={handleChange} />
+              <Grid item xs={12}><Divider sx={{ my: 0.5 }} /></Grid>
+              <Grid item xs={12}><Typography sx={{ fontWeight: 700, fontSize: '0.8rem', color: '#1D4ED8', mb: 0.5 }}>Lifestyle & History</Typography></Grid>
+              <FField name="smoking_status" label="Smoking Status" form={form} onChange={handleChange} errors={stepErrors} opts={{ options: SMOKING }} />
+              <FField name="alcohol_consumption" label="Alcohol Consumption" form={form} onChange={handleChange} errors={stepErrors} opts={{ options: ALCOHOL }} />
+              <FField name="allergies" label="Allergies" form={form} onChange={handleChange} errors={stepErrors} opts={{ full: true }} />
+              <FField name="previous_surgery" label="Previous Surgery" form={form} onChange={handleChange} errors={stepErrors} opts={{ full: true }} />
+              <FField name="chronic_disease_notes" label="Chronic Disease Notes" form={form} onChange={handleChange} errors={stepErrors} opts={{ full: true, multiline: true }} />
             </Grid>
           )}
-
           {activeStep === 2 && (
             <Grid container spacing={2}>
-              {tf('num_previous_admissions', 'Previous Admissions', { type: 'number' })}
-              {tf('length_of_stay', 'Length of Stay (days)', { type: 'number' })}
-              {tf('admission_date', 'Admission Date', { type: 'date' })}
-              {tf('discharge_date', 'Discharge Date', { type: 'date' })}
-              {tf('admission_reason', 'Admission Reason', { full: true })}
+              <FField name="num_previous_admissions" label="Previous Admissions" form={form} onChange={handleChange} errors={stepErrors} opts={{ type: 'number' }} />
+              <FField name="length_of_stay" label="Length of Stay (days)" form={form} onChange={handleChange} errors={stepErrors} opts={{ type: 'number' }} />
+              <FField name="admission_date" label="Admission Date" form={form} onChange={handleChange} errors={stepErrors} opts={{ type: 'date' }} />
+              <FField name="discharge_date" label="Discharge Date" form={form} onChange={handleChange} errors={stepErrors} opts={{ type: 'date' }} />
+              <FField name="admission_reason" label="Admission Reason" form={form} onChange={handleChange} errors={stepErrors} opts={{ full: true }} />
             </Grid>
           )}
         </DialogContent>
 
         <Divider />
         <DialogActions sx={{ px: 3, py: 2, bgcolor: '#fff', gap: 1 }}>
-          <Button onClick={closeModal} sx={{ color: '#6B7280' }}>Cancel</Button>
+          <Button onClick={closeModal} sx={{ color: '#64748B', fontSize: '0.82rem' }}>Cancel</Button>
           <Box sx={{ flex: 1 }} />
           {activeStep > 0 && (
-            <Button variant="outlined" onClick={handleBack} sx={{ borderRadius: '10px', px: 3 }}>Back</Button>
+            <Button variant="outlined" onClick={handleBack} sx={{ borderRadius: '9px', px: 2.5, fontSize: '0.82rem', borderColor: '#E2E8F0', color: '#475569' }}>Back</Button>
           )}
           {activeStep < STEPS.length - 1 ? (
-            <Button variant="contained" onClick={handleNext}
-              sx={{ bgcolor: '#1565C0', borderRadius: '10px', px: 3, fontWeight: 600 }}>
-              Next
-            </Button>
+            <Button variant="contained" onClick={handleNext} sx={{ bgcolor: '#1D4ED8', borderRadius: '9px', px: 3, fontWeight: 600, fontSize: '0.82rem' }}>Next</Button>
           ) : (
             <Button variant="contained" onClick={handleSave} disabled={saving}
-              sx={{ bgcolor: '#1565C0', borderRadius: '10px', px: 4, fontWeight: 600, boxShadow: '0 4px 14px rgba(21,101,192,0.3)' }}>
-              {saving ? <CircularProgress size={20} color="inherit" /> : 'Save Patient'}
+              sx={{ bgcolor: '#1D4ED8', borderRadius: '9px', px: 3.5, fontWeight: 600, fontSize: '0.82rem', boxShadow: '0 4px 12px rgba(29,78,216,0.25)' }}>
+              {saving ? <CircularProgress size={18} color="inherit" /> : 'Save Patient'}
             </Button>
           )}
         </DialogActions>
       </Dialog>
 
       {/* Delete Confirm */}
-      <Dialog open={!!deleteId} onClose={() => setDeleteId(null)} PaperProps={{ sx: { borderRadius: '16px' } }}>
-        <DialogTitle>Confirm Delete</DialogTitle>
-        <DialogContent>Are you sure you want to delete patient <strong>{deleteId}</strong>?</DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteId(null)}>Cancel</Button>
-          <Button onClick={handleDelete} color="error" variant="contained">Delete</Button>
+      <Dialog open={!!deleteId} onClose={() => setDeleteId(null)} PaperProps={{ sx: { borderRadius: '14px', maxWidth: 380 } }}>
+        <DialogTitle sx={{ pb: 1 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: '#0F172A' }}>Delete Patient</Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ fontSize: '0.85rem', color: '#475569' }}>
+            Are you sure you want to delete patient <strong>{deleteId}</strong>? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 2.5, pb: 2 }}>
+          <Button onClick={() => setDeleteId(null)} sx={{ color: '#64748B', fontSize: '0.82rem' }}>Cancel</Button>
+          <Button onClick={handleDelete} variant="contained" sx={{ bgcolor: '#EF4444', borderRadius: '9px', fontSize: '0.82rem', '&:hover': { bgcolor: '#DC2626' } }}>Delete</Button>
         </DialogActions>
       </Dialog>
 
       <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar(s => ({ ...s, open: false }))}>
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar(s => ({ ...s, open: false }))}>{snackbar.message}</Alert>
+        <Alert severity={snackbar.severity} onClose={() => setSnackbar(s => ({ ...s, open: false }))} sx={{ borderRadius: '10px' }}>{snackbar.message}</Alert>
       </Snackbar>
     </Box>
   );

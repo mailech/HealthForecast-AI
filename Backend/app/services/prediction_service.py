@@ -13,27 +13,26 @@ class PredictionService:
         if not patient:
             raise ValueError(f"Patient with ID {prediction_in.patient_id} does not exist.")
             
-        data = {
-            "age": prediction_in.age,
-            "gender": prediction_in.gender,
-            "length_of_stay": prediction_in.length_of_stay,
-            "num_previous_admissions": prediction_in.num_previous_admissions,
-            "num_medications": prediction_in.num_medications,
-            "systolic_bp": prediction_in.systolic_bp,
-            "diastolic_bp": prediction_in.diastolic_bp,
-            "blood_sugar": prediction_in.blood_sugar,
-            "comorbidity_count": prediction_in.comorbidity_count
-        }
+        data = prediction_in.model_dump()
+        meds = data.pop("medications", {}) or {}
+        if isinstance(meds, dict):
+            for k, v in meds.items():
+                data[k] = v
         
         result = predictor_instance.predict(data)
         
         return {
             "patient_id": prediction_in.patient_id,
+            "model1_probability": result["model1_probability"],
+            "model1_prediction": result["model1_prediction"],
+            "model2_probability": result["model2_probability"],
+            "model2_prediction": result["model2_prediction"],
             "readmission_risk_score": result["readmission_risk_score"],
             "risk_level": result["risk_level"],
+            "clinical_interpretation": result["clinical_interpretation"],
             "prediction_date": datetime.utcnow(),
             "predicted_by": user_email,
-            "notes": f"Predicted using RandomForest classifier. Risk classification: {result['risk_level']}."
+            "notes": f"Evaluated with Dual-Model ML pipeline. {result['clinical_interpretation']}"
         }
 
     @staticmethod
@@ -48,15 +47,30 @@ class PredictionService:
 
     @staticmethod
     def get_predictions_by_patient(patient_id: str) -> List[dict]:
-        return list(predictions_collection.find({"patient_id": patient_id}))
+        return list(predictions_collection.find({"patient_id": patient_id}).sort("prediction_date", -1))
 
     @staticmethod
     def get_all_predictions(skip: int = 0, limit: int = 100) -> List[dict]:
-        return list(predictions_collection.find().skip(skip).limit(limit))
+        return list(predictions_collection.find().sort("prediction_date", -1).skip(skip).limit(limit))
+
+    @staticmethod
+    def delete_prediction(prediction_id: str) -> bool:
+        try:
+            try:
+                query = {"_id": ObjectId(prediction_id)}
+            except Exception:
+                query = {"_id": prediction_id}
+            res = predictions_collection.delete_one(query)
+            return res.deleted_count > 0
+        except Exception:
+            return False
 
     @staticmethod
     def get_by_id(prediction_id: str) -> Optional[dict]:
         try:
-            return predictions_collection.find_one({"_id": ObjectId(prediction_id)})
+            try:
+                return predictions_collection.find_one({"_id": ObjectId(prediction_id)})
+            except Exception:
+                return predictions_collection.find_one({"_id": prediction_id})
         except Exception:
             return None

@@ -1,0 +1,24 @@
+{
+  "analysis": "Treatment Outcome Analytics",
+  "note": "Observational associations only. No causal claims.",
+  "total_encounters": 101763,
+  "medications_analyzed": 23,
+  "statistical_tests_performed": 4,
+  "most_prescribed_medication": "insulin",
+  "most_dose_changed_medication": "insulin",
+  "readmission_categories": [
+    "NO",
+    ">30",
+    "<30"
+  ],
+  "generated_csv_files": [
+    "treatment_medication_summary.csv",
+    "treatment_readmission_summary.csv",
+    "treatment_utilization_summary.csv",
+    "treatment_diagnosis_summary.csv",
+    "treatment_age_summary.csv",
+    "treatment_specialty_summary.csv",
+    "treatment_analytics_results.csv"
+  ],
+  "model1_model2_untouched": true
+}

@@ -70,6 +70,18 @@ export default function Users() {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const { isAdmin } = useAuth();
 
+  const fetchUsers = () => {
+    setLoading(true);
+    api.get('/api/v1/users?limit=100')
+      .then(res => setUsers(res.data))
+      .catch(() => setError('Failed to load users. Admin access required.'))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    if (isAdmin) fetchUsers();
+  }, [isAdmin]);
+
   // Block non-admins immediately — backend will also return 403
   if (!isAdmin) {
     return (
@@ -80,16 +92,6 @@ export default function Users() {
       </Box>
     );
   }
-
-  const fetchUsers = () => {
-    setLoading(true);
-    api.get('/api/v1/users?limit=100')
-      .then(res => setUsers(res.data))
-      .catch(() => setError('Failed to load users. Admin access required.'))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => { fetchUsers(); }, []);
 
   const handleSave = async (data) => {
     try {

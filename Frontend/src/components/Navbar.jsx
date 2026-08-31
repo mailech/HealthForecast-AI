@@ -1,286 +1,119 @@
 import { useState } from 'react';
 import {
-  AppBar, Toolbar, Typography, Box, IconButton,
-  useMediaQuery, useTheme, Avatar, Badge, InputBase,
-  Menu, MenuItem, ListItemIcon, Divider
+  AppBar, Toolbar, Box, IconButton, Avatar, Badge,
+  Menu, MenuItem, ListItemIcon, Divider, Typography, useMediaQuery, useTheme, Chip
 } from '@mui/material';
-import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
-import LogoutIcon from '@mui/icons-material/Logout';
-import MenuIcon from '@mui/icons-material/Menu';
-import SearchIcon from '@mui/icons-material/Search';
-import NotificationsIcon from '@mui/icons-material/Notifications';
-import PersonIcon from '@mui/icons-material/Person';
-import SettingsIcon from '@mui/icons-material/Settings';
+import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
+import NotificationsNoneRoundedIcon from '@mui/icons-material/NotificationsNoneRounded';
+import PersonOutlineRoundedIcon from '@mui/icons-material/PersonOutlineRounded';
+import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+
+const PAGE_TITLES = {
+  '/': 'Dashboard',
+  '/patients': 'Patients',
+  '/prediction': 'Prediction',
+  '/treatments': 'Treatments',
+  '/reports': 'Reports',
+  '/users': 'Users',
+};
 
 export default function Navbar({ onMenuClick }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [anchorEl, setAnchorEl] = useState(null);
-  const open = Boolean(anchorEl);
 
-  const handleLogout = () => {
-    setAnchorEl(null);
-    logout();
-    navigate('/login');
-  };
+  const pageTitle = PAGE_TITLES[location.pathname] || 'Health Forecast AI';
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
-  const handleMenu = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
+  const handleLogout = () => { setAnchorEl(null); logout(); navigate('/login'); };
 
   return (
-    <AppBar
-      position="fixed"
-      elevation={0}
-      sx={{
-        zIndex: (theme) => theme.zIndex.drawer + 1,
-        bgcolor: '#FFFFFF',
-        borderBottom: '1px solid #F0F2F5',
-        boxShadow: '0 1px 3px rgba(15,108,189,0.06)',
-        backdropFilter: 'blur(12px)',
-        transition: 'all 0.3s ease',
-      }}
-    >
-      <Toolbar sx={{ px: { xs: 2, sm: 3 }, minHeight: '64px !important' }}>
-        {/* Mobile Menu Icon */}
+    <AppBar position="fixed" elevation={0} sx={{
+      zIndex: (t) => t.zIndex.drawer + 1,
+      bgcolor: '#FFFFFF',
+      borderBottom: '1px solid #E8EDF2',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+      ml: { md: '220px' },
+      width: { md: 'calc(100% - 220px)' },
+    }}>
+      <Toolbar sx={{ px: { xs: 2, sm: 3 }, minHeight: '60px !important' }}>
         {isMobile && (
-          <IconButton
-            edge="start"
-            onClick={onMenuClick}
-            sx={{
-              mr: 1,
-              color: '#1A202C',
-              '&:hover': { bgcolor: '#F4F8FC' },
-            }}
-          >
-            <MenuIcon />
+          <IconButton edge="start" onClick={onMenuClick} size="small" sx={{ mr: 1, color: '#475569', '&:hover': { bgcolor: '#F1F5F9' } }}>
+            <MenuRoundedIcon />
           </IconButton>
         )}
 
-        {/* Logo + Title */}
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1.5,
-            mr: 3,
-          }}
-        >
-          <Box
-            sx={{
-              width: 36,
-              height: 36,
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, #0F6CBD 0%, #18A999 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(15,108,189,0.25)',
-              flexShrink: 0,
-            }}
-          >
-            <LocalHospitalIcon sx={{ color: '#FFFFFF', fontSize: 20 }} />
-          </Box>
-          <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
-            <Typography
-              variant="subtitle2"
-              sx={{
-                fontWeight: 700,
-                color: '#1A202C',
-                lineHeight: 1.2,
-                fontSize: { xs: '0.85rem', sm: '0.95rem' },
-              }}
-            >
-              Health Forecast AI
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{
-                color: '#6B7280',
-                fontWeight: 500,
-                fontSize: '0.7rem',
-                display: { xs: 'none', md: 'block' },
-              }}
-            >
-              Patient Risk Intelligence System
-            </Typography>
-          </Box>
+        {/* Page title */}
+        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: '#0F172A', lineHeight: 1.2 }}>
+            {pageTitle}
+          </Typography>
+          <Typography sx={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: 500 }}>{today}</Typography>
         </Box>
 
-        {/* Search Bar */}
-        <Box
-          sx={{
-            display: { xs: 'none', md: 'flex' },
-            alignItems: 'center',
-            bgcolor: '#F4F8FC',
-            borderRadius: '10px',
-            px: 2,
-            py: 0.5,
-            flex: 1,
-            maxWidth: 400,
-            border: '1.5px solid transparent',
-            transition: 'all 0.3s ease',
-            '&:focus-within': {
-              borderColor: '#0F6CBD',
-              bgcolor: '#FFFFFF',
-              boxShadow: '0 0 0 4px rgba(15,108,189,0.1)',
-            },
-          }}
-        >
-          <SearchIcon sx={{ color: '#9CA3AF', fontSize: 20, mr: 1 }} />
-          <InputBase
-            placeholder="Search patients, predictions..."
-            sx={{
-              fontSize: '0.85rem',
-              color: '#1A202C',
-              width: '100%',
-              '& .MuiInputBase-input::placeholder': {
-                color: '#9CA3AF',
-                opacity: 1,
-              },
-            }}
-          />
-        </Box>
+        <Box sx={{ flex: 1 }} />
 
-        <Box sx={{ flexGrow: 1 }} />
+        {/* Notifications */}
+        <IconButton size="small" sx={{ color: '#64748B', mr: 0.5, '&:hover': { bgcolor: '#F1F5F9', color: '#3B82F6' } }}>
+          <Badge badgeContent={2} color="error" sx={{ '& .MuiBadge-badge': { fontSize: '0.55rem', height: 14, minWidth: 14 } }}>
+            <NotificationsNoneRoundedIcon sx={{ fontSize: 20 }} />
+          </Badge>
+        </IconButton>
 
-        {/* Right Side Actions */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          {/* Notification Bell */}
-          <IconButton
-            sx={{
-              color: '#6B7280',
-              '&:hover': { bgcolor: '#F4F8FC', color: '#0F6CBD' },
-              transition: 'all 0.2s ease',
-            }}
-          >
-            <Badge
-              badgeContent={3}
-              color="error"
+        {/* User */}
+        {user && (
+          <>
+            <Box
+              onClick={(e) => setAnchorEl(e.currentTarget)}
               sx={{
-                '& .MuiBadge-badge': {
-                  fontSize: '0.6rem',
-                  height: 16,
-                  minWidth: 16,
-                  borderRadius: '8px',
-                },
+                display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer',
+                px: 1, py: 0.5, borderRadius: '10px', border: '1.5px solid #E2E8F0',
+                transition: 'all 0.2s',
+                '&:hover': { bgcolor: '#F8FAFC', borderColor: '#CBD5E1' },
               }}
             >
-              <NotificationsIcon sx={{ fontSize: 22 }} />
-            </Badge>
-          </IconButton>
+              <Avatar sx={{ width: 28, height: 28, bgcolor: '#1D4ED8', fontSize: '0.72rem', fontWeight: 700 }}>
+                {user.email?.charAt(0).toUpperCase()}
+              </Avatar>
+              <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+                <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#0F172A', lineHeight: 1.2 }}>
+                  {user.full_name?.split(' ')[0] || user.email?.split('@')[0]}
+                </Typography>
+                <Typography sx={{ fontSize: '0.62rem', color: '#64748B' }}>{user.role}</Typography>
+              </Box>
+            </Box>
 
-          {/* User Avatar / Profile */}
-          {user && (
-            <>
-              <IconButton
-                onClick={handleMenu}
-                sx={{
-                  ml: 0.5,
-                  p: 0.5,
-                  border: '2px solid transparent',
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    borderColor: '#0F6CBD',
-                    bgcolor: '#F4F8FC',
-                  },
-                }}
-              >
-                <Avatar
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    bgcolor: '#0F6CBD',
-                    fontSize: '0.85rem',
-                    fontWeight: 600,
-                  }}
-                >
-                  {user.email ? user.email.charAt(0).toUpperCase() : 'U'}
-                </Avatar>
-              </IconButton>
-
-              {/* Dropdown Menu */}
-              <Menu
-                anchorEl={anchorEl}
-                open={open}
-                onClose={handleClose}
-                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-                PaperProps={{
-                  elevation: 0,
-                  sx: {
-                    mt: 1.5,
-                    minWidth: 200,
-                    borderRadius: '12px',
-                    boxShadow: '0 8px 32px rgba(15,108,189,0.12)',
-                    border: '1px solid #F0F2F5',
-                    overflow: 'visible',
-                    '&::before': {
-                      content: '""',
-                      position: 'absolute',
-                      top: -6,
-                      right: 16,
-                      width: 12,
-                      height: 12,
-                      bgcolor: '#FFFFFF',
-                      transform: 'rotate(45deg)',
-                      borderLeft: '1px solid #F0F2F5',
-                      borderTop: '1px solid #F0F2F5',
-                    },
-                  },
-                }}
-              >
-                <Box sx={{ px: 2, py: 1.5 }}>
-                  <Typography variant="subtitle2" sx={{ color: '#1A202C', fontWeight: 600 }}>
-                    {user.email || 'User'}
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: '#6B7280' }}>
-                    {user.role || 'Healthcare Professional'}
-                  </Typography>
-                </Box>
-                <Divider sx={{ borderColor: '#F0F2F5' }} />
-                <MenuItem onClick={handleClose} sx={{ borderRadius: '8px', mx: 0.5, my: 0.3 }}>
-                  <ListItemIcon>
-                    <PersonIcon fontSize="small" sx={{ color: '#6B7280' }} />
-                  </ListItemIcon>
-                  <Typography variant="body2">Profile</Typography>
-                </MenuItem>
-                <MenuItem onClick={handleClose} sx={{ borderRadius: '8px', mx: 0.5, my: 0.3 }}>
-                  <ListItemIcon>
-                    <SettingsIcon fontSize="small" sx={{ color: '#6B7280' }} />
-                  </ListItemIcon>
-                  <Typography variant="body2">Settings</Typography>
-                </MenuItem>
-                <Divider sx={{ borderColor: '#F0F2F5' }} />
-                <MenuItem
-                  onClick={handleLogout}
-                  sx={{
-                    borderRadius: '8px',
-                    mx: 0.5,
-                    my: 0.3,
-                    color: '#D32F2F',
-                    '&:hover': { bgcolor: '#FFEBEE' },
-                  }}
-                >
-                  <ListItemIcon>
-                    <LogoutIcon fontSize="small" sx={{ color: '#D32F2F' }} />
-                  </ListItemIcon>
-                  <Typography variant="body2">Logout</Typography>
-                </MenuItem>
-              </Menu>
-            </>
-          )}
-        </Box>
+            <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}
+              transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+              anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+              PaperProps={{ elevation: 0, sx: {
+                mt: 1, minWidth: 200, borderRadius: '12px',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.1)', border: '1px solid #F1F5F9',
+              }}}>
+              <Box sx={{ px: 2, py: 1.5 }}>
+                <Typography sx={{ fontWeight: 600, fontSize: '0.82rem', color: '#0F172A' }}>{user.full_name || user.email}</Typography>
+                <Typography sx={{ fontSize: '0.72rem', color: '#64748B' }}>{user.email}</Typography>
+                <Chip label={user.role} size="small" sx={{ mt: 0.5, bgcolor: '#EFF6FF', color: '#1D4ED8', fontWeight: 600, fontSize: '0.65rem' }} />
+              </Box>
+              <Divider sx={{ borderColor: '#F1F5F9' }} />
+              <MenuItem onClick={() => setAnchorEl(null)} sx={{ borderRadius: '8px', mx: 0.5, my: 0.3, fontSize: '0.82rem' }}>
+                <ListItemIcon><PersonOutlineRoundedIcon fontSize="small" sx={{ color: '#64748B' }} /></ListItemIcon>
+                Profile
+              </MenuItem>
+              <Divider sx={{ borderColor: '#F1F5F9' }} />
+              <MenuItem onClick={handleLogout} sx={{ borderRadius: '8px', mx: 0.5, my: 0.3, color: '#EF4444', fontSize: '0.82rem', '&:hover': { bgcolor: '#FEF2F2' } }}>
+                <ListItemIcon><LogoutRoundedIcon fontSize="small" sx={{ color: '#EF4444' }} /></ListItemIcon>
+                Logout
+              </MenuItem>
+            </Menu>
+          </>
+        )}
       </Toolbar>
     </AppBar>
   );
 }
-

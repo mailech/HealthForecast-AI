@@ -55,17 +55,40 @@ class ReportService:
                 "risk_level": tr["risk_level"]
             })
             
+        # Risk breakdown (latest prediction per patient)
+        latest_risk_pipeline = [
+            {"$sort": {"prediction_date": -1}},
+            {"$group": {"_id": "$patient_id", "latest_risk": {"$first": "$risk_level"}}}
+        ]
+        latest_risks = list(predictions_collection.aggregate(latest_risk_pipeline))
+        risk_breakdown = {"High": 0, "Medium": 0, "Low": 0}
+        for item in latest_risks:
+            risk = item.get("latest_risk")
+            if risk in risk_breakdown:
+                risk_breakdown[risk] += 1
+
+        # Daily admission trends
+        admissions_pipeline = [
+            {"$group": {
+                "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$admission_date"}},
+                "count": {"$sum": 1}
+            }},
+            {"$sort": {"_id": -1}},
+            {"$limit": 10}
+        ]
+        trends = list(medical_histories_collection.aggregate(admissions_pipeline))
+        trends.reverse()
+
         return {
             "generated_at": datetime.utcnow().isoformat(),
-            "metrics": {
-                "total_patients": total_patients,
-                "total_predictions": total_predictions,
-                "average_length_of_stay": round(stats.get("avg_stay", 0) or 0, 2),
-                "average_medications": round(stats.get("avg_meds", 0) or 0, 2),
-                "average_previous_admissions": round(stats.get("avg_prev_admissions", 0) or 0, 2),
-                "average_readmission_risk_score": round(avg_risk, 4)
-            },
-            "highest_risk_patients": high_risk_details
+            "total_patients": total_patients,
+            "total_predictions": total_predictions,
+            "high_risk_count": risk_breakdown["High"],
+            "risk_breakdown": risk_breakdown,
+            "avg_length_of_stay": round(stats.get("avg_stay", 0) or 0, 2),
+            "avg_readmission_risk": round(avg_risk, 4),
+            "daily_admission_trends": trends,
+            "highest_risk_patients": high_risk_details,
         }
 
     @staticmethod

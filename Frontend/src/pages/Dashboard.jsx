@@ -1,57 +1,55 @@
 import { useEffect, useState } from 'react';
 import {
   Box, Grid, Card, CardContent, Typography, CircularProgress, Alert,
-  Chip, Avatar, Divider
+  Avatar, Skeleton, Table, TableBody, TableCell, TableHead, TableRow, LinearProgress
 } from '@mui/material';
-import PeopleIcon from '@mui/icons-material/People';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import PsychologyIcon from '@mui/icons-material/Psychology';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import {
-  Chart as ChartJS, ArcElement, Tooltip, Legend,
-  CategoryScale, LinearScale, BarElement, PointElement, LineElement, Filler
-} from 'chart.js';
-import { Doughnut, Bar, Line } from 'react-chartjs-2';
+import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
+import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
+import PsychologyRoundedIcon from '@mui/icons-material/PsychologyRounded';
+import MedicalServicesRoundedIcon from '@mui/icons-material/MedicalServicesRounded';
+import TrendingUpRoundedIcon from '@mui/icons-material/TrendingUpRounded';
 import api from '../api/api';
 
-ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement, Filler);
-
-const riskConfig = {
-  High: { color: '#EF4444', bg: '#FEF2F2' },
-  Medium: { color: '#F59E0B', bg: '#FFFBEB' },
-  Low: { color: '#10B981', bg: '#ECFDF5' },
+const RISK = {
+  High:   { color: '#EF4444', bg: '#FEF2F2', text: '#DC2626', bar: '#EF4444' },
+  Medium: { color: '#F59E0B', bg: '#FFFBEB', text: '#D97706', bar: '#F59E0B' },
+  Low:    { color: '#10B981', bg: '#ECFDF5', text: '#059669', bar: '#10B981' },
 };
 
-function StatCard({ title, value, icon, color, trend, sub }) {
+function RiskBadge({ level }) {
+  const r = RISK[level] || RISK.Low;
+  return (
+    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, px: 1.2, py: 0.3, borderRadius: '6px', bgcolor: r.bg }}>
+      <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: r.color }} />
+      <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: r.text }}>{level}</Typography>
+    </Box>
+  );
+}
+
+function MetricCard({ title, value, sub, icon, color, loading }) {
   return (
     <Card sx={{
-      borderRadius: '16px', border: `1px solid ${color}20`,
-      transition: 'all 0.3s', cursor: 'default',
-      '&:hover': { transform: 'translateY(-4px)', boxShadow: `0 12px 32px ${color}25` },
+      borderRadius: '14px', border: '1px solid #E2E8F0',
+      boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+      transition: 'all 0.2s',
+      '&:hover': { boxShadow: '0 4px 16px rgba(0,0,0,0.08)', transform: 'translateY(-2px)' },
     }}>
       <CardContent sx={{ p: 2.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <Box>
-            <Typography variant="caption" sx={{ color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '0.7rem' }}>
+            <Typography sx={{ fontSize: '0.68rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>
               {title}
             </Typography>
-            <Typography variant="h4" fontWeight={800} color="#1A202C" mt={0.5} lineHeight={1.2}>
-              {value ?? '—'}
-            </Typography>
-            {sub && <Typography variant="caption" color="text.secondary" mt={0.5} display="block">{sub}</Typography>}
+            {loading
+              ? <Skeleton width={56} height={38} />
+              : <Typography sx={{ fontSize: '1.8rem', fontWeight: 800, color: '#0F172A', lineHeight: 1.1 }}>{value ?? '—'}</Typography>
+            }
+            {sub && <Typography sx={{ fontSize: '0.7rem', color: '#94A3B8', mt: 0.4 }}>{sub}</Typography>}
           </Box>
-          <Box sx={{ width: 48, height: 48, borderRadius: '14px', bgcolor: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Box sx={{ width: 40, height: 40, borderRadius: '11px', bgcolor: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             {icon}
           </Box>
         </Box>
-        {trend && (
-          <Box sx={{ mt: 1.5, pt: 1.5, borderTop: `1px solid ${color}15` }}>
-            <Typography variant="caption" sx={{ color, fontWeight: 600 }}>{trend}</Typography>
-          </Box>
-        )}
       </CardContent>
     </Card>
   );
@@ -69,207 +67,149 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}><CircularProgress sx={{ color: '#1565C0' }} /></Box>;
   if (error) return <Alert severity="error" sx={{ borderRadius: '12px' }}>{error}</Alert>;
 
   const rb = stats?.risk_breakdown || {};
-  const dailyTrends = stats?.daily_admission_trends || [];
-  const recentPredictions = stats?.recent_predictions || [];
-  const totalPredictions = stats?.total_predictions || recentPredictions.length;
+  const recentPreds = stats?.recent_predictions || [];
+  const total = (rb.High || 0) + (rb.Medium || 0) + (rb.Low || 0);
 
-  const doughnutData = {
-    labels: ['High Risk', 'Medium Risk', 'Low Risk'],
-    datasets: [{
-      data: [rb.High || 0, rb.Medium || 0, rb.Low || 0],
-      backgroundColor: ['#EF4444', '#F59E0B', '#10B981'],
-      borderWidth: 0, hoverOffset: 8,
-    }],
-  };
-
-  const barData = {
-    labels: dailyTrends.map(d => d._id || d.date || ''),
-    datasets: [{
-      label: 'Admissions',
-      data: dailyTrends.map(d => d.count || 0),
-      backgroundColor: '#3B82F6',
-      borderRadius: 6, barThickness: 28,
-    }],
-  };
-
-  const lineData = {
-    labels: dailyTrends.map(d => d._id || d.date || ''),
-    datasets: [{
-      label: 'Predictions',
-      data: dailyTrends.map(d => (d.count || 0) + Math.floor(Math.random() * 3)),
-      borderColor: '#8B5CF6', backgroundColor: 'rgba(139,92,246,0.08)',
-      tension: 0.4, fill: true, pointRadius: 3, pointBackgroundColor: '#8B5CF6',
-    }],
-  };
-
-  const chartOpts = {
-    responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
-    scales: {
-      y: { grid: { color: '#F0F2F5' }, ticks: { font: { size: 11 } } },
-      x: { grid: { display: false }, ticks: { font: { size: 11 } } },
-    },
-  };
-
-  const now = new Date();
-  const upcomingFollowups = recentPredictions
-    .filter(p => p.risk_level === 'High' || p.risk_level === 'Medium')
-    .slice(0, 4)
-    .map((p, i) => ({
-      ...p,
-      followupDate: new Date(now.getTime() + (i + 1) * 7 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-    }));
+  const metrics = [
+    { title: 'Total Patients',    value: stats?.total_patients,    sub: 'Registered patients',        icon: <PeopleRoundedIcon sx={{ fontSize: 20, color: '#3B82F6' }} />,      color: '#3B82F6' },
+    { title: 'Total Predictions', value: stats?.total_predictions, sub: 'AI assessments',             icon: <PsychologyRoundedIcon sx={{ fontSize: 20, color: '#8B5CF6' }} />,   color: '#8B5CF6' },
+    { title: 'High Risk',         value: stats?.high_risk_count,   sub: 'Patients requiring attention', icon: <WarningAmberRoundedIcon sx={{ fontSize: 20, color: '#EF4444' }} />, color: '#EF4444' },
+    { title: 'Active Treatments', value: stats?.total_treatments,  sub: 'Currently active',           icon: <MedicalServicesRoundedIcon sx={{ fontSize: 20, color: '#10B981' }} />, color: '#10B981' },
+  ];
 
   return (
-    <Box>
+    <Box sx={{ maxWidth: 1280, mx: 'auto' }}>
       {/* Header */}
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight={800} color="#1A202C">Hospital Analytics Dashboard</Typography>
-        <Typography variant="body2" color="text.secondary" mt={0.3}>
-          Real-time overview of patient health and readmission risk
-        </Typography>
+        <Typography sx={{ fontWeight: 800, fontSize: '1.2rem', color: '#0F172A' }}>Hospital Analytics</Typography>
+        <Typography sx={{ fontSize: '0.8rem', color: '#64748B', mt: 0.3 }}>Real-time overview of patient health and readmission risk</Typography>
       </Box>
 
-      {/* Top Stat Cards */}
-      <Grid container spacing={2} mb={3}>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Total Patients" value={stats?.total_patients} icon={<PeopleIcon sx={{ color: '#3B82F6', fontSize: 24 }} />} color="#3B82F6" trend="↑ Active records" sub="Registered patients" />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Total Predictions" value={totalPredictions} icon={<PsychologyIcon sx={{ color: '#8B5CF6', fontSize: 24 }} />} color="#8B5CF6" trend="↑ AI assessments" sub="Risk evaluations" />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="High Risk" value={stats?.high_risk_count ?? rb.High} icon={<WarningAmberIcon sx={{ color: '#EF4444', fontSize: 24 }} />} color="#EF4444" trend="Needs attention" sub="Patients flagged" />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Recovered" value={stats?.total_treatments ?? '—'} icon={<CheckCircleIcon sx={{ color: '#10B981', fontSize: 24 }} />} color="#10B981" trend="↑ Treatment success" sub="Completed treatments" />
-        </Grid>
+      {/* 4 Metric Cards */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        {metrics.map((m) => (
+          <Grid item xs={12} sm={6} md={3} key={m.title}>
+            <MetricCard {...m} loading={loading} />
+          </Grid>
+        ))}
       </Grid>
 
-      {/* Charts Row */}
-      <Grid container spacing={2.5} mb={2.5}>
-        <Grid item xs={12} md={3}>
-          <Card sx={{ borderRadius: '16px', p: 2.5, height: '100%' }}>
-            <Typography variant="subtitle2" fontWeight={700} color="#1A202C" mb={2}>Risk Distribution</Typography>
-            <Box sx={{ height: 200, display: 'flex', justifyContent: 'center' }}>
-              <Doughnut data={doughnutData} options={{ cutout: '68%', plugins: { legend: { position: 'bottom', labels: { padding: 12, usePointStyle: true, font: { size: 10 } } } }, maintainAspectRatio: false }} />
-            </Box>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={5}>
-          <Card sx={{ borderRadius: '16px', p: 2.5, height: '100%' }}>
-            <Typography variant="subtitle2" fontWeight={700} color="#1A202C" mb={2}>Recent Admissions</Typography>
-            <Box sx={{ height: 200 }}>
-              <Bar data={barData} options={chartOpts} />
-            </Box>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card sx={{ borderRadius: '16px', p: 2.5, height: '100%' }}>
-            <Typography variant="subtitle2" fontWeight={700} color="#1A202C" mb={2}>Prediction Trend</Typography>
-            <Box sx={{ height: 200 }}>
-              <Line data={lineData} options={chartOpts} />
-            </Box>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Bottom Row */}
+      {/* Bottom Row: Risk Overview + Recent Predictions */}
       <Grid container spacing={2.5}>
-        {/* Recent Predictions */}
-        <Grid item xs={12} md={7}>
-          <Card sx={{ borderRadius: '16px' }}>
+        {/* Risk Overview */}
+        <Grid item xs={12} md={4}>
+          <Card sx={{ borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', height: '100%' }}>
             <CardContent sx={{ p: 2.5 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <PsychologyIcon sx={{ color: '#8B5CF6', fontSize: 20 }} />
-                <Typography variant="subtitle2" fontWeight={700} color="#1A202C">Recent Predictions</Typography>
-              </Box>
-              {recentPredictions.length === 0 ? (
-                <Typography variant="body2" color="text.secondary" textAlign="center" py={3}>No predictions yet.</Typography>
+              <Typography sx={{ fontWeight: 700, fontSize: '0.88rem', color: '#0F172A', mb: 0.3 }}>Risk Overview</Typography>
+              <Typography sx={{ fontSize: '0.72rem', color: '#94A3B8', mb: 2.5 }}>Patient risk distribution</Typography>
+
+              {loading ? (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {[...Array(3)].map((_, i) => <Skeleton key={i} height={36} sx={{ borderRadius: '8px' }} />)}
+                </Box>
+              ) : total === 0 ? (
+                <Box sx={{ py: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                  <TrendingUpRoundedIcon sx={{ fontSize: 36, color: '#CBD5E1' }} />
+                  <Typography sx={{ fontSize: '0.78rem', color: '#94A3B8', textAlign: 'center' }}>No prediction data available</Typography>
+                </Box>
               ) : (
-                <>
-                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 70px', gap: 1.5, px: 1.5, py: 1, bgcolor: '#F0F7FF', borderRadius: '10px', mb: 0.5 }}>
-                    {['Patient ID', 'Date', 'Risk Level', 'Score'].map(h => (
-                      <Typography key={h} variant="caption" fontWeight={700} color="#1565C0" sx={{ textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: '0.04em', textAlign: h === 'Score' ? 'center' : 'left' }}>{h}</Typography>
-                    ))}
-                  </Box>
-                  {recentPredictions.map((p, i) => {
-                    const rc = riskConfig[p.risk_level] || riskConfig.Low;
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {[
+                    { label: 'High Risk',   count: rb.High   || 0, key: 'High' },
+                    { label: 'Medium Risk', count: rb.Medium || 0, key: 'Medium' },
+                    { label: 'Low Risk',    count: rb.Low    || 0, key: 'Low' },
+                  ].map(({ label, count, key }) => {
+                    const r = RISK[key];
+                    const pct = total > 0 ? Math.round((count / total) * 100) : 0;
                     return (
-                      <Box key={i} sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 70px', gap: 1.5, px: 1.5, py: 1.2, borderBottom: '1px solid #F0F2F5', borderRadius: '8px', '&:hover': { bgcolor: '#FAFCFF' }, transition: 'background 0.2s' }}>
-                        <Typography variant="body2" fontWeight={600} color="#1A202C">{p.patient_id}</Typography>
-                        <Typography variant="body2" color="text.secondary">{new Date(p.prediction_date).toLocaleDateString()}</Typography>
-                        <Box>
-                          <Box sx={{ display: 'inline-flex', px: 1.5, py: 0.3, borderRadius: '8px', fontSize: '0.72rem', fontWeight: 700, bgcolor: rc.bg, color: rc.color }}>
-                            {p.risk_level}
+                      <Box key={key}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.6 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: r.color }} />
+                            <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>{label}</Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#0F172A' }}>{count}</Typography>
+                            <Typography sx={{ fontSize: '0.68rem', color: '#94A3B8' }}>({pct}%)</Typography>
                           </Box>
                         </Box>
-                        <Typography variant="body2" fontWeight={700} color="#1A202C" textAlign="center">
-                          {p.readmission_risk_score ? `${(p.readmission_risk_score * 100).toFixed(0)}%` : '—'}
-                        </Typography>
+                        <LinearProgress
+                          variant="determinate"
+                          value={pct}
+                          sx={{
+                            height: 7, borderRadius: 4,
+                            bgcolor: `${r.color}18`,
+                            '& .MuiLinearProgress-bar': { bgcolor: r.color, borderRadius: 4 },
+                          }}
+                        />
                       </Box>
                     );
                   })}
-                </>
+                  <Box sx={{ mt: 1, pt: 1.5, borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography sx={{ fontSize: '0.72rem', color: '#94A3B8' }}>Total assessed</Typography>
+                    <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#0F172A' }}>{total}</Typography>
+                  </Box>
+                </Box>
               )}
             </CardContent>
           </Card>
         </Grid>
 
-        {/* Upcoming Follow-ups */}
-        <Grid item xs={12} md={5}>
-          <Card sx={{ borderRadius: '16px', height: '100%' }}>
+        {/* Recent Predictions */}
+        <Grid item xs={12} md={8}>
+          <Card sx={{ borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', height: '100%' }}>
             <CardContent sx={{ p: 2.5 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <CalendarTodayIcon sx={{ color: '#F59E0B', fontSize: 20 }} />
-                <Typography variant="subtitle2" fontWeight={700} color="#1A202C">Upcoming Follow-ups</Typography>
-              </Box>
-              {upcomingFollowups.length === 0 ? (
-                <Typography variant="body2" color="text.secondary" textAlign="center" py={3}>No upcoming follow-ups.</Typography>
-              ) : (
-                upcomingFollowups.map((p, i) => {
-                  const rc = riskConfig[p.risk_level] || riskConfig.Low;
-                  return (
-                    <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.5, borderBottom: i < upcomingFollowups.length - 1 ? '1px solid #F0F2F5' : 'none' }}>
-                      <Avatar sx={{ bgcolor: rc.color, width: 36, height: 36, fontSize: '0.75rem', fontWeight: 700 }}>
-                        {p.patient_id?.slice(0, 2).toUpperCase()}
-                      </Avatar>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography variant="body2" fontWeight={700} color="#1A202C">{p.patient_id}</Typography>
-                        <Typography variant="caption" color="text.secondary">Follow-up: {p.followupDate}</Typography>
-                      </Box>
-                      <Chip label={p.risk_level} size="small" sx={{ bgcolor: rc.bg, color: rc.color, fontWeight: 700, fontSize: '0.68rem' }} />
-                    </Box>
-                  );
-                })
-              )}
+              <Typography sx={{ fontWeight: 700, fontSize: '0.88rem', color: '#0F172A', mb: 0.3 }}>Recent Predictions</Typography>
+              <Typography sx={{ fontSize: '0.72rem', color: '#94A3B8', mb: 2 }}>Latest AI risk assessments</Typography>
 
-              <Divider sx={{ my: 2 }} />
-
-              {/* Hospital Performance */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                <LocalHospitalIcon sx={{ color: '#3B82F6', fontSize: 18 }} />
-                <Typography variant="subtitle2" fontWeight={700} color="#1A202C">Hospital Performance</Typography>
-              </Box>
-              {[
-                { label: 'Model Accuracy', value: stats?.accuracy || 94.7, color: '#10B981' },
-                { label: 'High Risk Detected', value: rb.High ? Math.min(100, Math.round((rb.High / (stats?.total_patients || 1)) * 100)) : 0, color: '#EF4444' },
-                { label: 'Treatment Success', value: 78, color: '#3B82F6' },
-              ].map(({ label, value, color }) => (
-                <Box key={label} sx={{ mb: 1.2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.4 }}>
-                    <Typography variant="caption" color="text.secondary" fontWeight={600}>{label}</Typography>
-                    <Typography variant="caption" fontWeight={700} color={color}>{value}%</Typography>
-                  </Box>
-                  <Box sx={{ height: 6, borderRadius: 3, bgcolor: '#F0F2F5', overflow: 'hidden' }}>
-                    <Box sx={{ height: '100%', width: `${value}%`, bgcolor: color, borderRadius: 3, transition: 'width 1s ease' }} />
-                  </Box>
+              {loading ? (
+                <Box>{[...Array(4)].map((_, i) => <Skeleton key={i} height={44} sx={{ mb: 0.5, borderRadius: '8px' }} />)}</Box>
+              ) : recentPreds.length === 0 ? (
+                <Box sx={{ py: 5, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                  <PsychologyRoundedIcon sx={{ fontSize: 38, color: '#CBD5E1' }} />
+                  <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#475569' }}>No predictions yet</Typography>
+                  <Typography sx={{ fontSize: '0.75rem', color: '#94A3B8', textAlign: 'center' }}>Run an AI assessment to start building your risk analytics.</Typography>
                 </Box>
-              ))}
+              ) : (
+                <Box sx={{ overflowX: 'auto' }}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ '& th': { bgcolor: '#F8FAFC', fontWeight: 700, fontSize: '0.68rem', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', border: 'none', py: 1.2 } }}>
+                        <TableCell>Patient ID</TableCell>
+                        <TableCell>Risk Level</TableCell>
+                        <TableCell>Risk Score</TableCell>
+                        <TableCell>Date</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {recentPreds.slice(0, 5).map((p, i) => (
+                        <TableRow key={i} sx={{ '& td': { border: 'none', py: 1.2, fontSize: '0.82rem' }, '&:hover': { bgcolor: '#F8FAFC' } }}>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Avatar sx={{ width: 26, height: 26, bgcolor: '#EFF6FF', color: '#1D4ED8', fontSize: '0.62rem', fontWeight: 700 }}>
+                                {p.patient_id?.slice(-2)}
+                              </Avatar>
+                              <Typography sx={{ fontWeight: 600, fontSize: '0.82rem', color: '#0F172A' }}>{p.patient_id}</Typography>
+                            </Box>
+                          </TableCell>
+                          <TableCell><RiskBadge level={p.risk_level} /></TableCell>
+                          <TableCell>
+                            <Typography sx={{ fontSize: '0.82rem', fontWeight: 700, color: RISK[p.risk_level]?.text || '#0F172A' }}>
+                              {p.readmission_risk_score ? `${(p.readmission_risk_score * 100).toFixed(1)}%` : '—'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell sx={{ color: '#64748B', fontSize: '0.78rem' }}>
+                            {p.prediction_date ? new Date(p.prediction_date).toLocaleDateString() : '—'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Box>
+              )}
             </CardContent>
           </Card>
         </Grid>

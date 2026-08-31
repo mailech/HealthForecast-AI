@@ -1,0 +1,13 @@
+medication,group,encounters,overall_readmit_pct,lt30_readmit_pct,gt30_readmit_pct
+insulin,Prescribed,54383,48.17,12.14,36.03
+insulin,Not Prescribed,47380,43.7,10.04,33.66
+metformin,Prescribed,19987,43.25,9.7,33.55
+metformin,Not Prescribed,81776,46.78,11.52,35.27
+glipizide,Prescribed,12685,48.73,11.45,37.29
+glipizide,Not Prescribed,89078,45.71,11.12,34.59
+glyburide,Prescribed,10650,45.54,10.63,34.91
+glyburide,Not Prescribed,91113,46.15,11.22,34.93
+pioglitazone,Prescribed,7327,48.19,10.56,37.63
+pioglitazone,Not Prescribed,94436,45.93,11.21,34.72
+rosiglitazone,Prescribed,6364,48.3,10.45,37.85
+rosiglitazone,Not Prescribed,95399,45.94,11.21,34.73

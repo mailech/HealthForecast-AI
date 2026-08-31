@@ -1,160 +1,197 @@
 import os
 import logging
+import pickle
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import StandardScaler
-import joblib
 
 logger = logging.getLogger("app.ai.predictor")
 
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "readmission_model.joblib")
-SCALER_PATH = os.path.join(os.path.dirname(__file__), "scaler.joblib")
+# Project paths
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(THIS_DIR, "..", "..", ".."))
 
-def train_default_model():
-    """
-    Generates synthetic patient records, trains a baseline RandomForest model,
-    and saves both the model and the scaler to disk.
-    """
-    logger.info("Generating synthetic dataset to train the default readmission model...")
-    np.random.seed(42)
-    
-    n_samples = 1000
-    
-    # Generate synthetic features
-    age = np.random.randint(18, 90, size=n_samples)
-    gender_numeric = np.random.randint(0, 3, size=n_samples) # Male=0, Female=1, Other=2
-    length_of_stay = np.random.randint(1, 20, size=n_samples)
-    num_previous_admissions = np.random.randint(0, 6, size=n_samples)
-    num_medications = np.random.randint(1, 25, size=n_samples)
-    systolic_bp = np.random.randint(90, 180, size=n_samples)
-    diastolic_bp = np.random.randint(60, 110, size=n_samples)
-    blood_sugar = np.random.uniform(70.0, 250.0, size=n_samples)
-    comorbidity_count = np.random.randint(0, 5, size=n_samples)
-    
-    # Calculate probability of readmission based on logical rules
-    # higher age, length of stay, previous admissions, comorbidities, blood sugar -> higher risk
-    risk_score = (
-        (age / 90.0) * 0.15 +
-        (length_of_stay / 20.0) * 0.2 +
-        (num_previous_admissions / 5.0) * 0.25 +
-        (comorbidity_count / 5.0) * 0.15 +
-        (blood_sugar / 250.0) * 0.15 +
-        (systolic_bp / 180.0) * 0.1
-    )
-    
-    # Convert risk_score to binary labels with noise
-    probabilities = 1.0 / (1.0 + np.exp(-10 * (risk_score - 0.45)))
-    readmitted = (np.random.rand(n_samples) < probabilities).astype(int)
-    
-    df = pd.DataFrame({
-        "age": age,
-        "gender_numeric": gender_numeric,
-        "length_of_stay": length_of_stay,
-        "num_previous_admissions": num_previous_admissions,
-        "num_medications": num_medications,
-        "systolic_bp": systolic_bp,
-        "diastolic_bp": diastolic_bp,
-        "blood_sugar": blood_sugar,
-        "comorbidity_count": comorbidity_count
-    })
-    
-    X = df.values
-    y = readmitted
-    
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-    
-    model = RandomForestClassifier(n_estimators=100, random_state=42)
-    model.fit(X_scaled, y)
-    
-    # Save files
-    joblib.dump(model, MODEL_PATH)
-    joblib.dump(scaler, SCALER_PATH)
-    logger.info(f"Model and scaler trained and saved successfully at {MODEL_PATH} and {SCALER_PATH}")
-    return model, scaler
+MODELS_DIR = os.path.join(PROJECT_ROOT, "data", "models")
+SPLITS_DIR = os.path.join(PROJECT_ROOT, "data", "data", "splits")
 
-class ReadmissionPredictor:
+# Backup paths if inside Backend/app/ai
+ALT_MODELS_DIR = THIS_DIR
+
+AGE_ORDER = {
+    "[0-10)": 0, "[10-20)": 1, "[20-30)": 2, "[30-40)": 3,
+    "[40-50)": 4, "[50-60)": 5, "[60-70)": 6, "[70-80)": 7,
+    "[80-90)": 8, "[90-100)": 9,
+}
+
+MED_COLS = [
+    "metformin", "repaglinide", "nateglinide", "chlorpropamide", "glimepiride",
+    "acetohexamide", "glipizide", "glyburide", "tolbutamide", "pioglitazone",
+    "rosiglitazone", "acarbose", "miglitol", "troglitazone", "tolazamide",
+    "examide", "citoglipton", "insulin", "glyburide-metformin",
+    "glipizide-metformin", "glimepiride-pioglitazone",
+    "metformin-rosiglitazone", "metformin-pioglitazone"
+]
+
+ZERO_VAR_COLS = ['acetohexamide_No', 'troglitazone_No', 'examide_No', 'citoglipton_No']
+
+def icd9_group(code):
+    if pd.isna(code) or str(code).strip().upper() in ("", "UNKNOWN", "?", "NONE", "NULL"):
+        return "Unknown"
+    code = str(code).strip()
+    if code.startswith("E"): return "External_Injury"
+    if code.startswith("V"): return "Supplementary"
+    try:
+        num = float(code)
+    except ValueError:
+        return "Other"
+    if   1 <= num < 140:  return "Infectious"
+    if 140 <= num < 240:  return "Neoplasms"
+    if 240 <= num < 280:  return "Endocrine_Metabolic"
+    if 280 <= num < 290:  return "Blood"
+    if 290 <= num < 320:  return "Mental"
+    if 320 <= num < 390:  return "Nervous_System"
+    if 390 <= num < 460:  return "Circulatory"
+    if 460 <= num < 520:  return "Respiratory"
+    if 520 <= num < 580:  return "Digestive"
+    if 580 <= num < 630:  return "Genitourinary"
+    if 630 <= num < 680:  return "Pregnancy"
+    if 680 <= num < 710:  return "Skin"
+    if 710 <= num < 740:  return "Musculoskeletal"
+    if 740 <= num < 760:  return "Congenital"
+    if 760 <= num < 780:  return "Perinatal"
+    if 780 <= num < 800:  return "Symptoms_Signs"
+    if 800 <= num < 1000: return "Injury_Poisoning"
+    return "Other"
+
+class DualReadmissionPredictor:
     def __init__(self):
-        self.model = None
-        self.scaler = None
-        
+        self.risk_model = None
+        self.risk_prep = None
+        self.readmission_model = None
+        self.readmission_prep = None
+        self.x_train_cols = None
+        self.risk_cols = None
+        self.readmit_cols = None
+
     def load_model(self):
-        if not os.path.exists(MODEL_PATH) or not os.path.exists(SCALER_PATH):
-            logger.info("Model files not found. Initiating auto-training of baseline model...")
-            self.model, self.scaler = train_default_model()
+        m1_path = os.path.join(MODELS_DIR, "patient_risk_model.pkl")
+        p1_path = os.path.join(MODELS_DIR, "preprocessor.pkl")
+        m2_path = os.path.join(MODELS_DIR, "readmission_model.pkl")
+        p2_path = os.path.join(MODELS_DIR, "readmission_preprocessor.pkl")
+
+        if not (os.path.exists(m1_path) and os.path.exists(m2_path)):
+            logger.warning(f"Models not found in {MODELS_DIR}, checking {ALT_MODELS_DIR}")
+            m1_path = os.path.join(ALT_MODELS_DIR, "patient_risk_model.pkl")
+            p1_path = os.path.join(ALT_MODELS_DIR, "preprocessor.pkl")
+            m2_path = os.path.join(ALT_MODELS_DIR, "readmission_model.pkl")
+            p2_path = os.path.join(ALT_MODELS_DIR, "readmission_preprocessor.pkl")
+
+        logger.info(f"Loading trained AI models from {m1_path} and {m2_path}...")
+        with open(m1_path, "rb") as f:
+            self.risk_model = pickle.load(f)
+        with open(p1_path, "rb") as f:
+            self.risk_prep = pickle.load(f)
+        with open(m2_path, "rb") as f:
+            self.readmission_model = pickle.load(f)
+        with open(p2_path, "rb") as f:
+            self.readmission_prep = pickle.load(f)
+
+        # Load column headers
+        x_train_file = os.path.join(SPLITS_DIR, "X_train.csv")
+        readmit_file = os.path.join(SPLITS_DIR, "readmission_X_train.csv")
+
+        if os.path.exists(x_train_file) and os.path.exists(readmit_file):
+            self.x_train_cols = pd.read_csv(x_train_file, nrows=1).columns.tolist()
+            self.readmit_cols = pd.read_csv(readmit_file, nrows=1).columns.tolist()
+            self.risk_cols = [c for c in self.x_train_cols if c not in ZERO_VAR_COLS]
         else:
-            self.model = joblib.load(MODEL_PATH)
-            self.scaler = joblib.load(SCALER_PATH)
-            logger.info("Loaded readmission model and scaler successfully.")
-            
+            logger.error("Splits column definitions missing!")
+            raise FileNotFoundError("Split CSV column files not found.")
+
+        logger.info("Successfully loaded dual AI models & preprocessors.")
+
     def predict(self, data: dict) -> dict:
         """
-        Runs prediction.
-        Input format:
-        {
-           "age": int,
-           "gender": str,
-           "length_of_stay": int,
-           "num_previous_admissions": int,
-           "num_medications": int,
-           "systolic_bp": int,
-           "diastolic_bp": int,
-           "blood_sugar": float,
-           "comorbidity_count": int
-        }
-        Returns:
-        {
-           "readmission_risk_score": float (0.0 to 1.0),
-           "risk_level": str ("High", "Medium", "Low")
-        }
+        Runs inference on full raw input features using both Model 1 & Model 2.
         """
-        if self.model is None or self.scaler is None:
-            raise ValueError("Predictor model has not been loaded (warmed up).")
-            
-        gender_map = {"male": 0, "female": 1, "other": 2}
-        gender_val = gender_map.get(data.get("gender", "other").lower(), 2)
-        
-        feature_dict = {
-            "age": data["age"],
-            "gender_numeric": gender_val,
-            "length_of_stay": data["length_of_stay"],
-            "num_previous_admissions": data["num_previous_admissions"],
-            "num_medications": data["num_medications"],
-            "systolic_bp": data["systolic_bp"],
-            "diastolic_bp": data["diastolic_bp"],
-            "blood_sugar": data["blood_sugar"],
-            "comorbidity_count": data["comorbidity_count"]
-        }
-        
-        features_array = np.array([[
-            feature_dict["age"],
-            feature_dict["gender_numeric"],
-            feature_dict["length_of_stay"],
-            feature_dict["num_previous_admissions"],
-            feature_dict["num_medications"],
-            feature_dict["systolic_bp"],
-            feature_dict["diastolic_bp"],
-            feature_dict["blood_sugar"],
-            feature_dict["comorbidity_count"]
-        ]])
-        
-        scaled_features = self.scaler.transform(features_array)
-        
-        # Predict probability
-        proba = self.model.predict_proba(scaled_features)[0][1]
-        
-        # Categorize risk levels
-        if proba >= 0.65:
-            risk_level = "High"
-        elif proba >= 0.35:
-            risk_level = "Medium"
-        else:
-            risk_level = "Low"
-            
-        return {
-            "readmission_risk_score": float(proba),
-            "risk_level": risk_level
+        if self.risk_model is None or self.readmission_model is None:
+            self.load_model()
+
+        # Build raw dict with all expected features and fallback defaults
+        raw = {
+            "race": data.get("race", "Caucasian"),
+            "gender": data.get("gender", "Female"),
+            "age": data.get("age", "[50-60)"),
+            "admission_type_id": int(data.get("admission_type_id", 1)),
+            "discharge_disposition_id": int(data.get("discharge_disposition_id", 1)),
+            "admission_source_id": int(data.get("admission_source_id", 7)),
+            "time_in_hospital": int(data.get("time_in_hospital", 3)),
+            "num_lab_procedures": int(data.get("num_lab_procedures", 40)),
+            "num_procedures": int(data.get("num_procedures", 1)),
+            "num_medications": int(data.get("num_medications", 15)),
+            "number_outpatient": int(data.get("number_outpatient", 0)),
+            "number_emergency": int(data.get("number_emergency", 0)),
+            "number_inpatient": int(data.get("number_inpatient", 0)),
+            "diag_1": str(data.get("diag_1", "250.01")),
+            "diag_2": str(data.get("diag_2", "401")),
+            "diag_3": str(data.get("diag_3", "272")),
+            "number_diagnoses": int(data.get("number_diagnoses", 9)),
+            "medical_specialty": data.get("medical_specialty", "InternalMedicine"),
+            "change": data.get("change", "No"),
+            "diabetesMed": data.get("diabetesMed", "Yes")
         }
 
-predictor_instance = ReadmissionPredictor()
+        # Med status defaults
+        for med in MED_COLS:
+            raw[med] = data.get(med, "No")
+
+        # Create DataFrame
+        df = pd.DataFrame([raw])
+
+        # Preprocess features
+        df["age"] = df["age"].map(lambda x: AGE_ORDER.get(str(x), AGE_ORDER.get("[50-60)", 5)))
+        df["change"] = (df["change"] == "Ch").astype(int)
+        df["diabetesMed"] = (df["diabetesMed"] == "Yes").astype(int)
+
+        for col in ["diag_1", "diag_2", "diag_3"]:
+            df[col] = df[col].apply(icd9_group)
+
+        # Model 1 Inference (Patient Risk Prediction)
+        x1_arr = self.risk_prep.transform(df)
+        x1_df = pd.DataFrame(x1_arr, columns=self.x_train_cols)[self.risk_cols]
+        prob1 = float(self.risk_model.predict_proba(x1_df)[0, 1])
+        label1 = "HIGH RISK (readmission < 30 days)" if prob1 >= 0.5 else "LOW RISK"
+
+        # Model 2 Inference (Hospital Readmission Prediction)
+        x2_arr = self.readmission_prep.transform(df)
+        x2_df = pd.DataFrame(x2_arr, columns=self.readmit_cols)
+        prob2 = float(self.readmission_model.predict_proba(x2_df)[0, 1])
+        label2 = "LIKELY READMISSION" if prob2 >= 0.5 else "NO READMISSION EXPECTED"
+
+        # Determine overall Risk Level
+        if prob1 >= 0.5 and prob2 >= 0.5:
+            risk_level = "High"
+            clinical_interpretation = "HIGH ALERT: Patient is at high risk AND likely to be readmitted. Recommend immediate care plan review and follow-up scheduling."
+        elif prob1 >= 0.5:
+            risk_level = "High"
+            clinical_interpretation = "Patient is high risk for early readmission (<30 days). Consider enhanced discharge planning."
+        elif prob2 >= 0.5:
+            risk_level = "Medium"
+            clinical_interpretation = "Patient is likely to be readmitted (any timeframe). Consider outpatient follow-up and medication review."
+        elif prob1 >= 0.35 or prob2 >= 0.35:
+            risk_level = "Medium"
+            clinical_interpretation = "Patient exhibits moderate readmission indicator scores. Monitor progress at follow-up."
+        else:
+            risk_level = "Low"
+            clinical_interpretation = "Patient appears low risk for readmission."
+
+        return {
+            "model1_probability": prob1,
+            "model1_prediction": label1,
+            "model2_probability": prob2,
+            "model2_prediction": label2,
+            "readmission_risk_score": float(max(prob1, prob2)),
+            "risk_level": risk_level,
+            "clinical_interpretation": clinical_interpretation
+        }
+
+predictor_instance = DualReadmissionPredictor()

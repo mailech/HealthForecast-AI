@@ -2,12 +2,21 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from app.schemas.treatment import TreatmentResponse, TreatmentCreate, TreatmentUpdate
 from app.services.treatment_service import TreatmentService
+from app.services.user_service import UserService
 from app.dependencies import RoleChecker
 
 router = APIRouter(prefix="/treatments", tags=["Treatments Management"])
 
 read_dependency = Depends(RoleChecker(allowed_roles=["Doctor", "Hospital Administrator", "Healthcare Researcher", "System Administrator"]))
-write_dependency = Depends(RoleChecker(allowed_roles=["Doctor", "System Administrator"]))
+write_dependency = Depends(RoleChecker(allowed_roles=["Doctor", "Hospital Administrator", "System Administrator"]))
+
+@router.get("/doctors", dependencies=[read_dependency])
+def list_doctors():
+    """
+    Returns all active Doctor-role users for the doctor assignment dropdown.
+    """
+    doctors = UserService.get_doctors()
+    return [{"email": d.get("email", ""), "full_name": d.get("full_name", "")} for d in doctors]
 
 @router.post("", response_model=TreatmentResponse, status_code=status.HTTP_201_CREATED, dependencies=[write_dependency])
 def create_treatment(treatment_in: TreatmentCreate):

@@ -15,7 +15,11 @@ class TreatmentBase(BaseModel):
     medications: List[MedicationSchema] = Field(default_factory=list)
     start_date: datetime
     end_date: datetime
-    status: str = Field("Active", description="Active, Completed, Discontinued")
+    status: str = Field("Active", description="Active, In Progress, Completed, Pending Follow-up, Discontinued, Cancelled, Paused")
+    diagnosis: Optional[str] = None
+    follow_up_date: Optional[datetime] = None
+    recovery_percentage: Optional[int] = Field(default=0, ge=0, le=100)
+    notes: Optional[str] = None
 
 class TreatmentCreate(TreatmentBase):
     pass
@@ -27,6 +31,10 @@ class TreatmentUpdate(BaseModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     status: Optional[str] = None
+    diagnosis: Optional[str] = None
+    follow_up_date: Optional[datetime] = None
+    recovery_percentage: Optional[int] = Field(default=None, ge=0, le=100)
+    notes: Optional[str] = None
 
 class TreatmentResponse(TreatmentBase):
     id: Optional[PyObjectId] = Field(default=None, alias="_id")

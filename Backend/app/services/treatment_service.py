@@ -24,7 +24,7 @@ class TreatmentService:
         try:
             return treatments_collection.find_one({"_id": ObjectId(treatment_id)})
         except Exception:
-            return None
+            return treatments_collection.find_one({"_id": treatment_id})
 
     @staticmethod
     def get_by_patient_id(patient_id: str) -> List[dict]:
@@ -36,15 +36,22 @@ class TreatmentService:
 
     @staticmethod
     def update_treatment(treatment_id: str, treatment_in: TreatmentUpdate) -> Optional[dict]:
-        update_data = {k: v for k, v in treatment_in.model_dump(exclude_unset=True).items() if v is not None}
+        # Use exclude_unset only — do NOT filter out falsy values like 0 or empty string
+        update_data = treatment_in.model_dump(exclude_unset=True)
         if not update_data:
             return TreatmentService.get_by_id(treatment_id)
             
         try:
+            from pymongo import ReturnDocument
+            try:
+                query = {"_id": ObjectId(treatment_id)}
+            except Exception:
+                query = {"_id": treatment_id}
+
             res = treatments_collection.find_one_and_update(
-                {"_id": ObjectId(treatment_id)},
+                query,
                 {"$set": update_data},
-                return_document=True
+                return_document=ReturnDocument.AFTER
             )
             return res
         except Exception:
@@ -53,7 +60,11 @@ class TreatmentService:
     @staticmethod
     def delete_treatment(treatment_id: str) -> bool:
         try:
-            res = treatments_collection.delete_one({"_id": ObjectId(treatment_id)})
+            try:
+                query = {"_id": ObjectId(treatment_id)}
+            except Exception:
+                query = {"_id": treatment_id}
+            res = treatments_collection.delete_one(query)
             return res.deleted_count > 0
         except Exception:
             return False

@@ -1,0 +1,49 @@
+medication,group,metric,n,mean,median,std
+insulin,Prescribed,time_in_hospital,54383,4.672,4.0,3.052
+insulin,Prescribed,number_inpatient,54383,0.718,0.0,1.373
+insulin,Prescribed,number_outpatient,54383,0.375,0.0,1.319
+insulin,Prescribed,number_emergency,54383,0.235,0.0,1.078
+insulin,Not Prescribed,time_in_hospital,47380,4.079,3.0,2.873
+insulin,Not Prescribed,number_inpatient,47380,0.541,0.0,1.115
+insulin,Not Prescribed,number_outpatient,47380,0.363,0.0,1.205
+insulin,Not Prescribed,number_emergency,47380,0.155,0.0,0.723
+metformin,Prescribed,time_in_hospital,19987,4.356,4.0,2.904
+metformin,Prescribed,number_inpatient,19987,0.454,0.0,0.987
+metformin,Prescribed,number_outpatient,19987,0.339,0.0,1.129
+metformin,Prescribed,number_emergency,19987,0.182,0.0,0.862
+metformin,Not Prescribed,time_in_hospital,81776,4.406,4.0,3.004
+metformin,Not Prescribed,number_inpatient,81776,0.68,0.0,1.318
+metformin,Not Prescribed,number_outpatient,81776,0.377,0.0,1.299
+metformin,Not Prescribed,number_emergency,81776,0.202,0.0,0.946
+glipizide,Prescribed,time_in_hospital,12685,4.525,4.0,2.984
+glipizide,Prescribed,number_inpatient,12685,0.556,0.0,1.071
+glipizide,Prescribed,number_outpatient,12685,0.396,0.0,1.279
+glipizide,Prescribed,number_emergency,12685,0.184,0.0,0.835
+glipizide,Not Prescribed,time_in_hospital,89078,4.378,4.0,2.985
+glipizide,Not Prescribed,number_inpatient,89078,0.647,0.0,1.288
+glipizide,Not Prescribed,number_outpatient,89078,0.366,0.0,1.266
+glipizide,Not Prescribed,number_emergency,89078,0.2,0.0,0.943
+glyburide,Prescribed,time_in_hospital,10650,4.618,4.0,3.05
+glyburide,Prescribed,number_inpatient,10650,0.491,0.0,0.975
+glyburide,Prescribed,number_outpatient,10650,0.354,0.0,1.385
+glyburide,Prescribed,number_emergency,10650,0.118,0.0,0.536
+glyburide,Not Prescribed,time_in_hospital,91113,4.37,4.0,2.976
+glyburide,Not Prescribed,number_inpatient,91113,0.652,0.0,1.291
+glyburide,Not Prescribed,number_outpatient,91113,0.371,0.0,1.253
+glyburide,Not Prescribed,number_emergency,91113,0.207,0.0,0.966
+pioglitazone,Prescribed,time_in_hospital,7327,4.455,4.0,2.997
+pioglitazone,Prescribed,number_inpatient,7327,0.523,0.0,1.049
+pioglitazone,Prescribed,number_outpatient,7327,0.426,0.0,1.361
+pioglitazone,Prescribed,number_emergency,7327,0.201,0.0,0.795
+pioglitazone,Not Prescribed,time_in_hospital,94436,4.391,4.0,2.984
+pioglitazone,Not Prescribed,number_inpatient,94436,0.644,0.0,1.278
+pioglitazone,Not Prescribed,number_outpatient,94436,0.365,0.0,1.26
+pioglitazone,Not Prescribed,number_emergency,94436,0.198,0.0,0.94
+rosiglitazone,Prescribed,time_in_hospital,6364,4.462,4.0,2.962
+rosiglitazone,Prescribed,number_inpatient,6364,0.531,0.0,1.106
+rosiglitazone,Prescribed,number_outpatient,6364,0.357,0.0,1.13
+rosiglitazone,Prescribed,number_emergency,6364,0.166,0.0,0.571
+rosiglitazone,Not Prescribed,time_in_hospital,95399,4.392,4.0,2.987
+rosiglitazone,Not Prescribed,number_inpatient,95399,0.643,0.0,1.272
+rosiglitazone,Not Prescribed,number_outpatient,95399,0.37,0.0,1.276
+rosiglitazone,Not Prescribed,number_emergency,95399,0.2,0.0,0.95

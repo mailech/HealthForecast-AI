@@ -1,0 +1,59 @@
+analysis_type,category,metric,value
+medication_usage,insulin,prescription_pct,53.44
+medication_usage,insulin,dose_changed_pct,43.27
+medication_usage,metformin,prescription_pct,19.64
+medication_usage,metformin,dose_changed_pct,8.22
+medication_usage,glipizide,prescription_pct,12.47
+medication_usage,glipizide,dose_changed_pct,10.48
+medication_usage,glyburide,prescription_pct,10.47
+medication_usage,glyburide,dose_changed_pct,12.92
+medication_usage,pioglitazone,prescription_pct,7.2
+medication_usage,pioglitazone,dose_changed_pct,4.8
+medication_usage,rosiglitazone,prescription_pct,6.25
+medication_usage,rosiglitazone,dose_changed_pct,4.16
+medication_usage,glimepiride,prescription_pct,5.1
+medication_usage,glimepiride,dose_changed_pct,10.04
+medication_usage,repaglinide,prescription_pct,1.51
+medication_usage,repaglinide,dose_changed_pct,10.07
+medication_usage,glyburide-metformin,prescription_pct,0.69
+medication_usage,glyburide-metformin,dose_changed_pct,1.98
+medication_usage,nateglinide,prescription_pct,0.69
+medication_usage,nateglinide,dose_changed_pct,4.98
+medication_usage,acarbose,prescription_pct,0.3
+medication_usage,acarbose,dose_changed_pct,4.22
+medication_usage,chlorpropamide,prescription_pct,0.08
+medication_usage,chlorpropamide,dose_changed_pct,8.14
+medication_usage,tolazamide,prescription_pct,0.04
+medication_usage,tolazamide,dose_changed_pct,2.56
+medication_usage,miglitol,prescription_pct,0.04
+medication_usage,miglitol,dose_changed_pct,18.42
+medication_usage,tolbutamide,prescription_pct,0.02
+medication_usage,tolbutamide,dose_changed_pct,0.0
+medication_usage,glipizide-metformin,prescription_pct,0.01
+medication_usage,glipizide-metformin,dose_changed_pct,0.0
+medication_usage,acetohexamide,prescription_pct,0.0
+medication_usage,acetohexamide,dose_changed_pct,0.0
+medication_usage,troglitazone,prescription_pct,0.0
+medication_usage,troglitazone,dose_changed_pct,0.0
+medication_usage,citoglipton,prescription_pct,0.0
+medication_usage,citoglipton,dose_changed_pct,0.0
+medication_usage,examide,prescription_pct,0.0
+medication_usage,examide,dose_changed_pct,0.0
+medication_usage,glimepiride-pioglitazone,prescription_pct,0.0
+medication_usage,glimepiride-pioglitazone,dose_changed_pct,0.0
+medication_usage,metformin-rosiglitazone,prescription_pct,0.0
+medication_usage,metformin-rosiglitazone,dose_changed_pct,0.0
+medication_usage,metformin-pioglitazone,prescription_pct,0.0
+medication_usage,metformin-pioglitazone,dose_changed_pct,0.0
+readmission_by_medication,insulin_Prescribed,overall_readmit_pct,48.17
+readmission_by_medication,insulin_Not Prescribed,overall_readmit_pct,43.7
+readmission_by_medication,metformin_Prescribed,overall_readmit_pct,43.25
+readmission_by_medication,metformin_Not Prescribed,overall_readmit_pct,46.78
+readmission_by_medication,glipizide_Prescribed,overall_readmit_pct,48.73
+readmission_by_medication,glipizide_Not Prescribed,overall_readmit_pct,45.71
+readmission_by_medication,glyburide_Prescribed,overall_readmit_pct,45.54
+readmission_by_medication,glyburide_Not Prescribed,overall_readmit_pct,46.15
+readmission_by_medication,pioglitazone_Prescribed,overall_readmit_pct,48.19
+readmission_by_medication,pioglitazone_Not Prescribed,overall_readmit_pct,45.93
+readmission_by_medication,rosiglitazone_Prescribed,overall_readmit_pct,48.3
+readmission_by_medication,rosiglitazone_Not Prescribed,overall_readmit_pct,45.94

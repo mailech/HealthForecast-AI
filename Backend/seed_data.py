@@ -103,6 +103,18 @@ def seed():
             "hospital": "City Clinic",
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
+        },
+        {
+            "patient_id": "PAT-10004",
+            "first_name": "Riya",
+            "last_name": "M",
+            "date_of_birth": "1992-07-12",
+            "gender": "Female",
+            "email": "riyam@email.com",
+            "phone": "+1-555-0488",
+            "hospital": "General Hospital",
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
         }
     ]
     for p in patients:
@@ -155,9 +167,26 @@ def seed():
             "blood_sugar": 180.0,
             "notes": "Severe exacerbation of heart failure. High diuretic dose needed.",
             "created_at": datetime.utcnow()
+        },
+        {
+            "patient_id": "PAT-10004",
+            "admission_date": datetime.utcnow() - timedelta(days=10),
+            "discharge_date": datetime.utcnow() - timedelta(days=5),
+            "primary_diagnosis": "Essential Hypertension",
+            "comorbidities": ["Migraine"],
+            "length_of_stay": 5,
+            "num_previous_admissions": 0,
+            "num_medications": 3,
+            "systolic_bp": 145,
+            "diastolic_bp": 90,
+            "blood_sugar": 110.0,
+            "notes": "Hypertension monitoring and medication titration.",
+            "created_at": datetime.utcnow()
         }
     ]
-    medical_histories_collection.insert_many(histories)
+    for h in histories:
+        if not medical_histories_collection.find_one({"patient_id": h["patient_id"]}):
+            medical_histories_collection.insert_one(h)
     
     print("Generating AI Predictions...")
     pred_inputs = [
@@ -196,22 +225,36 @@ def seed():
             "diastolic_bp": 92,
             "blood_sugar": 180.0,
             "comorbidity_count": 3
+        },
+        {
+            "patient_id": "PAT-10004",
+            "age": 34,
+            "gender": "Female",
+            "length_of_stay": 5,
+            "num_previous_admissions": 0,
+            "num_medications": 3,
+            "systolic_bp": 145,
+            "diastolic_bp": 90,
+            "blood_sugar": 110.0,
+            "comorbidity_count": 1
         }
     ]
     
     predictions = []
     for pi in pred_inputs:
-        result = predictor_instance.predict(pi)
-        predictions.append({
-            "patient_id": pi["patient_id"],
-            "readmission_risk_score": result["readmission_risk_score"],
-            "risk_level": result["risk_level"],
-            "prediction_date": datetime.utcnow(),
-            "predicted_by": "doctor@hospital.com",
-            "features_used": pi,
-            "notes": f"Initial seeding run. Risk assessed as {result['risk_level']}."
-        })
-    predictions_collection.insert_many(predictions)
+        if not predictions_collection.find_one({"patient_id": pi["patient_id"]}):
+            result = predictor_instance.predict(pi)
+            predictions.append({
+                "patient_id": pi["patient_id"],
+                "readmission_risk_score": result["readmission_risk_score"],
+                "risk_level": result["risk_level"],
+                "prediction_date": datetime.utcnow(),
+                "predicted_by": "doctor@hospital.com",
+                "features_used": pi,
+                "notes": f"Initial seeding run. Risk assessed as {result['risk_level']}."
+            })
+    if predictions:
+        predictions_collection.insert_many(predictions)
     
     print("Seeding Treatments...")
     treatments = [
@@ -225,7 +268,9 @@ def seed():
             ],
             "start_date": datetime.utcnow() - timedelta(days=23),
             "end_date": datetime.utcnow() + timedelta(days=90),
+            "follow_up_date": datetime.utcnow() + timedelta(days=14),
             "status": "Active",
+            "recovery_percentage": 20,
             "created_at": datetime.utcnow()
         },
         {
@@ -237,7 +282,9 @@ def seed():
             ],
             "start_date": datetime.utcnow() - timedelta(days=58),
             "end_date": datetime.utcnow() - timedelta(days=51),
+            "follow_up_date": datetime.utcnow() - timedelta(days=51),
             "status": "Completed",
+            "recovery_percentage": 100,
             "created_at": datetime.utcnow()
         },
         {
@@ -251,7 +298,23 @@ def seed():
             ],
             "start_date": datetime.utcnow() - timedelta(days=3),
             "end_date": datetime.utcnow() + timedelta(days=180),
+            "follow_up_date": datetime.utcnow() + timedelta(days=7),
             "status": "Active",
+            "recovery_percentage": 65,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "patient_id": "PAT-10004",
+            "doctor_id": "doctor@hospital.com",
+            "treatment_plan": "Close monitoring with scheduled follow-ups and medication review.",
+            "medications": [
+                {"name": "Amlodipine", "dosage": "5mg", "frequency": "once daily"}
+            ],
+            "start_date": datetime.utcnow() - timedelta(days=10),
+            "end_date": datetime.utcnow() + timedelta(days=50),
+            "follow_up_date": datetime.utcnow() + timedelta(days=14),
+            "status": "Active",
+            "recovery_percentage": 35,
             "created_at": datetime.utcnow()
         }
     ]

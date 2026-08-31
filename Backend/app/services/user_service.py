@@ -38,6 +38,10 @@ class UserService:
         return list(users_collection.find().skip(skip).limit(limit))
 
     @staticmethod
+    def get_doctors() -> List[dict]:
+        return list(users_collection.find({"role": "Doctor", "is_active": True}, {"email": 1, "full_name": 1, "hospital": 1}))
+
+    @staticmethod
     def update_user(user_id: str, user_in: UserUpdate) -> Optional[dict]:
         try:
             update_data = {k: v for k, v in user_in.model_dump(exclude_unset=True).items() if v is not None}
