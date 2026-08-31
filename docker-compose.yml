@@ -4,15 +4,15 @@ services:
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: healthforecast
-      POSTGRES_PASSWORD: healthforecast123
-      POSTGRES_DB: healthforecast_db
+      POSTGRES_USER: ${POSTGRES_USER:-healthforecast}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-healthforecast123}
+      POSTGRES_DB: ${POSTGRES_DB:-healthforecast_db}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U healthforecast -d healthforecast_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-healthforecast} -d ${POSTGRES_DB:-healthforecast_db}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -29,11 +29,12 @@ services:
     ports:
       - "8000:8000"
     environment:
-      POSTGRES_HOST: postgres
-      POSTGRES_USER: healthforecast
-      POSTGRES_PASSWORD: healthforecast123
-      POSTGRES_DB: healthforecast_db
-      MONGODB_URL: mongodb://mongodb:27017
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_USER: ${POSTGRES_USER:-healthforecast}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-healthforecast123}
+      POSTGRES_DB: ${POSTGRES_DB:-healthforecast_db}
+      MONGODB_URL: ${MONGODB_URL:-mongodb://mongodb:27017}
     volumes:
       - ./backend/data:/app/data
       - ./backend/models:/app/models
@@ -48,7 +49,7 @@ services:
     ports:
       - "5173:5173"
     environment:
-      VITE_API_URL: http://localhost:8000
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
     depends_on:
       - backend
 
