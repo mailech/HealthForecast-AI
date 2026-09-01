@@ -28,7 +28,7 @@ const menus = [
     icon: <FaHeartbeat />,
   },
   {
-    name: "Readmission",
+    name: "Re-admission",
     path: "/readmission",
     icon: <FaHospital />,
   },

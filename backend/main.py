@@ -3,6 +3,8 @@ from datetime import datetime, timedelta, timezone
 
 import bcrypt
 import jwt
+import joblib
+import pandas as pd
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,21 +13,19 @@ from pydantic import BaseModel, EmailStr
 from database.connection import (
     client,
     patients_collection,
-    users_collection
-)
-from database.connection import (
-    client,
-    patients_collection,
     users_collection,
-    reports_collection
+    reports_collection,
 )
 
+
+# =========================================================
 # APP
+# =========================================================
 
 app = FastAPI(
     title="HealthForecast AI API",
     description="Hospital Readmission Prediction & Patient Risk Intelligence System",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 
@@ -37,7 +37,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
-        "http://127.0.0.1:5173"
+        "http://127.0.0.1:5173",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -58,10 +58,54 @@ if not JWT_SECRET:
 
 
 # =========================================================
+# ML MODEL
+# =========================================================
+
+BASE_DIR = os.path.dirname(
+    os.path.abspath(__file__)
+)
+
+MODEL_PATH = os.path.join(
+    BASE_DIR,
+    "ml",
+    "model.pkl"
+)
+
+if not os.path.exists(MODEL_PATH):
+    raise RuntimeError(
+        f"ML model not found at: {MODEL_PATH}"
+    )
+
+try:
+
+    model_package = joblib.load(
+        MODEL_PATH
+    )
+
+    readmission_model = model_package["model"]
+
+    READMISSION_THRESHOLD = model_package[
+        "threshold"
+    ]
+
+    MODEL_FEATURES = model_package[
+        "features"
+    ]
+
+except Exception as e:
+
+    raise RuntimeError(
+        f"Failed to load ML model: {str(e)}"
+    )
+
+
+# =========================================================
 # SCHEMAS
 # =========================================================
 
+
 class Patient(BaseModel):
+
     name: str
     age: int
     disease: str
@@ -69,7 +113,36 @@ class Patient(BaseModel):
     status: str
 
 
+class ReadmissionInput(BaseModel):
+
+    age: int
+    gender: str
+    blood_pressure: str
+    cholesterol: float
+    bmi: float
+    diabetes: str
+    hypertension: str
+    medication_count: int
+    length_of_stay: int
+    discharge_destination: str
+
+
+class RiskPredictionInput(BaseModel):
+
+    age: int
+    gender: str
+    blood_pressure: str
+    cholesterol: float
+    bmi: float
+    diabetes: str
+    hypertension: str
+    medication_count: int
+    length_of_stay: int
+    discharge_destination: str
+
+
 class RegisterUser(BaseModel):
+
     name: str
     email: EmailStr
     password: str
@@ -77,15 +150,19 @@ class RegisterUser(BaseModel):
 
 
 class LoginUser(BaseModel):
+
     email: EmailStr
     password: str
     role: str
 
+
 class Report(BaseModel):
+
     patient_id: str
     patient_name: str
     type: str
     status: str
+
 
 # =========================================================
 # HOME
@@ -93,6 +170,7 @@ class Report(BaseModel):
 
 @app.get("/")
 def home():
+
     return {
         "message": "HealthForecast AI Backend is running!"
     }
@@ -106,11 +184,13 @@ def home():
 def health_check():
 
     try:
+
         client.admin.command("ping")
 
         return {
             "status": "healthy",
-            "database": "connected"
+            "database": "connected",
+            "ml_model": "loaded",
         }
 
     except Exception as e:
@@ -118,8 +198,187 @@ def health_check():
         return {
             "status": "error",
             "database": "disconnected",
-            "message": str(e)
+            "ml_model": "loaded",
+            "message": str(e),
         }
+
+
+# =========================================================
+# HELPER - CREATE PATIENT DATAFRAME
+# =========================================================
+
+def create_prediction_dataframe(data):
+
+    patient_data = pd.DataFrame(
+        [
+            {
+                "age": data.age,
+                "gender": data.gender,
+                "blood_pressure": data.blood_pressure,
+                "cholesterol": data.cholesterol,
+                "bmi": data.bmi,
+                "diabetes": data.diabetes,
+                "hypertension": data.hypertension,
+                "medication_count": data.medication_count,
+                "length_of_stay": data.length_of_stay,
+                "discharge_destination": (
+                    data.discharge_destination
+                ),
+            }
+        ]
+    )
+
+    patient_data = patient_data[
+        MODEL_FEATURES
+    ]
+
+    return patient_data
+
+
+# =========================================================
+# HELPER - GET ML PREDICTION
+# =========================================================
+
+def get_ml_prediction(data):
+
+    patient_data = create_prediction_dataframe(
+        data
+    )
+
+    probability = float(
+        readmission_model.predict_proba(
+            patient_data
+        )[0][1]
+    )
+
+    prediction = int(
+        probability >= READMISSION_THRESHOLD
+    )
+
+    if probability >= 0.70:
+
+        risk = "HIGH"
+
+    elif probability >= 0.40:
+
+        risk = "MEDIUM"
+
+    else:
+
+        risk = "LOW"
+
+    return (
+        probability,
+        prediction,
+        risk
+    )
+
+
+# =========================================================
+# READMISSION PREDICTION
+# =========================================================
+
+@app.post("/api/predict-readmission")
+def predict_readmission(
+    data: ReadmissionInput
+):
+
+    try:
+
+        probability, prediction, risk = (
+            get_ml_prediction(data)
+        )
+
+        return {
+
+            "prediction": (
+                "Readmitted"
+                if prediction == 1
+                else "Not Readmitted"
+            ),
+
+            "readmission_probability": round(
+                probability * 100,
+                2
+            ),
+
+            "risk_level": risk,
+
+            "model_threshold": round(
+                READMISSION_THRESHOLD,
+                2
+            ),
+
+            "message": (
+                "Patient has a higher predicted "
+                "risk of readmission."
+                if prediction == 1
+                else
+                "Patient has a lower predicted "
+                "risk of readmission."
+            ),
+        }
+
+    except Exception as e:
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Prediction failed: {str(e)}",
+        )
+
+
+# =========================================================
+# PATIENT RISK PREDICTION
+# =========================================================
+
+@app.post("/api/predict-risk")
+def predict_risk(
+    data: RiskPredictionInput
+):
+
+    try:
+
+        probability, prediction, risk = (
+            get_ml_prediction(data)
+        )
+
+        return {
+
+            "risk_score": round(
+                probability * 100,
+                2
+            ),
+
+            "risk_level": risk,
+
+            "readmission_probability": round(
+                probability * 100,
+                2
+            ),
+
+            "prediction": (
+                "Higher Risk"
+                if prediction == 1
+                else "Lower Risk"
+            ),
+
+            "message": (
+                "Patient has a higher predicted "
+                "risk of hospital readmission."
+                if prediction == 1
+                else
+                "Patient has a lower predicted "
+                "risk of hospital readmission."
+            ),
+
+        }
+
+    except Exception as e:
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Risk prediction failed: {str(e)}",
+        )
 
 
 # =========================================================
@@ -127,44 +386,57 @@ def health_check():
 # =========================================================
 
 @app.post("/api/register")
-def register_user(user: RegisterUser):
+def register_user(
+    user: RegisterUser
+):
 
-    # Check whether email already exists
-    existing_user = users_collection.find_one({
-        "email": user.email
-    })
+    existing_user = users_collection.find_one(
+        {
+            "email": user.email
+        }
+    )
 
     if existing_user:
 
         raise HTTPException(
             status_code=400,
-            detail="An account with this email already exists."
+            detail=(
+                "An account with this email "
+                "already exists."
+            ),
         )
 
-
-    # Hash password
     hashed_password = bcrypt.hashpw(
         user.password.encode("utf-8"),
-        bcrypt.gensalt()
+        bcrypt.gensalt(),
     )
 
-
-    # User document
     user_data = {
+
         "name": user.name,
+
         "email": user.email,
-        "password": hashed_password.decode("utf-8"),
-        "role": user.role
+
+        "password": (
+            hashed_password.decode("utf-8")
+        ),
+
+        "role": user.role,
     }
 
-
-    # Save to MongoDB
-    result = users_collection.insert_one(user_data)
-
+    result = users_collection.insert_one(
+        user_data
+    )
 
     return {
-        "message": "User registered successfully",
-        "user_id": str(result.inserted_id)
+
+        "message": (
+            "User registered successfully"
+        ),
+
+        "user_id": str(
+            result.inserted_id
+        ),
     }
 
 
@@ -173,80 +445,97 @@ def register_user(user: RegisterUser):
 # =========================================================
 
 @app.post("/api/login")
-def login_user(user: LoginUser):
+def login_user(
+    user: LoginUser
+):
 
-    # Find user by email
-    existing_user = users_collection.find_one({
-        "email": user.email
-    })
+    existing_user = users_collection.find_one(
+        {
+            "email": user.email
+        }
+    )
 
-
-    # User doesn't exist
     if not existing_user:
 
         raise HTTPException(
             status_code=401,
-            detail="Invalid email or password."
+            detail="Invalid email or password.",
         )
 
-
-    # Check password
     try:
 
         password_correct = bcrypt.checkpw(
+
             user.password.encode("utf-8"),
-            existing_user["password"].encode("utf-8")
+
+            existing_user[
+                "password"
+            ].encode("utf-8"),
+
         )
 
     except Exception:
 
         raise HTTPException(
             status_code=401,
-            detail="Invalid email or password."
+            detail="Invalid email or password.",
         )
-
 
     if not password_correct:
 
         raise HTTPException(
             status_code=401,
-            detail="Invalid email or password."
+            detail="Invalid email or password.",
         )
 
-
-    # Check selected role
     if existing_user["role"] != user.role:
 
         raise HTTPException(
             status_code=401,
-            detail="Incorrect role selected."
+            detail="Incorrect role selected.",
         )
 
-
-    # Create JWT token
     token = jwt.encode(
+
         {
-            "user_id": str(existing_user["_id"]),
+
+            "user_id": str(
+                existing_user["_id"]
+            ),
+
             "email": existing_user["email"],
+
             "role": existing_user["role"],
-            "exp": datetime.now(timezone.utc) + timedelta(hours=2)
+
+            "exp": (
+                datetime.now(timezone.utc)
+                + timedelta(hours=2)
+            ),
         },
+
         JWT_SECRET,
-        algorithm="HS256"
+
+        algorithm="HS256",
     )
 
-
     return {
+
         "message": "Login successful",
 
         "token": token,
 
         "user": {
-            "id": str(existing_user["_id"]),
+
+            "id": str(
+                existing_user["_id"]
+            ),
+
             "name": existing_user["name"],
+
             "email": existing_user["email"],
-            "role": existing_user["role"]
-        }
+
+            "role": existing_user["role"],
+        },
     }
 
 
@@ -255,7 +544,9 @@ def login_user(user: LoginUser):
 # =========================================================
 
 @app.post("/api/patients")
-def create_patient(patient: Patient):
+def create_patient(
+    patient: Patient
+):
 
     patient_data = patient.model_dump()
 
@@ -264,8 +555,14 @@ def create_patient(patient: Patient):
     )
 
     return {
-        "message": "Patient created successfully",
-        "patient_id": str(result.inserted_id)
+
+        "message": (
+            "Patient created successfully"
+        ),
+
+        "patient_id": str(
+            result.inserted_id
+        ),
     }
 
 
@@ -294,7 +591,9 @@ def get_patients():
 # =========================================================
 
 @app.get("/api/patients/{patient_id}")
-def get_patient(patient_id: str):
+def get_patient(
+    patient_id: str
+):
 
     from bson import ObjectId
 
@@ -302,7 +601,9 @@ def get_patient(patient_id: str):
 
         patient = patients_collection.find_one(
             {
-                "_id": ObjectId(patient_id)
+                "_id": ObjectId(
+                    patient_id
+                )
             }
         )
 
@@ -310,17 +611,15 @@ def get_patient(patient_id: str):
 
         raise HTTPException(
             status_code=400,
-            detail="Invalid patient ID."
+            detail="Invalid patient ID.",
         )
-
 
     if not patient:
 
         raise HTTPException(
             status_code=404,
-            detail="Patient not found."
+            detail="Patient not found.",
         )
-
 
     patient["_id"] = str(
         patient["_id"]
@@ -334,7 +633,9 @@ def get_patient(patient_id: str):
 # =========================================================
 
 @app.delete("/api/patients/{patient_id}")
-def delete_patient(patient_id: str):
+def delete_patient(
+    patient_id: str
+):
 
     from bson import ObjectId
 
@@ -342,7 +643,9 @@ def delete_patient(patient_id: str):
 
         result = patients_collection.delete_one(
             {
-                "_id": ObjectId(patient_id)
+                "_id": ObjectId(
+                    patient_id
+                )
             }
         )
 
@@ -350,43 +653,64 @@ def delete_patient(patient_id: str):
 
         raise HTTPException(
             status_code=400,
-            detail="Invalid patient ID."
+            detail="Invalid patient ID.",
         )
-
 
     if result.deleted_count == 0:
 
         raise HTTPException(
             status_code=404,
-            detail="Patient not found."
+            detail="Patient not found.",
         )
-
 
     return {
         "message": "Patient deleted successfully"
     }
+
+
 # =========================================================
-# REPORTS
+# CREATE REPORT
 # =========================================================
 
 @app.post("/api/reports")
-def create_report(report: Report):
+def create_report(
+    report: Report
+):
 
     report_data = {
+
         "patient_id": report.patient_id,
+
         "patient_name": report.patient_name,
+
         "type": report.type,
+
         "status": report.status,
-        "created_at": datetime.now(timezone.utc)
+
+        "created_at": (
+            datetime.now(timezone.utc)
+        ),
     }
 
-    result = reports_collection.insert_one(report_data)
+    result = reports_collection.insert_one(
+        report_data
+    )
 
     return {
-        "message": "Report created successfully",
-        "report_id": str(result.inserted_id)
+
+        "message": (
+            "Report created successfully"
+        ),
+
+        "report_id": str(
+            result.inserted_id
+        ),
     }
 
+
+# =========================================================
+# GET ALL REPORTS
+# =========================================================
 
 @app.get("/api/reports")
 def get_reports():
@@ -396,36 +720,55 @@ def get_reports():
     )
 
     for report in reports:
-        report["_id"] = str(report["_id"])
+
+        report["_id"] = str(
+            report["_id"]
+        )
 
         if report.get("created_at"):
-            report["created_at"] = report["created_at"].isoformat()
+
+            report["created_at"] = (
+                report[
+                    "created_at"
+                ].isoformat()
+            )
 
     return reports
 
 
+# =========================================================
+# DELETE REPORT
+# =========================================================
+
 @app.delete("/api/reports/{report_id}")
-def delete_report(report_id: str):
+def delete_report(
+    report_id: str
+):
 
     from bson import ObjectId
 
     try:
+
         result = reports_collection.delete_one(
             {
-                "_id": ObjectId(report_id)
+                "_id": ObjectId(
+                    report_id
+                )
             }
         )
 
     except Exception:
+
         raise HTTPException(
             status_code=400,
-            detail="Invalid report ID."
+            detail="Invalid report ID.",
         )
 
     if result.deleted_count == 0:
+
         raise HTTPException(
             status_code=404,
-            detail="Report not found."
+            detail="Report not found.",
         )
 
     return {
