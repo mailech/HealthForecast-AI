@@ -4,6 +4,7 @@ import { SocketProvider } from "./context/SocketContext";
 import { RoleProvider } from "./context/RoleContext";
 
 import Login from "./pages/Login";
+import ResetPassword from "./pages/ResetPassword";
 import MainLayout from "./layouts/MainLayout";
 import Dashboard from "./pages/Dashboard";
 import Patients from "./pages/Patients";
@@ -23,8 +24,10 @@ function App() {
         <Toaster position="bottom-right" richColors closeButton duration={2500} />
 
         <Routes>
-          {/* Unauthenticated Login Route */}
+          {/* Unauthenticated Login & Reset Password Routes */}
           <Route path="/" element={<Login />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
 
           {/* Authenticated Dashboard Routes wrapped with SocketProvider */}
           <Route

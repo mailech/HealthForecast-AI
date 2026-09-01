@@ -22,6 +22,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useRole } from "../context/RoleContext";
+import SSOModal from "../components/SSOModal";
 
 const loginSchema = z.object({
   email: z.string().min(1, "Email is required").email("Please enter a valid hospital email address"),
@@ -308,41 +309,28 @@ function Login() {
     setIsSSOModalOpen(true);
   };
 
-  const handleSSOLoginConfirm = (roleType) => {
-    let ssoUser = {
+  const handleSSOLoginConfirm = (roleType, profileObject, verifiedPassword, authResponseData) => {
+    let ssoUser = profileObject || {
       name: "Dr. John Smith",
       email: "john.smith@healthforecast.ai",
-      role: "DOCTOR",
+      role: roleType || "DOCTOR",
       department: "Cardiology & ICU",
     };
 
-    if (roleType === "HOSPITAL_ADMIN") {
+    if (authResponseData && (authResponseData.user || authResponseData.data)) {
+      const u = authResponseData.user || authResponseData.data;
       ssoUser = {
-        name: "Admin Sarah Jenkins",
-        email: "admin@healthforecast.ai",
-        role: "HOSPITAL_ADMIN",
-        department: "Hospital Administration",
-      };
-    } else if (roleType === "RESEARCHER") {
-      ssoUser = {
-        name: "Dr. Alan Turing",
-        email: "researcher@healthforecast.ai",
-        role: "RESEARCHER",
-        department: "Population Health & Research",
-      };
-    } else if (roleType === "SYS_ADMIN") {
-      ssoUser = {
-        name: "Super Admin",
-        email: "sysadmin@healthforecast.ai",
-        role: "SYS_ADMIN",
-        department: "IT & Platform Governance",
+        name: u.name || ssoUser.name,
+        email: u.email || ssoUser.email,
+        role: u.role || ssoUser.role,
+        department: u.department || ssoUser.department,
       };
     }
 
     setIsSSOModalOpen(false);
 
     // Instantly sync RoleContext state and localStorage with exact profile object
-    const token = `mock_${(ssoProvider || "SSO").toLowerCase().replace(/\s+/g, "_")}_token`;
+    const token = authResponseData?.token || authResponseData?.data?.accessToken || `mock_${(ssoProvider || "SSO").toLowerCase().replace(/\s+/g, "_")}_token`;
     loginSession(ssoUser, token);
 
     toast.success(`${ssoProvider || "Enterprise SSO"} Authentication Successful!`, {
@@ -693,80 +681,13 @@ function Login() {
         </div>
       )}
 
-      {/* Enterprise SSO Role Selector Modal */}
-      {isSSOModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 shadow-2xl space-y-5 border border-slate-200 animate-in fade-in">
-            <div className="flex justify-between items-center pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
-                  <Globe size={20} />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-slate-900 text-base">{ssoProvider} Directory</h3>
-                  <p className="text-[11px] text-slate-500">Select Staff Enterprise Profile</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsSSOModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-600">
-              Simulating enterprise single sign-on authentication through hospital identity provider:
-            </p>
-
-            <div className="space-y-2">
-              <button
-                onClick={() => handleSSOLoginConfirm("DOCTOR")}
-                className="w-full p-3 rounded-xl border border-slate-200 bg-blue-50/40 hover:bg-blue-50 text-left transition-all flex items-center justify-between cursor-pointer"
-              >
-                <div>
-                  <p className="text-xs font-bold text-slate-900">Dr. John Smith</p>
-                  <p className="text-[11px] text-slate-500">Cardiology • DOCTOR</p>
-                </div>
-                <span className="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-lg">Sign In</span>
-              </button>
-
-              <button
-                onClick={() => handleSSOLoginConfirm("HOSPITAL_ADMIN")}
-                className="w-full p-3 rounded-xl border border-slate-200 bg-emerald-50/40 hover:bg-emerald-50 text-left transition-all flex items-center justify-between cursor-pointer"
-              >
-                <div>
-                  <p className="text-xs font-bold text-slate-900">Admin Sarah Jenkins</p>
-                  <p className="text-[11px] text-slate-500">Administration • HOSPITAL_ADMIN</p>
-                </div>
-                <span className="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-lg">Sign In</span>
-              </button>
-
-              <button
-                onClick={() => handleSSOLoginConfirm("RESEARCHER")}
-                className="w-full p-3 rounded-xl border border-slate-200 bg-amber-50/40 hover:bg-amber-50 text-left transition-all flex items-center justify-between cursor-pointer"
-              >
-                <div>
-                  <p className="text-xs font-bold text-slate-900">Dr. Alan Turing</p>
-                  <p className="text-[11px] text-slate-500">Research & Analytics • RESEARCHER</p>
-                </div>
-                <span className="text-xs font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-lg">Sign In</span>
-              </button>
-
-              <button
-                onClick={() => handleSSOLoginConfirm("SYS_ADMIN")}
-                className="w-full p-3 rounded-xl border border-slate-200 bg-purple-50/40 hover:bg-purple-50 text-left transition-all flex items-center justify-between cursor-pointer"
-              >
-                <div>
-                  <p className="text-xs font-bold text-slate-900">Super Admin</p>
-                  <p className="text-[11px] text-slate-500">IT & Governance • SYS_ADMIN</p>
-                </div>
-                <span className="text-xs font-bold text-purple-600 bg-purple-100 px-2 py-0.5 rounded-lg">Sign In</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Enterprise SSO Verification Modal */}
+      <SSOModal
+        isOpen={isSSOModalOpen}
+        onClose={() => setIsSSOModalOpen(false)}
+        ssoProvider={ssoProvider}
+        onLoginConfirm={handleSSOLoginConfirm}
+      />
 
     </div>
   );

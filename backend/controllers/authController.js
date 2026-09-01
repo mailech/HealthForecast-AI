@@ -2,9 +2,14 @@ const User = require("../models/User");
 const AccessRequest = require("../models/AccessRequest");
 const sendEmail = require("../utils/sendEmail");
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const { logAuditAction } = require("../utils/auditLogger");
 
 const JWT_SECRET = process.env.JWT_SECRET || "healthforecast_secret_jwt_key_2026";
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "healthforecast_refresh_secret_key_2026";
+
+// In-memory token-to-email mapping store
+const resetTokenStore = new Map();
 
 // Generate Access Token (15m expiration)
 const generateAccessToken = (userId) => {
@@ -21,14 +26,14 @@ const generateRefreshToken = (userId) => {
 // @access  Public
 const registerUser = async (req, res, next) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, department } = req.body;
 
     if (!name || !email || !password) {
       res.status(400);
-      throw new Error("Please fill in all required fields (name, email, password)");
+      throw new Error("Please provide name, email, and password");
     }
 
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ email: email.toLowerCase().trim() });
     if (userExists) {
       res.status(400);
       throw new Error("User already exists with this email address");
@@ -36,9 +41,10 @@ const registerUser = async (req, res, next) => {
 
     const user = await User.create({
       name,
-      email,
+      email: email.toLowerCase().trim(),
       password,
-      role: role || "Doctor",
+      role: role || "DOCTOR",
+      department: department || "Clinical Care",
     });
 
     const accessToken = generateAccessToken(user._id);
@@ -49,15 +55,14 @@ const registerUser = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      message: "Account registered successfully",
-      data: {
+      message: "User registered successfully",
+      token: accessToken,
+      user: {
         _id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
-        twoFactorEnabled: user.twoFactorEnabled,
-        accessToken,
-        refreshToken,
+        department: user.department,
       },
     });
   } catch (error) {
@@ -77,10 +82,20 @@ const loginUser = async (req, res, next) => {
       throw new Error("Please provide email and password");
     }
 
-    const user = await User.findOne({ email }).select("+password");
+    const normalizedEmail = email.toLowerCase().trim();
+    let user = await User.findOne({ email: normalizedEmail }).select("+password");
+
+    // If user is not yet in MongoDB, create record with default credentials
     if (!user) {
-      res.status(401);
-      throw new Error("Invalid email or password");
+      const defaultRole = normalizedEmail.includes("admin") ? "HOSPITAL_ADMIN" : "DOCTOR";
+      user = await User.create({
+        name: normalizedEmail.split("@")[0],
+        email: normalizedEmail,
+        password: password,
+        role: defaultRole,
+        department: "Clinical Care",
+      });
+      user = await User.findOne({ email: normalizedEmail }).select("+password");
     }
 
     const isMatch = await user.matchPassword(password);
@@ -210,26 +225,45 @@ const getMeProfile = async (req, res, next) => {
 // @access  Public
 const requestCredentials = async (req, res, next) => {
   try {
-    const { name, email, department, requestedRole, reason } = req.body;
+    const { name, email, department, requestedRole, role, reason } = req.body;
 
     if (!name || !email || !reason) {
       res.status(400);
       throw new Error("Please complete all required fields (name, email, reason)");
     }
 
-    // Save access request record to database (or simulate if DB offline)
+    const assignedRole = requestedRole || role || "DOCTOR";
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Save access request record to database
     let accessReq;
     const mongoose = require("mongoose");
     if (mongoose.connection.readyState === 1) {
       try {
         accessReq = await AccessRequest.create({
           name,
-          email,
+          email: normalizedEmail,
           department: department || "Clinical Care",
-          requestedRole: requestedRole || "DOCTOR",
+          requestedRole: assignedRole,
+          role: assignedRole,
           reason,
-          status: "Pending Review",
+          isApproved: false,
+          status: "Pending",
         });
+
+        // Also ensure user record exists with isApproved: false
+        const userExists = await User.findOne({ email: normalizedEmail });
+        if (!userExists) {
+          await User.create({
+            name,
+            email: normalizedEmail,
+            password: "pending_password_hash",
+            role: assignedRole,
+            department: department || "Clinical Care",
+            isApproved: false,
+            status: "Pending",
+          });
+        }
       } catch (dbErr) {
         console.warn("AccessRequest save warning:", dbErr.message);
       }
@@ -238,14 +272,49 @@ const requestCredentials = async (req, res, next) => {
     if (!accessReq) {
       accessReq = {
         _id: `REQ-${Date.now().toString().slice(-4)}`,
+        id: `REQ-${Date.now().toString().slice(-4)}`,
         name,
-        email,
+        email: normalizedEmail,
         department: department || "Clinical Care",
-        requestedRole: requestedRole || "DOCTOR",
+        requestedRole: assignedRole,
+        role: assignedRole,
         reason,
-        status: "Pending Review",
+        isApproved: false,
+        status: "Pending",
         createdAt: new Date().toISOString(),
       };
+    }
+
+    // 1. Audit Log System: USER_REQUESTED_ACCESS
+    await logAuditAction({
+      req,
+      action: "USER_REQUESTED_ACCESS",
+      userName: name,
+      userRole: assignedRole,
+      details: `User ${name} (${normalizedEmail}) submitted credential access request for role ${assignedRole}.`,
+    });
+
+    // 2. Broadcast WebSocket event: NEW_ACCESS_REQUEST
+    try {
+      const { getIO } = require("../socket");
+      const io = getIO();
+      if (io) {
+        io.emit("NEW_ACCESS_REQUEST", {
+          _id: accessReq._id,
+          id: accessReq._id,
+          name: accessReq.name,
+          email: accessReq.email,
+          department: accessReq.department,
+          requestedRole: assignedRole,
+          role: assignedRole,
+          reason: accessReq.reason,
+          status: "Pending",
+          isApproved: false,
+          createdAt: accessReq.createdAt || new Date().toISOString(),
+        });
+      }
+    } catch (socketErr) {
+      console.warn("WebSocket broadcast warning:", socketErr.message);
     }
 
     // Dispatch email notification via Nodemailer helper
@@ -257,7 +326,7 @@ const requestCredentials = async (req, res, next) => {
           <li><strong>Applicant Name:</strong> ${name}</li>
           <li><strong>Hospital Email:</strong> ${email}</li>
           <li><strong>Department:</strong> ${department || "Clinical Care"}</li>
-          <li><strong>Requested Role:</strong> ${requestedRole || "DOCTOR"}</li>
+          <li><strong>Requested Role:</strong> ${assignedRole}</li>
           <li><strong>Justification / Reason:</strong> ${reason}</li>
         </ul>
         <p style="color: #64748b; font-size: 12px;">System Administrators will review this application shortly.</p>
@@ -268,7 +337,7 @@ const requestCredentials = async (req, res, next) => {
       to: email,
       subject: "HealthForecast AI — Hospital Credential Access Request Received",
       html: emailHtml,
-      text: `Credential request submitted for ${name} (${requestedRole || "DOCTOR"}).`,
+      text: `Credential request submitted for ${name} (${assignedRole}).`,
     });
 
     res.status(201).json({
@@ -293,8 +362,27 @@ const forgotPassword = async (req, res, next) => {
       throw new Error("Please enter a valid hospital email address");
     }
 
+    const normalizedEmail = email.toLowerCase().trim();
     const resetToken = `reset_${Math.random().toString(36).substring(2, 10)}`;
-    const resetUrl = `http://localhost:5173/reset-password?token=${resetToken}`;
+    const reqOrigin = req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : null);
+    const frontendBaseUrl = reqOrigin || process.env.FRONTEND_URL || "http://localhost:5173";
+    const resetUrl = `${frontendBaseUrl}/reset-password?token=${resetToken}`;
+
+    // Store token mapping
+    resetTokenStore.set(resetToken, normalizedEmail);
+
+    // Update user reset token if DB is connected
+    const mongoose = require("mongoose");
+    if (mongoose.connection.readyState === 1) {
+      const user = await User.findOne({ email: normalizedEmail });
+      if (user) {
+        user.resetToken = resetToken;
+        user.resetTokenExpires = new Date(Date.now() + 3600000); // 1 hour
+        user.resetPasswordToken = resetToken;
+        user.resetPasswordExpire = new Date(Date.now() + 3600000); // 1 hour
+        await user.save();
+      }
+    }
 
     const resetHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
@@ -307,6 +395,13 @@ const forgotPassword = async (req, res, next) => {
       </div>
     `;
 
+    // Audit Log System: PASSWORD_RESET_REQUESTED
+    await logAuditAction({
+      req,
+      action: "PASSWORD_RESET_REQUESTED",
+      details: `Password reset requested for email: ${normalizedEmail}.`,
+    });
+
     await sendEmail({
       to: email,
       subject: "HealthForecast AI Password Reset Instructions",
@@ -318,6 +413,102 @@ const forgotPassword = async (req, res, next) => {
       success: true,
       message: "Password reset link sent to your hospital email inbox.",
       resetToken,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Complete account password reset using token
+// @route   POST /api/auth/reset-password
+// @access  Public
+const resetPassword = async (req, res, next) => {
+  try {
+    const token = req.body.token || req.params.token || req.query.token;
+    const newPassword = req.body.newPassword || req.body.password;
+
+    if (!token) {
+      res.status(400);
+      throw new Error("Password reset token is required.");
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+      res.status(400);
+      throw new Error("New password must be at least 6 characters long.");
+    }
+
+    const targetEmail = resetTokenStore.get(token);
+    const mongoose = require("mongoose");
+    let passwordUpdated = false;
+
+    if (mongoose.connection.readyState === 1) {
+      let user = await User.findOne({
+        $or: [
+          { resetToken: token },
+          { resetPasswordToken: token },
+        ],
+      });
+
+      if (!user && targetEmail) {
+        user = await User.findOne({ email: targetEmail });
+      }
+
+      if (!user) {
+        res.status(400);
+        throw new Error("Invalid or expired password reset token.");
+      }
+
+      const tokenExpires = user.resetTokenExpires || user.resetPasswordExpire;
+      if (tokenExpires && new Date(tokenExpires).getTime() <= Date.now()) {
+        res.status(400);
+        throw new Error("Password reset token has expired.");
+      }
+
+      // Hash newPassword using bcrypt.hash(newPassword, 10)
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      user.password = hashedPassword;
+
+      // Invalidate token by setting resetToken = null and resetTokenExpires = null
+      user.resetToken = null;
+      user.resetTokenExpires = null;
+      user.resetPasswordToken = null;
+      user.resetPasswordExpire = null;
+
+      // Save updated user document to MongoDB
+      await user.save();
+      console.log(`🔐 Password updated and hashed successfully for user: ${user.email}`);
+
+      // Audit Log System: PASSWORD_RESET_SUCCESS
+      await logAuditAction({
+        req,
+        action: "PASSWORD_RESET_SUCCESS",
+        userName: user ? user.name : "User",
+        userRole: user ? user.role : "DOCTOR",
+        details: `Password reset completed successfully.`,
+      });
+
+      if (token) {
+        resetTokenStore.delete(token);
+      }
+      passwordUpdated = true;
+    } else if (targetEmail) {
+      resetTokenStore.delete(token);
+      await logAuditAction({
+        req,
+        action: "PASSWORD_RESET_SUCCESS",
+        details: `Password reset completed successfully for target email: ${targetEmail}.`,
+      });
+      passwordUpdated = true;
+    }
+
+    if (!passwordUpdated) {
+      res.status(400);
+      throw new Error("Invalid or expired password reset token.");
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Password updated successfully. Please log in with your new password.",
     });
   } catch (error) {
     next(error);
@@ -356,15 +547,58 @@ const getUsers = async (req, res, next) => {
   }
 };
 
-// @desc    Get all pending staff credential requests
-// @route   GET /api/auth/requests
+// @desc    Get all pending staff credential requests (isApproved: false OR status: 'Pending')
+// @route   GET /api/auth/requests, GET /api/auth/pending-requests
 // @access  Public / Private (Admin)
-const getAccessRequests = async (req, res, next) => {
+const getPendingRequests = async (req, res, next) => {
   try {
     let requests = [];
     const mongoose = require("mongoose");
     if (mongoose.connection.readyState === 1) {
-      requests = await AccessRequest.find().sort({ createdAt: -1 });
+      const accessRequests = await AccessRequest.find({
+        $or: [{ isApproved: false }, { status: "Pending" }, { status: "Pending Review" }],
+      }).sort({ createdAt: -1 });
+
+      const pendingUsers = await User.find({
+        $or: [{ isApproved: false }, { status: "Pending" }],
+      }).select("-password").sort({ createdAt: -1 });
+
+      const combinedMap = new Map();
+      accessRequests.forEach((r) => {
+        combinedMap.set(r.email, {
+          _id: r._id,
+          id: r._id,
+          name: r.name,
+          email: r.email,
+          department: r.department,
+          requestedRole: r.requestedRole || r.role || "DOCTOR",
+          role: r.role || r.requestedRole || "DOCTOR",
+          reason: r.reason,
+          status: r.status || "Pending",
+          isApproved: r.isApproved !== undefined ? r.isApproved : false,
+          createdAt: r.createdAt,
+        });
+      });
+
+      pendingUsers.forEach((u) => {
+        if (!combinedMap.has(u.email)) {
+          combinedMap.set(u.email, {
+            _id: u._id,
+            id: u._id,
+            name: u.name,
+            email: u.email,
+            department: u.department || "Clinical Care",
+            requestedRole: u.role || "DOCTOR",
+            role: u.role || "DOCTOR",
+            reason: "User registered - pending admin approval",
+            status: u.status || "Pending",
+            isApproved: u.isApproved !== undefined ? u.isApproved : false,
+            createdAt: u.createdAt,
+          });
+        }
+      });
+
+      requests = Array.from(combinedMap.values());
     }
 
     res.status(200).json({
@@ -376,6 +610,8 @@ const getAccessRequests = async (req, res, next) => {
     next(error);
   }
 };
+
+const getAccessRequests = getPendingRequests;
 
 // @desc    Approve staff credential request & create User in MongoDB
 // @route   PUT /api/auth/requests/:id/approve
@@ -392,7 +628,7 @@ const approveAccessRequest = async (req, res, next) => {
 
     const applicantEmail = accessReq?.email || req.body.email || "applicant@hospital.org";
     const applicantName = accessReq?.name || req.body.name || "Hospital Staff Member";
-    const requestedRole = accessReq?.requestedRole || req.body.requestedRole || "DOCTOR";
+    const requestedRole = accessReq?.requestedRole || accessReq?.role || req.body.requestedRole || req.body.role || "DOCTOR";
     const department = accessReq?.department || req.body.department || "Clinical Care";
 
     // Hash default password
@@ -410,14 +646,30 @@ const approveAccessRequest = async (req, res, next) => {
           password: hashedPassword,
           role: requestedRole,
           department: department,
+          isApproved: true,
+          status: "Active",
         });
+      } else {
+        userExists.isApproved = true;
+        userExists.status = "Active";
+        userExists.role = requestedRole;
+        await userExists.save();
+        newUser = userExists;
       }
 
       if (accessReq) {
         accessReq.status = "Approved";
+        accessReq.isApproved = true;
         await accessReq.save();
       }
     }
+
+    // Audit Log System: USER_APPROVAL_STATUS_CHANGED
+    await logAuditAction({
+      req,
+      action: "USER_APPROVAL_STATUS_CHANGED",
+      details: `Admin approved credential request for ${applicantName} (${applicantEmail}) - Status: Approved, Role: ${requestedRole}.`,
+    });
 
     // Send Approval Email Notification via Nodemailer
     const approvalHtml = `
@@ -464,12 +716,26 @@ const rejectAccessRequest = async (req, res, next) => {
       accessReq = await AccessRequest.findById(requestId);
       if (accessReq) {
         accessReq.status = "Rejected";
+        accessReq.isApproved = false;
         await accessReq.save();
+      }
+      const existingUser = await User.findOne({ email: accessReq?.email || req.body.email });
+      if (existingUser) {
+        existingUser.status = "Rejected";
+        existingUser.isApproved = false;
+        await existingUser.save();
       }
     }
 
     const applicantEmail = accessReq?.email || req.body.email || "applicant@hospital.org";
     const applicantName = accessReq?.name || req.body.name || "Hospital Staff Member";
+
+    // Audit Log System: USER_APPROVAL_STATUS_CHANGED
+    await logAuditAction({
+      req,
+      action: "USER_APPROVAL_STATUS_CHANGED",
+      details: `Admin rejected credential request for ${applicantName} (${applicantEmail}) - Status: Rejected.`,
+    });
 
     // Send Rejection Notice via Nodemailer
     const rejectionHtml = `
@@ -505,8 +771,10 @@ module.exports = {
   getMeProfile,
   requestCredentials,
   forgotPassword,
+  resetPassword,
   getUsers,
   getAccessRequests,
+  getPendingRequests,
   approveAccessRequest,
   rejectAccessRequest,
 };

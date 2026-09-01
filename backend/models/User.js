@@ -42,8 +42,32 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    isApproved: {
+      type: Boolean,
+      default: true,
+    },
+    status: {
+      type: String,
+      default: "Active",
+    },
     refreshToken: {
       type: String,
+      default: null,
+    },
+    resetToken: {
+      type: String,
+      default: null,
+    },
+    resetTokenExpires: {
+      type: Date,
+      default: null,
+    },
+    resetPasswordToken: {
+      type: String,
+      default: null,
+    },
+    resetPasswordExpire: {
+      type: Date,
       default: null,
     },
   },
@@ -55,6 +79,9 @@ const userSchema = new mongoose.Schema(
 // Encrypt password before saving
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) {
+    return next();
+  }
+  if (typeof this.password === "string" && (this.password.startsWith("$2a$") || this.password.startsWith("$2b$"))) {
     return next();
   }
   const salt = await bcrypt.genSalt(10);

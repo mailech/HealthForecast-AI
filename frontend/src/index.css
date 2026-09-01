@@ -7,9 +7,52 @@ body,
   padding: 0;
   width: 100%;
   min-height: 100vh;
+  background-color: #090D16;
+  color: #F8FAFC;
 }
 
 body {
-  background: #f1f5f9;
-  font-family: Inter, sans-serif;
+  background: #090D16;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow-x: hidden;
+  color-scheme: dark;
 }
+
+/* Custom Sleek Monospaced Font Utilities for Vitals & Telemetry */
+.font-mono-num {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Specular Top Border Lighting */
+.specular-border {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Glass Depth Utilities */
+.glass-panel {
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(30, 41, 59, 0.8);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Dark Obsidian Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #090D16;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1E293B;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}

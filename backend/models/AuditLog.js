@@ -12,22 +12,11 @@ const auditLogSchema = new mongoose.Schema(
     },
     userRole: {
       type: String,
-      enum: ["Doctor", "Nurse", "Admin", "Radiologist", "Staff", "System"],
       default: "Doctor",
     },
     action: {
       type: String,
       required: true,
-      enum: [
-        "VIEW_PATIENT",
-        "CREATE_PATIENT",
-        "UPDATE_PATIENT",
-        "SOFT_DELETE_PATIENT",
-        "PREDICT_RISK",
-        "EXPORT_REPORT",
-        "USER_LOGIN",
-        "SECURITY_ALERT",
-      ],
     },
     patientId: {
       type: String,

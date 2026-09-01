@@ -15,11 +15,26 @@ const getAuditLogs = async (req, res, next) => {
       query.action = actionFilter;
     }
 
-    const total = await AuditLog.countDocuments(query);
-    const logs = await AuditLog.find(query)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+    const mongoose = require("mongoose");
+    const { getInMemoryAuditLogs } = require("../utils/auditLogger");
+
+    let logs = [];
+    let total = 0;
+
+    if (mongoose.connection.readyState === 1) {
+      total = await AuditLog.countDocuments(query);
+      logs = await AuditLog.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+    } else {
+      const memoryLogs = getInMemoryAuditLogs();
+      const filtered = actionFilter && actionFilter !== "All"
+        ? memoryLogs.filter((l) => l.action === actionFilter)
+        : memoryLogs;
+      total = filtered.length;
+      logs = filtered.slice(skip, skip + limit);
+    }
 
     res.status(200).json({
       success: true,
