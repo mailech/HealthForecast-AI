@@ -17,6 +17,7 @@ export const RoleProvider = ({ children }) => {
       email: "john.smith@healthforecast.ai",
       role: "DOCTOR",
       department: "Cardiology & ICU",
+      photo: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=150&auto=format&fit=crop&q=80",
     };
   });
 
@@ -39,7 +40,7 @@ export const RoleProvider = ({ children }) => {
     localStorage.setItem("role", newRole);
     localStorage.setItem("userRole", newRole);
 
-    // Update user profile details to match role
+    // Update user profile details & distinct photo to match role
     let updatedUser = { ...user, role: newRole };
     if (newRole === "DOCTOR") {
       updatedUser = {
@@ -47,6 +48,7 @@ export const RoleProvider = ({ children }) => {
         email: "john.smith@healthforecast.ai",
         role: "DOCTOR",
         department: "Cardiology & ICU",
+        photo: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=150&auto=format&fit=crop&q=80",
       };
     } else if (newRole === "HOSPITAL_ADMIN") {
       updatedUser = {
@@ -54,6 +56,7 @@ export const RoleProvider = ({ children }) => {
         email: "admin@healthforecast.ai",
         role: "HOSPITAL_ADMIN",
         department: "Hospital Administration",
+        photo: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
       };
     } else if (newRole === "RESEARCHER") {
       updatedUser = {
@@ -61,6 +64,7 @@ export const RoleProvider = ({ children }) => {
         email: "researcher@healthforecast.ai",
         role: "RESEARCHER",
         department: "Population Health & Research",
+        photo: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
       };
     } else if (newRole === "SYS_ADMIN") {
       updatedUser = {
@@ -68,6 +72,7 @@ export const RoleProvider = ({ children }) => {
         email: "sysadmin@healthforecast.ai",
         role: "SYS_ADMIN",
         department: "IT & Platform Governance",
+        photo: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=80",
       };
     }
 

@@ -73,8 +73,39 @@ function Reports() {
     });
   }, [reports, searchQuery, typeFilter]);
 
-  const handleDownload = (report) => {
-    toast.info(`Downloading ${report.name}.${report.type.toLowerCase()} (${report.size})`);
+  const handleDownload = async (report, targetFormat = null) => {
+    const formatType = (targetFormat || report?.type || "PDF").toUpperCase();
+    let ext = formatType === "EXCEL" ? "xlsx" : formatType.toLowerCase();
+    const reportId = report?.id || "REP-101";
+    const reportTitle = report?.name || "Clinical_Outcome_Report";
+    const fileName = `${reportTitle.replace(/[^a-zA-Z0-9_-]/g, "_")}.${ext}`;
+
+    try {
+      toast.info(`Preparing ${fileName} download...`);
+
+      const response = await fetch(
+        `http://localhost:5000/api/reports/${reportId}/download?format=${formatType}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`Server returned HTTP ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success(`${fileName} downloaded successfully!`);
+    } catch (error) {
+      console.error("Report download error:", error);
+      toast.error(`Download Error: ${error.message}`);
+    }
   };
 
   return (
@@ -83,12 +114,35 @@ function Reports() {
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            Clinical Outcome Reports & Document Audit
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+            <FileText className="text-blue-600" size={30} />
+            Clinical Outcome Reports & Document Audit 📄
           </h1>
           <p className="text-slate-500 text-xs sm:text-sm mt-1">
             Access, filter, and export hospital readmission reports and patient analytical summaries.
           </p>
+        </div>
+
+        {/* Global Export Options */}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => handleDownload({ id: "REP-FULL", name: "Clinical_Summary_Export" }, "PDF")}
+            className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+          >
+            <Download size={14} /> Export PDF (.pdf)
+          </button>
+          <button
+            onClick={() => handleDownload({ id: "REP-FULL", name: "Patient_Dataset_Export" }, "EXCEL")}
+            className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+          >
+            <Download size={14} /> Export Excel (.xlsx)
+          </button>
+          <button
+            onClick={() => handleDownload({ id: "REP-FULL", name: "Readmission_Risk_Export" }, "CSV")}
+            className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+          >
+            <Download size={14} /> Export CSV (.csv)
+          </button>
         </div>
       </div>
 

@@ -379,7 +379,7 @@ git checkout -b feature/your-feature-name
 
 After completing a feature, create a Pull Request for review before merging into `main`.
 
----
+
 
 ## Future Enhancements
 

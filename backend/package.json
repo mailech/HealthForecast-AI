@@ -14,6 +14,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@getbrevo/brevo": "^6.0.2",
     "axios": "^1.19.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
@@ -23,6 +24,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.18.1",
     "nodemailer": "^9.0.4",
+    "pdfkit": "^0.19.1",
     "socket.io": "^4.8.3"
   },
   "devDependencies": {

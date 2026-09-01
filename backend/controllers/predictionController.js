@@ -63,21 +63,29 @@ const predictRisk = async (req, res, next) => {
             ];
     }
 
-    // Save prediction history to MongoDB audit trail
-    const historyEntry = await PredictionHistory.create({
-      patientName,
-      inputMetrics: {
-        age: ageNum,
-        glucose: glucoseNum,
-        bp,
-        bmi: bmiNum,
-        previousAdmissions: admissionsNum,
-      },
-      score,
-      level,
-      confidence,
-      recommendations,
-    });
+    // Save prediction history to MongoDB audit trail if connected
+    const mongoose = require("mongoose");
+    let historyEntry = { _id: `PRED-${Date.now()}`, createdAt: new Date().toISOString() };
+    if (mongoose.connection.readyState === 1) {
+      try {
+        historyEntry = await PredictionHistory.create({
+          patientName,
+          inputMetrics: {
+            age: ageNum,
+            glucose: glucoseNum,
+            bp,
+            bmi: bmiNum,
+            previousAdmissions: admissionsNum,
+          },
+          score,
+          level,
+          confidence,
+          recommendations,
+        });
+      } catch (dbErr) {
+        console.warn("PredictionHistory DB save warning:", dbErr.message);
+      }
+    }
 
     res.status(200).json({
       success: true,
@@ -110,11 +118,17 @@ const getPredictionHistory = async (req, res, next) => {
     const limit = parseInt(req.query.limit, 10) || 10;
     const skip = (page - 1) * limit;
 
-    const total = await PredictionHistory.countDocuments();
-    const history = await PredictionHistory.find()
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+    let history = [];
+    let total = 0;
+    const mongoose = require("mongoose");
+
+    if (mongoose.connection.readyState === 1) {
+      total = await PredictionHistory.countDocuments();
+      history = await PredictionHistory.find()
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+    }
 
     res.status(200).json({
       success: true,
@@ -129,7 +143,23 @@ const getPredictionHistory = async (req, res, next) => {
   }
 };
 
+// Gaussian Normal Distribution Helper (Box-Muller Transform)
+function randomGaussian(mean = 0, stdDev = 1) {
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  const num = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+  return mean + stdDev * num;
+}
+
+const { getAnalyticsData } = require("./analyticsController");
+
+const getAnalyticsChartData = async (req, res, next) => {
+  return getAnalyticsData(req, res, next);
+};
+
 module.exports = {
   predictRisk,
   getPredictionHistory,
+  getAnalyticsChartData,
 };

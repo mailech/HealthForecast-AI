@@ -19,17 +19,23 @@ const accessRequestSchema = new mongoose.Schema(
     },
     requestedRole: {
       type: String,
-      enum: ["DOCTOR", "HOSPITAL_ADMIN", "RESEARCHER", "SYS_ADMIN"],
+      default: "DOCTOR",
+    },
+    role: {
+      type: String,
       default: "DOCTOR",
     },
     reason: {
       type: String,
       required: [true, "Clinical justification reason is required"],
     },
+    isApproved: {
+      type: Boolean,
+      default: false,
+    },
     status: {
       type: String,
-      enum: ["Pending Review", "Approved", "Rejected"],
-      default: "Pending Review",
+      default: "Pending",
     },
   },
   {
