@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: healthforecast_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: healthadmin
+      POSTGRES_PASSWORD: HealthSecretPassword123!
+      POSTGRES_DB: healthforecast_ai
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U healthadmin -d healthforecast_ai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: healthforecast_backend
+    restart: always
+    environment:
+      DATABASE_URL: sqlite:///./healthforecast_ai.db
+      SECRET_KEY: dev-secret-key-change-in-production-12345
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 60
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/healthforecast_ai.db:/app/healthforecast_ai.db
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: healthforecast_frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
