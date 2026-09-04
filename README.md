@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # HealthForecast AI: Hospital Readmission Prediction & Patient Risk Intelligence System
 
 ## Project Overview
@@ -239,3 +240,6 @@ This project is proprietary and confidential.
 ## Support
 
 For support, contact the development team at dev@healthforecast.ai
+=======
+# HealthForecast-AI
+>>>>>>> a6829ea899aa6c9751706292a0bd6ed3c9786e8d
