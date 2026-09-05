@@ -1,0 +1,45 @@
+services:
+  # 1. Machine Learning Inference Service (XGBoost)
+  ml_service:
+    build:
+      context: ./ml_service
+      dockerfile: Dockerfile
+    container_name: healthforecast_ml_service
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  # 2. FastAPI Backend (JWT Auth, SQLite Database, Clinical Endpoints)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: healthforecast_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:////app/data/healthforecast.db
+      - SECRET_KEY=healthforecast-ai-super-secret-key-change-in-production
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=1440
+      - ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:80,http://localhost:3000
+    volumes:
+      # Persistent SQLite storage on host machine
+      - ./data:/app/data
+    depends_on:
+      - ml_service
+
+  # 3. React Frontend (Vite / Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: healthforecast_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
