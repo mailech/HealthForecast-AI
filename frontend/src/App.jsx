@@ -35,7 +35,7 @@ function MainApp() {
       </main>
 
       <footer style={{ borderTop: '1px solid var(--border)', padding: '1.25rem 2rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem', background: '#ffffff' }}>
-        HealthForecast AI — Academic Decision-Support System | Measured ROC-AUC ~0.658, Recall ~0.59 | Not a medical diagnosis
+        HealthForecast AI — Infosys Virtual Internship Decision-Support System | Measured ROC-AUC ~0.658, Recall ~0.59 | Not a medical diagnosis
       </footer>
     </div>
   );
