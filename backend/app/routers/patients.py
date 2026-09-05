@@ -20,6 +20,7 @@ from app.schemas.patient import (
     TreatmentCreate,
     TreatmentResponse,
 )
+from app.services.names import generate_patient_name
 from app.services.prediction_service import anonymize_patient
 
 router = APIRouter(prefix="/patients", tags=["Patient Management"])
@@ -76,6 +77,8 @@ def create_patient(
     if db.query(Patient).filter(Patient.patient_id == patient_data.patient_id).first():
         raise HTTPException(status_code=400, detail="Patient ID already exists")
     patient = Patient(**patient_data.model_dump())
+    if not patient.full_name:
+        patient.full_name = generate_patient_name(patient.patient_id, patient.gender)
     if current_user.role == UserRole.DOCTOR:
         patient.assigned_doctor_id = current_user.id
     db.add(patient)

@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Heart, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 
 const DEMO_ACCOUNTS = [
-  { username: 'doctor1', password: 'doctor123', role: 'Doctor' },
-  { username: 'admin1', password: 'admin123', role: 'Hospital Admin' },
-  { username: 'researcher1', password: 'research123', role: 'Researcher' },
-  { username: 'sysadmin', password: 'sysadmin123', role: 'System Admin' },
+  { name: 'Dr. Priya Mehta', username: 'doctor1', password: 'doctor123', role: 'Doctor' },
+  { name: 'Ananya Krishnan', username: 'admin1', password: 'admin123', role: 'Hospital Admin' },
+  { name: 'Dr. Emily Chen', username: 'researcher1', password: 'research123', role: 'Researcher' },
+  { name: 'Rajesh Iyer', username: 'sysadmin', password: 'sysadmin123', role: 'System Admin' },
 ];
 
 export default function Login() {
@@ -42,7 +42,7 @@ export default function Login() {
     <div className="min-h-screen flex">
       <div className="hidden lg:flex lg:w-1/2 bg-primary-900 items-center justify-center p-12">
         <div className="text-white max-w-md">
-          <Heart className="w-16 h-16 text-blue-300 mb-6" />
+          <img src="/favicon.svg" alt="HealthForecast AI" className="w-16 h-16 mb-6 rounded-2xl" />
           <h1 className="text-4xl font-bold mb-4">HealthForecast AI</h1>
           <p className="text-blue-200 text-lg mb-6">
             Hospital Readmission Prediction & Patient Risk Intelligence System
@@ -112,9 +112,9 @@ export default function Login() {
                   onClick={() => quickLogin(acc)}
                   className="text-left px-3 py-2 text-xs bg-gray-50 border rounded-lg hover:bg-gray-100"
                 >
-                  <span className="font-medium">{acc.role}</span>
+                  <span className="font-medium text-gray-900">{acc.name}</span>
                   <br />
-                  <span className="text-gray-500">{acc.username}</span>
+                  <span className="text-gray-500">{acc.role}</span>
                 </button>
               ))}
             </div>

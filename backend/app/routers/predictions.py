@@ -1,5 +1,5 @@
 import json
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -27,10 +27,21 @@ router = APIRouter(prefix="/predictions", tags=["Risk Prediction & Forecasting"]
 prediction_service = PredictionService()
 
 
-def _parse_prediction(pred: RiskPrediction) -> dict:
-    data = {
+def _patient_identity(patient: Optional[Patient], hide_pii: bool) -> dict:
+    if not patient:
+        return {"patient_code": None, "patient_name": None}
+    if hide_pii:
+        return {"patient_code": f"ANON-{patient.id:06d}", "patient_name": None}
+    return {"patient_code": patient.patient_id, "patient_name": patient.full_name}
+
+
+def _parse_prediction(pred: RiskPrediction, patient: Optional[Patient] = None, hide_pii: bool = False) -> dict:
+    identity = _patient_identity(patient, hide_pii)
+    return {
         "id": pred.id,
         "patient_id": pred.patient_id,
+        "patient_code": identity["patient_code"],
+        "patient_name": identity["patient_name"],
         "risk_score": pred.risk_score,
         "risk_category": pred.risk_category,
         "readmission_probability": pred.readmission_probability,
@@ -39,13 +50,15 @@ def _parse_prediction(pred: RiskPrediction) -> dict:
         "feature_importance": json.loads(pred.feature_importance) if pred.feature_importance else {},
         "clinical_insights": json.loads(pred.clinical_insights) if pred.clinical_insights else [],
     }
-    return data
 
 
-def _parse_forecast(fc: ReadmissionForecast) -> dict:
+def _parse_forecast(fc: ReadmissionForecast, patient: Optional[Patient] = None, hide_pii: bool = False) -> dict:
+    identity = _patient_identity(patient, hide_pii)
     return {
         "id": fc.id,
         "patient_id": fc.patient_id,
+        "patient_code": identity["patient_code"],
+        "patient_name": identity["patient_name"],
         "forecast_period_days": fc.forecast_period_days,
         "readmission_probability": fc.readmission_probability,
         "confidence_score": fc.confidence_score,
@@ -80,7 +93,8 @@ def predict_risk(
         prediction = prediction_service.predict_risk(db, patient, request.model_type or "random_forest")
     except FileNotFoundError as e:
         raise HTTPException(status_code=503, detail=str(e))
-    return _parse_prediction(prediction)
+    hide_pii = current_user.role == UserRole.RESEARCHER
+    return _parse_prediction(prediction, patient, hide_pii)
 
 
 @router.get("/risk/patient/{patient_id}", response_model=List[RiskPredictionResponse])
@@ -101,7 +115,7 @@ def get_patient_risk_history(
         .order_by(RiskPrediction.created_at.desc())
         .all()
     )
-    return [_parse_prediction(p) for p in predictions]
+    return [_parse_prediction(p, patient, current_user.role == UserRole.RESEARCHER) for p in predictions]
 
 
 @router.get("/risk/high-risk", response_model=List[RiskPredictionResponse])
@@ -118,13 +132,16 @@ def get_high_risk_patients(
         query = query.join(Patient).filter(Patient.assigned_doctor_id == current_user.id)
 
     predictions = query.limit(50).all()
+    hide_pii = current_user.role == UserRole.RESEARCHER
     seen = set()
     unique = []
     for p in predictions:
         if p.patient_id not in seen:
             seen.add(p.patient_id)
             unique.append(p)
-    return [_parse_prediction(p) for p in unique]
+    patient_ids = [p.patient_id for p in unique]
+    patients = {row.id: row for row in db.query(Patient).filter(Patient.id.in_(patient_ids)).all()} if patient_ids else {}
+    return [_parse_prediction(p, patients.get(p.patient_id), hide_pii) for p in unique]
 
 
 @router.post("/forecast", response_model=ReadmissionForecastResponse)
@@ -143,7 +160,7 @@ def forecast_readmission(
         forecast = prediction_service.forecast_readmission(db, patient, request.forecast_period_days)
     except FileNotFoundError as e:
         raise HTTPException(status_code=503, detail=str(e))
-    return _parse_forecast(forecast)
+    return _parse_forecast(forecast, patient, current_user.role == UserRole.RESEARCHER)
 
 
 @router.get("/forecast/patient/{patient_id}", response_model=List[ReadmissionForecastResponse])
@@ -164,7 +181,7 @@ def get_patient_forecasts(
         .order_by(ReadmissionForecast.created_at.desc())
         .all()
     )
-    return [_parse_forecast(f) for f in forecasts]
+    return [_parse_forecast(f, patient, current_user.role == UserRole.RESEARCHER) for f in forecasts]
 
 
 @router.get("/clinical-insights/{patient_id}", response_model=ClinicalInsightResponse)
@@ -194,10 +211,13 @@ def get_clinical_insights(
     except FileNotFoundError as e:
         raise HTTPException(status_code=503, detail=str(e))
 
-    patient_code = f"ANON-{patient.id:06d}" if current_user.role == UserRole.RESEARCHER else patient.patient_id
+    hide_pii = current_user.role == UserRole.RESEARCHER
+    patient_code = f"ANON-{patient.id:06d}" if hide_pii else patient.patient_id
+    patient_name = None if hide_pii else patient.full_name
     return ClinicalInsightResponse(
         patient_id=patient.id,
         patient_code=patient_code,
+        patient_name=patient_name,
         risk_category=result["risk_category"],
         risk_score=result["risk_score"],
         readmission_probability=result["readmission_probability"],

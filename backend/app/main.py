@@ -2,10 +2,17 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.database import Base, engine
+from app.database import Base, SessionLocal, engine, ensure_schema
 from app.routers import auth, patients, predictions
+from app.services.prediction_service import backfill_patient_names
 
 Base.metadata.create_all(bind=engine)
+ensure_schema()
+_db = SessionLocal()
+try:
+    backfill_patient_names(_db)
+finally:
+    _db.close()
 
 app = FastAPI(
     title=settings.app_name,

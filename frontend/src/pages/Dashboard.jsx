@@ -121,6 +121,7 @@ export default function Dashboard() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-gray-500">
+                  <th className="pb-3 pr-4">Patient</th>
                   <th className="pb-3 pr-4">Patient ID</th>
                   <th className="pb-3 pr-4">Risk Score</th>
                   <th className="pb-3 pr-4">Category</th>
@@ -131,7 +132,8 @@ export default function Dashboard() {
               <tbody>
                 {highRisk.slice(0, 10).map((p) => (
                   <tr key={p.id} className="border-b border-gray-50">
-                    <td className="py-3 pr-4 font-medium">#{p.patient_id}</td>
+                    <td className="py-3 pr-4 font-medium">{p.patient_name || '—'}</td>
+                    <td className="py-3 pr-4 text-gray-500">{p.patient_code || `#${p.patient_id}`}</td>
                     <td className="py-3 pr-4">{p.risk_score}%</td>
                     <td className="py-3 pr-4">
                       <span className="risk-high px-2 py-1 rounded-full text-xs font-medium">{p.risk_category}</span>

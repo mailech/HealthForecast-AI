@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth, ROLE_LABELS } from '../context/AuthContext';
 import {
-  Activity, Users, AlertTriangle, TrendingUp, Brain, Settings, LogOut, Heart,
+  Activity, Users, AlertTriangle, TrendingUp, Brain, Settings, LogOut,
 } from 'lucide-react';
 
 const navItems = [
@@ -29,7 +29,7 @@ export default function Layout() {
       <aside className="w-64 bg-primary-900 text-white flex flex-col">
         <div className="p-6 border-b border-primary-700">
           <div className="flex items-center gap-2">
-            <Heart className="w-8 h-8 text-blue-300" />
+            <img src="/favicon.svg" alt="HealthForecast AI" className="w-8 h-8 rounded-lg" />
             <div>
               <h1 className="text-lg font-bold">HealthForecast AI</h1>
               <p className="text-xs text-blue-200">Patient Risk Intelligence</p>

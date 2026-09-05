@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { patientsAPI, predictionsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { Search, UserPlus, AlertTriangle } from 'lucide-react';
+import { Search, AlertTriangle } from 'lucide-react';
 
 export default function Patients() {
   const { user } = useAuth();
@@ -18,11 +18,11 @@ export default function Patients() {
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = patients.filter((p) =>
-    (p.patient_id || '').toLowerCase().includes(search.toLowerCase()) ||
-    (p.gender || '').toLowerCase().includes(search.toLowerCase()) ||
-    (p.age || '').includes(search)
-  );
+  const isResearcher = user?.role === 'researcher';
+  const filtered = patients.filter((p) => {
+    const haystack = `${p.full_name || ''} ${p.patient_id || ''} ${p.gender || ''} ${p.age || ''}`.toLowerCase();
+    return haystack.includes(search.toLowerCase());
+  });
 
   const runPrediction = async (patientId) => {
     setPredicting(true);
@@ -60,7 +60,7 @@ export default function Patients() {
           <Search className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
           <input
             type="text"
-            placeholder="Search by patient ID, gender, or age..."
+            placeholder="Search by name, patient ID, gender, or age..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg"
@@ -72,6 +72,7 @@ export default function Patients() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b text-left text-gray-500">
+              <th className="pb-3 pr-4">Patient</th>
               <th className="pb-3 pr-4">Patient ID</th>
               <th className="pb-3 pr-4">Age</th>
               <th className="pb-3 pr-4">Gender</th>
@@ -85,7 +86,8 @@ export default function Patients() {
           <tbody>
             {filtered.map((p) => (
               <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50">
-                <td className="py-3 pr-4 font-medium">{p.patient_id}</td>
+                <td className="py-3 pr-4 font-medium">{isResearcher ? 'Anonymized' : (p.full_name || '—')}</td>
+                <td className="py-3 pr-4 text-gray-500">{p.patient_id}</td>
                 <td className="py-3 pr-4">{p.age}</td>
                 <td className="py-3 pr-4">{p.gender}</td>
                 <td className="py-3 pr-4">{p.time_in_hospital}</td>

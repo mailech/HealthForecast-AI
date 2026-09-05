@@ -20,6 +20,7 @@ class Patient(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     patient_id = Column(String(50), unique=True, index=True, nullable=False)
+    full_name = Column(String(255), nullable=True)
     race = Column(String(50))
     gender = Column(String(20))
     age = Column(String(20))

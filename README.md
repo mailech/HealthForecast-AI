@@ -74,12 +74,12 @@ npm run dev
 
 ## Default Login Credentials
 
-| Role | Username | Password |
-|------|----------|----------|
-| Doctor | doctor1 | doctor123 |
-| Hospital Admin | admin1 | admin123 |
-| Healthcare Researcher | researcher1 | research123 |
-| System Administrator | sysadmin | sysadmin123 |
+| Name | Role | Username | Password |
+|------|------|----------|----------|
+| Dr. Priya Mehta | Doctor | doctor1 | doctor123 |
+| Ananya Krishnan | Hospital Admin | admin1 | admin123 |
+| Dr. Emily Chen | Healthcare Researcher | researcher1 | research123 |
+| Rajesh Iyer | System Administrator | sysadmin | sysadmin123 |
 
 ## User Roles & Permissions
 

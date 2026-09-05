@@ -18,7 +18,7 @@ class ClinicalInsightsEngine:
         discharge = ClinicalInsightsEngine._discharge_support(patient, risk_category)
 
         insights_text = [
-            f"Patient {patient.patient_id} classified as {risk_category} risk ({risk_score}%).",
+            f"Patient {patient.full_name or patient.patient_id} ({patient.patient_id}) classified as {risk_category} risk ({risk_score}%).",
             f"30-day readmission probability: {readmission_probability * 100:.1f}%.",
         ]
         if patient.time_in_hospital and patient.time_in_hospital > 7:
@@ -135,10 +135,11 @@ class ClinicalInsightsEngine:
         recommendations: List[str],
         period_days: int,
     ) -> str:
+        name_line = f"Patient: {patient.full_name} ({patient.patient_id})\n" if patient.full_name else f"Patient ID: {patient.patient_id}\n"
         return (
             f"READMISSION FORECAST REPORT\n"
             f"{'=' * 50}\n"
-            f"Patient ID: {patient.patient_id}\n"
+            f"{name_line}"
             f"Forecast Period: {period_days} days\n"
             f"Readmission Probability: {probability * 100:.1f}%\n"
             f"Risk Level: {'High' if probability >= 0.7 else 'Medium' if probability >= 0.4 else 'Low'}\n\n"

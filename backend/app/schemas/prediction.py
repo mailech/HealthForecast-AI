@@ -12,6 +12,8 @@ class RiskPredictionRequest(BaseModel):
 class RiskPredictionResponse(BaseModel):
     id: int
     patient_id: int
+    patient_code: Optional[str] = None
+    patient_name: Optional[str] = None
     risk_score: float
     risk_category: str
     readmission_probability: float
@@ -32,6 +34,8 @@ class ReadmissionForecastRequest(BaseModel):
 class ReadmissionForecastResponse(BaseModel):
     id: int
     patient_id: int
+    patient_code: Optional[str] = None
+    patient_name: Optional[str] = None
     forecast_period_days: int
     readmission_probability: float
     confidence_score: float
@@ -47,6 +51,7 @@ class ReadmissionForecastResponse(BaseModel):
 class ClinicalInsightResponse(BaseModel):
     patient_id: int
     patient_code: str
+    patient_name: Optional[str] = None
     risk_category: str
     risk_score: float
     readmission_probability: float

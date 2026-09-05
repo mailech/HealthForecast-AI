@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 class PatientBase(BaseModel):
     patient_id: str
+    full_name: Optional[str] = None
     race: Optional[str] = None
     gender: Optional[str] = None
     age: Optional[str] = None
@@ -38,6 +39,7 @@ class PatientCreate(PatientBase):
 
 
 class PatientUpdate(BaseModel):
+    full_name: Optional[str] = None
     assigned_doctor_id: Optional[int] = None
     time_in_hospital: Optional[int] = None
     num_medications: Optional[int] = None

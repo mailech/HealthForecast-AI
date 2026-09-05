@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { patientsAPI, predictionsAPI } from '../services/api';
 import { AlertTriangle, Play, History } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { patientLabel } from '../utils/patients';
 
 const CATEGORY_COLORS = { High: '#ef4444', Medium: '#f59e0b', Low: '#22c55e' };
 
@@ -65,7 +66,7 @@ export default function RiskPrediction() {
               >
                 <option value="">Choose patient...</option>
                 {patients.map((p) => (
-                  <option key={p.id} value={p.id}>{p.patient_id} — {p.age}, {p.gender}</option>
+                  <option key={p.id} value={p.id}>{patientLabel(p)} — {p.age}, {p.gender}</option>
                 ))}
               </select>
             </div>
@@ -91,6 +92,9 @@ export default function RiskPrediction() {
             <h3 className="font-semibold mb-4 flex items-center gap-2">
               <AlertTriangle className="w-5 h-5" /> Prediction Results
             </h3>
+            {(result.patient_name || result.patient_code) && (
+              <p className="text-sm text-gray-500 mb-4">{patientLabel(result)}</p>
+            )}
             <div className="grid grid-cols-3 gap-4 mb-6">
               <div className="text-center p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-500">Risk Score</p>
@@ -153,7 +157,7 @@ export default function RiskPrediction() {
             <div className="space-y-2">
               {highRisk.slice(0, 8).map((p) => (
                 <div key={p.id} className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
-                  <span className="font-medium text-sm">Patient #{p.patient_id}</span>
+                  <span className="font-medium text-sm">{patientLabel(p)}</span>
                   <span className="text-red-700 font-bold">{p.risk_score}%</span>
                 </div>
               ))}

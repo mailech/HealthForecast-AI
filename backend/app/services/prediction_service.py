@@ -10,6 +10,7 @@ from app.models.user import User, UserRole
 from app.ml.clinical_insights import ClinicalInsightsEngine
 from app.ml.predictor import DataPreprocessor, ModelTrainer, PredictionEngine
 from app.models.prediction import ReadmissionForecast, RiskPrediction
+from app.services.names import generate_patient_name
 
 
 def patient_to_dict(patient: Patient) -> Dict[str, Any]:
@@ -39,13 +40,27 @@ def anonymize_patient(patient: Patient) -> Dict[str, Any]:
     return {
         "id": patient.id,
         "patient_id": f"ANON-{patient.id:06d}",
+        "full_name": None,
         "age": patient.age,
         "gender": patient.gender,
         "time_in_hospital": patient.time_in_hospital,
         "num_medications": patient.num_medications,
         "number_diagnoses": patient.number_diagnoses,
         "readmitted": patient.readmitted,
+        "created_at": patient.created_at,
     }
+
+
+def backfill_patient_names(db: Session) -> int:
+    patients = db.query(Patient).all()
+    updated = 0
+    for patient in patients:
+        if not patient.full_name:
+            patient.full_name = generate_patient_name(patient.patient_id, patient.gender)
+            updated += 1
+    if updated:
+        db.commit()
+    return updated
 
 
 class DatasetService:
@@ -81,6 +96,7 @@ class DatasetService:
 
             patient = Patient(
                 patient_id=str(row["encounter_id"]),
+                full_name=generate_patient_name(str(row["encounter_id"]), val("gender")),
                 race=val("race"),
                 gender=val("gender"),
                 age=val("age"),
@@ -127,6 +143,7 @@ class DatasetService:
             imported += 1
 
         db.commit()
+        backfill_patient_names(db)
         return {"imported": imported, "total_in_dataset": len(df)}
 
 

@@ -134,11 +134,11 @@ export default function ModelManagement() {
         <h3 className="font-semibold mb-4">User Management</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-gray-500">
-                <th className="pb-3 pr-4">Username</th>
-                <th className="pb-3 pr-4">Full Name</th>
-                <th className="pb-3 pr-4">Email</th>
+              <thead>
+                <tr className="border-b text-left text-gray-500">
+                  <th className="pb-3 pr-4">Name</th>
+                  <th className="pb-3 pr-4">Username</th>
+                  <th className="pb-3 pr-4">Email</th>
                 <th className="pb-3 pr-4">Role</th>
                 <th className="pb-3 pr-4">Department</th>
                 <th className="pb-3">Status</th>
@@ -147,8 +147,8 @@ export default function ModelManagement() {
             <tbody>
               {users.map((u) => (
                 <tr key={u.id} className="border-b border-gray-50">
-                  <td className="py-3 pr-4 font-medium">{u.username}</td>
-                  <td className="py-3 pr-4">{u.full_name}</td>
+                  <td className="py-3 pr-4 font-medium">{u.full_name}</td>
+                  <td className="py-3 pr-4">{u.username}</td>
                   <td className="py-3 pr-4">{u.email}</td>
                   <td className="py-3 pr-4 capitalize">{u.role.replace('_', ' ')}</td>
                   <td className="py-3 pr-4">{u.department}</td>

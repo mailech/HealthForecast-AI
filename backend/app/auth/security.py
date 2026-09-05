@@ -4,11 +4,19 @@ from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
 from app.config import settings
 from app.models.user import User
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+LOGIN_ALIASES = {
+    "priya.mehta": "doctor1",
+    "ananya.krishnan": "admin1",
+    "emily.chen": "researcher1",
+    "rajesh.iyer": "sysadmin",
+}
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -34,7 +42,12 @@ def decode_token(token: str) -> Optional[dict]:
 
 
 def authenticate_user(db: Session, username: str, password: str) -> Optional[User]:
-    user = db.query(User).filter(User.username == username).first()
+    lookup = LOGIN_ALIASES.get(username.strip().lower(), username.strip())
+    user = (
+        db.query(User)
+        .filter(or_(User.username == lookup, User.username == username, User.email == username))
+        .first()
+    )
     if not user or not verify_password(password, user.hashed_password):
         return None
     return user

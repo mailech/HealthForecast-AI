@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { patientsAPI, predictionsAPI } from '../services/api';
 import { TrendingUp, FileText, Download } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { patientLabel } from '../utils/patients';
 
 export default function Forecasting() {
   const [patients, setPatients] = useState([]);
@@ -36,7 +37,7 @@ export default function Forecasting() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `readmission_forecast_patient_${forecast.patient_id}.txt`;
+    a.download = `readmission_forecast_${(forecast.patient_name || forecast.patient_code || forecast.patient_id).toString().replace(/\s+/g, '_')}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -75,7 +76,7 @@ export default function Forecasting() {
               >
                 <option value="">Choose patient...</option>
                 {patients.map((p) => (
-                  <option key={p.id} value={p.id}>{p.patient_id} — {p.age}, {p.gender}</option>
+                  <option key={p.id} value={p.id}>{patientLabel(p)} — {p.age}, {p.gender}</option>
                 ))}
               </select>
             </div>
@@ -102,9 +103,14 @@ export default function Forecasting() {
         {forecast && (
           <div className="card lg:col-span-2">
             <div className="flex justify-between items-start mb-4">
-              <h3 className="font-semibold flex items-center gap-2">
-                <FileText className="w-5 h-5" /> Forecast Report
-              </h3>
+              <div>
+                <h3 className="font-semibold flex items-center gap-2">
+                  <FileText className="w-5 h-5" /> Forecast Report
+                </h3>
+                {(forecast.patient_name || forecast.patient_code) && (
+                  <p className="text-sm text-gray-500 mt-1">{patientLabel(forecast)}</p>
+                )}
+              </div>
               <button onClick={downloadReport} className="flex items-center gap-1 btn-secondary text-sm">
                 <Download className="w-4 h-4" /> Download
               </button>

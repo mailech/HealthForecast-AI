@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { patientsAPI, predictionsAPI } from '../services/api';
 import { Brain, Heart, Calendar, Home, Shield } from 'lucide-react';
+import { patientLabel } from '../utils/patients';
 
 export default function ClinicalInsights() {
   const [patients, setPatients] = useState([]);
@@ -49,7 +50,7 @@ export default function ClinicalInsights() {
             >
               <option value="">Choose patient...</option>
               {patients.map((p) => (
-                <option key={p.id} value={p.id}>{p.patient_id} — {p.age}, {p.gender}</option>
+                <option key={p.id} value={p.id}>{patientLabel(p)} — {p.age}, {p.gender}</option>
               ))}
             </select>
           </div>
@@ -64,7 +65,10 @@ export default function ClinicalInsights() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <div className="card text-center">
               <p className="text-sm text-gray-500">Patient</p>
-              <p className="text-lg font-bold">{insights.patient_code}</p>
+              <p className="text-lg font-bold">{insights.patient_name || insights.patient_code}</p>
+              {insights.patient_name && (
+                <p className="text-xs text-gray-500 mt-1">ID: {insights.patient_code}</p>
+              )}
             </div>
             <div className="card text-center">
               <p className="text-sm text-gray-500">Risk Category</p>
