@@ -2,300 +2,1385 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HealthForecast AI</title>
-<link rel="stylesheet" href="style.css">
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-        }
 
-        body {
-            background: #f4f7fb;
-            color: #1f2937;
-        }
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
-        header {
-            background: #173b68;
-            color: white;
-            padding: 20px 8%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    <meta name="description"
+          content="HealthForecast AI - Hospital Readmission Risk Prediction System">
 
-        header h1 {
-            font-size: 24px;
-        }
+    <title>HealthForecast AI | Hospital Readmission Prediction</title>
 
-        header span {
-            font-size: 14px;
-            opacity: 0.9;
-        }
+    <link rel="stylesheet" href="style.css">
 
-        .container {
-            width: 90%;
-            max-width: 1100px;
-            margin: 35px auto;
-        }
-
-        .welcome {
-            margin-bottom: 25px;
-        }
-
-        .welcome h2 {
-            font-size: 30px;
-            margin-bottom: 8px;
-        }
-
-        .welcome p {
-            color: #64748b;
-        }
-
-        .card {
-            background: white;
-            border-radius: 12px;
-            padding: 28px;
-            margin-bottom: 25px;
-            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
-        }
-
-        .card h3 {
-            margin-bottom: 22px;
-            color: #173b68;
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        label {
-            margin-bottom: 7px;
-            font-weight: bold;
-            font-size: 14px;
-        }
-
-        input, select {
-            padding: 12px;
-            border: 1px solid #cbd5e1;
-            border-radius: 7px;
-            font-size: 15px;
-            outline: none;
-        }
-
-        input:focus, select:focus {
-            border-color: #2563eb;
-        }
-
-        .button-container {
-            margin-top: 25px;
-            text-align: center;
-        }
-
-        button {
-            background: #2563eb;
-            color: white;
-            border: none;
-            padding: 14px 35px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #1d4ed8;
-        }
-
-        #result {
-            display: none;
-        }
-
-        .result-box {
-            padding: 25px;
-            border-radius: 10px;
-            background: #eff6ff;
-            border-left: 6px solid #2563eb;
-        }
-
-        .risk {
-            font-size: 28px;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-
-        .probability {
-            font-size: 18px;
-            margin-bottom: 10px;
-        }
-
-        .message {
-            color: #475569;
-            line-height: 1.6;
-        }
-
-        .disclaimer {
-            margin-top: 15px;
-            font-size: 12px;
-            color: #64748b;
-        }
-
-        footer {
-            text-align: center;
-            padding: 25px;
-            color: #64748b;
-            font-size: 13px;
-        }
-
-        @media (max-width: 700px) {
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-
-            header {
-                padding: 18px 5%;
-            }
-
-            .container {
-                width: 94%;
-            }
-
-            .welcome h2 {
-                font-size: 24px;
-            }
-        }
-    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
 
-<header>
-    <h1>HealthForecast AI</h1>
-    <span>Hospital Readmission Prediction</span>
-</header>
+<!-- ================= SIDEBAR ================= -->
 
-<div class="container">
+<aside class="sidebar" id="sidebar">
 
-    <div class="welcome">
-        <h2>Patient Risk Prediction</h2>
-        <p>Enter patient information to estimate hospital readmission risk.</p>
-    </div>
-
-    <div class="card">
-
-        <h3>Patient Information</h3>
-
-        <div class="form-grid">
-
-            <div class="form-group">
-                <label>Patient Age</label>
-                <input type="number" id="age" placeholder="Enter age" min="1" max="120">
-            </div>
-
-            <div class="form-group">
-                <label>Gender</label>
-                <select id="gender">
-                    <option value="">Select gender</option>
-                    <option>Male</option>
-                    <option>Female</option>
-                    <option>Other</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>Diabetes</label>
-                <select id="diabetes">
-                    <option value="">Select</option>
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>Hypertension</label>
-                <select id="hypertension">
-                    <option value="">Select</option>
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>Heart Disease</label>
-                <select id="heartDisease">
-                    <option value="">Select</option>
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>Previous Admissions</label>
-                <input type="number" id="admissions" placeholder="Example: 2" min="0">
-            </div>
-
-            <div class="form-group">
-                <label>Length of Hospital Stay (Days)</label>
-                <input type="number" id="stay" placeholder="Example: 5" min="1">
-            </div>
-
-            <div class="form-group">
-                <label>Previous Emergency Visits</label>
-                <input type="number" id="emergency" placeholder="Example: 1" min="0">
-            </div>
-
+    <div class="brand">
+        <div class="brand-icon">
+            HF
         </div>
 
-        <div class="button-container">
-            <button onclick="predictRisk()">Predict Readmission Risk</button>
+        <div>
+            <h2>HealthForecast</h2>
+            <span>AI Clinical Analytics</span>
+        </div>
+    </div>
+
+    <nav class="navigation">
+
+        <button class="nav-item active" onclick="showPage('dashboard', this)">
+            <span>⌂</span>
+            Dashboard
+        </button>
+
+        <button class="nav-item" onclick="showPage('prediction', this)">
+            <span>✚</span>
+            Risk Prediction
+        </button>
+
+        <button class="nav-item" onclick="showPage('history', this)">
+            <span>◷</span>
+            Prediction History
+        </button>
+
+        <button class="nav-item" onclick="showPage('analytics', this)">
+            <span>▥</span>
+            Analytics
+        </button>
+
+        <button class="nav-item" onclick="showPage('model', this)">
+            <span>◎</span>
+            AI Model
+        </button>
+
+    </nav>
+
+    <div class="sidebar-bottom">
+
+        <div class="system-status">
+            <span class="status-dot"></span>
+
+            <div>
+                <strong>System Online</strong>
+                <small>Prediction service ready</small>
+            </div>
+        </div>
+
+        <div class="version">
+            HealthForecast AI v1.0
         </div>
 
     </div>
 
-    <div class="card" id="result">
+</aside>
 
-        <h3>Prediction Result</h3>
 
-        <div class="result-box">
+<!-- ================= MAIN ================= -->
 
-            <div>Estimated Readmission Risk</div>
+<main class="main-content">
 
-            <div class="risk" id="riskLevel">
-                -
+    <!-- TOP BAR -->
+
+    <header class="topbar">
+
+        <button class="menu-button" onclick="toggleSidebar()">
+            ☰
+        </button>
+
+        <div class="page-title">
+
+            <span id="currentSection">
+                Clinical Dashboard
+            </span>
+
+            <small>
+                Hospital Readmission Intelligence Platform
+            </small>
+
+        </div>
+
+        <div class="top-actions">
+
+            <div class="notification">
+                🔔
+                <span></span>
             </div>
 
-            <div class="probability">
-                Probability: <strong id="probability">-</strong>
+            <div class="profile">
+
+                <div class="avatar">
+                    DR
+                </div>
+
+                <div class="profile-info">
+                    <strong>Clinical User</strong>
+                    <small>Healthcare Analytics</small>
+                </div>
+
             </div>
 
-            <p class="message" id="message"></p>
+        </div>
 
-            <p class="disclaimer">
-                Demo prediction only. This frontend is not connected to a trained
-                medical AI model yet.
+    </header>
+
+
+    <!-- ================= DASHBOARD ================= -->
+
+    <section id="dashboard" class="page active-page">
+
+        <div class="welcome-section">
+
+            <div>
+
+                <span class="eyebrow">
+                    AI-POWERED HEALTHCARE
+                </span>
+
+                <h1>
+                    Hospital Readmission
+                    <span>Risk Intelligence</span>
+                </h1>
+
+                <p>
+                    Analyze patient information and estimate the probability
+                    of hospital readmission using machine-learning based
+                    clinical risk analysis.
+                </p>
+
+            </div>
+
+            <button class="primary-button"
+                    onclick="showPage('prediction')">
+
+                <span>＋</span>
+                New Prediction
+
+            </button>
+
+        </div>
+
+
+        <!-- STAT CARDS -->
+
+        <div class="stats-grid">
+
+            <div class="stat-card">
+
+                <div class="stat-icon blue">
+                    👥
+                </div>
+
+                <div>
+                    <span>Total Predictions</span>
+                    <strong id="totalPredictions">1,248</strong>
+                    <small class="positive">↑ 12.4% this month</small>
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-icon red">
+                    ⚠
+                </div>
+
+                <div>
+                    <span>High Risk</span>
+                    <strong id="highRiskCount">182</strong>
+                    <small>14.6% of predictions</small>
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-icon orange">
+                    ◉
+                </div>
+
+                <div>
+                    <span>Moderate Risk</span>
+                    <strong id="moderateRiskCount">421</strong>
+                    <small>33.7% of predictions</small>
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-icon green">
+                    ✓
+                </div>
+
+                <div>
+                    <span>Low Risk</span>
+                    <strong id="lowRiskCount">645</strong>
+                    <small>51.7% of predictions</small>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- DASHBOARD CONTENT -->
+
+        <div class="dashboard-grid">
+
+            <div class="panel chart-panel">
+
+                <div class="panel-header">
+
+                    <div>
+                        <h3>Readmission Risk Distribution</h3>
+                        <p>Prediction overview</p>
+                    </div>
+
+                    <select>
+                        <option>Last 30 days</option>
+                        <option>Last 7 days</option>
+                        <option>Last 90 days</option>
+                    </select>
+
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="riskChart"></canvas>
+                </div>
+
+            </div>
+
+
+            <div class="panel insight-panel">
+
+                <div class="panel-header">
+
+                    <div>
+                        <h3>AI Insights</h3>
+                        <p>System-generated observations</p>
+                    </div>
+
+                    <span class="ai-badge">
+                        AI
+                    </span>
+
+                </div>
+
+                <div class="insight">
+
+                    <div class="insight-number">
+                        01
+                    </div>
+
+                    <div>
+                        <strong>Previous inpatient visits</strong>
+
+                        <p>
+                            Previous inpatient utilization can be an
+                            important predictor of future readmission.
+                        </p>
+                    </div>
+
+                </div>
+
+                <div class="insight">
+
+                    <div class="insight-number">
+                        02
+                    </div>
+
+                    <div>
+                        <strong>Hospital stay duration</strong>
+
+                        <p>
+                            Longer hospital stays may indicate increased
+                            clinical complexity.
+                        </p>
+                    </div>
+
+                </div>
+
+                <div class="insight">
+
+                    <div class="insight-number">
+                        03
+                    </div>
+
+                    <div>
+                        <strong>Emergency utilization</strong>
+
+                        <p>
+                            Frequent emergency visits can indicate elevated
+                            healthcare utilization.
+                        </p>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- RECENT PREDICTIONS -->
+
+        <div class="panel">
+
+            <div class="panel-header">
+
+                <div>
+                    <h3>Recent Predictions</h3>
+                    <p>Latest patient risk assessments</p>
+                </div>
+
+                <button class="text-button"
+                        onclick="showPage('history')">
+
+                    View all →
+
+                </button>
+
+            </div>
+
+            <div class="table-wrapper">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+                            <th>Patient ID</th>
+                            <th>Age</th>
+                            <th>Hospital Stay</th>
+                            <th>Risk</th>
+                            <th>Probability</th>
+                            <th>Date</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="recentTable">
+
+                        <tr>
+                            <td><strong>HF-1001</strong></td>
+                            <td>67</td>
+                            <td>9 days</td>
+                            <td>
+                                <span class="risk-badge high">
+                                    HIGH
+                                </span>
+                            </td>
+                            <td>82%</td>
+                            <td>Today</td>
+                        </tr>
+
+                        <tr>
+                            <td><strong>HF-1002</strong></td>
+                            <td>54</td>
+                            <td>5 days</td>
+                            <td>
+                                <span class="risk-badge moderate">
+                                    MODERATE
+                                </span>
+                            </td>
+                            <td>56%</td>
+                            <td>Today</td>
+                        </tr>
+
+                        <tr>
+                            <td><strong>HF-1003</strong></td>
+                            <td>42</td>
+                            <td>3 days</td>
+                            <td>
+                                <span class="risk-badge low">
+                                    LOW
+                                </span>
+                            </td>
+                            <td>24%</td>
+                            <td>Yesterday</td>
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ================= PREDICTION ================= -->
+
+    <section id="prediction" class="page">
+
+        <div class="section-heading">
+
+            <div>
+
+                <span class="eyebrow">
+                    PATIENT ASSESSMENT
+                </span>
+
+                <h1>Readmission Risk Prediction</h1>
+
+                <p>
+                    Enter patient encounter information to generate
+                    an AI-assisted readmission risk estimate.
+                </p>
+
+            </div>
+
+            <div class="model-status">
+                <span class="status-dot"></span>
+                ML Engine Ready
+            </div>
+
+        </div>
+
+
+        <div class="prediction-layout">
+
+            <div class="panel prediction-form-panel">
+
+                <div class="panel-header">
+
+                    <div>
+                        <h3>Patient Information</h3>
+                        <p>
+                            Clinical encounter features
+                        </p>
+                    </div>
+
+                    <span class="step-label">
+                        Step 1 of 2
+                    </span>
+
+                </div>
+
+
+                <form id="predictionForm">
+
+
+                    <!-- BASIC INFORMATION -->
+
+                    <div class="form-section">
+
+                        <h4>Basic Information</h4>
+
+                        <div class="form-grid">
+
+                            <div class="form-group">
+
+                                <label>
+                                    Patient Age
+                                </label>
+
+                                <input
+                                    type="number"
+                                    id="age"
+                                    min="1"
+                                    max="100"
+                                    placeholder="e.g. 65"
+                                    required
+                                >
+
+                            </div>
+
+
+                            <div class="form-group">
+
+                                <label>
+                                    Gender
+                                </label>
+
+                                <select id="gender" required>
+
+                                    <option value="">
+                                        Select gender
+                                    </option>
+
+                                    <option value="Male">
+                                        Male
+                                    </option>
+
+                                    <option value="Female">
+                                        Female
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+
+                            <div class="form-group">
+
+                                <label>
+                                    Race
+                                </label>
+
+                                <select id="race">
+
+                                    <option value="">
+                                        Select race
+                                    </option>
+
+                                    <option>Caucasian</option>
+                                    <option>AfricanAmerican</option>
+                                    <option>Asian</option>
+                                    <option>Hispanic</option>
+                                    <option>Other</option>
+
+                                </select>
+
+                            </div>
+
+
+                            <div class="form-group">
+
+                                <label>
+                                    Number of Diagnoses
+                                </label>
+
+                                <input
+                                    type="number"
+                                    id="diagnoses"
+                                    min="0"
+                                    max="20"
+                                    placeholder="e.g. 5"
+                                >
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- HOSPITAL INFORMATION -->
+
+                    <div class="form-section">
+
+                        <h4>Hospital Encounter</h4>
+
+                        <div class="form-grid">
+
+                            <div class="form-group">
+
+                                <label>
+                                    Time in Hospital
+                                    <span>days</span>
+                                </label>
+
+                                <input
+                                    type="number"
+                                    id="stay"
+                                    min="1"
+                                    max="100"
+                                    placeholder="e.g. 7"
+                                    required
+                                >
+
+                            </div>
+
+
+                            <div class="form-group">
+
+                                <label>
+                                    Previous Emergency Visits
+                                </label>
+
+                                <input
+                                    type="number"
+                                    id="emergency"
+                                    min="0"
+                                    max="50"
+                                    placeholder="e.g. 2"
+                                    required
+                                >
+
+                            </div>
+
+
+                            <div class="form-group">
+
+                                <label>
+                                    Previous Inpatient Visits
+                                </label>
+
+                                <input
+                                    type="number"
+                                    id="inpatient"
+                                    min="0"
+                                    max="50"
+                                    placeholder="e.g. 1"
+                                    required
+                                >
+
+                            </div>
+
+
+                            <div class="form-group">
+
+                                <label>
+                                    Previous Outpatient Visits
+                                </label>
+
+                                <input
+                                    type="number"
+                                    id="outpatient"
+                                    min="0"
+                                    max="50"
+                                    placeholder="e.g. 3"
+                                >
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- MEDICAL INFORMATION -->
+
+                    <div class="form-section">
+
+                        <h4>Medical & Diabetes Information</h4>
+
+                        <div class="form-grid">
+
+                            <div class="form-group">
+
+                                <label>
+                                    Diabetes Medication
+                                </label>
+
+                                <select id="diabetesMed">
+
+                                    <option value="">
+                                        Select
+                                    </option>
+
+                                    <option value="Yes">
+                                        Yes
+                                    </option>
+
+                                    <option value="No">
+                                        No
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+
+                            <div class="form-group">
+
+                                <label>
+                                    Insulin
+                                </label>
+
+                                <select id="insulin">
+
+                                    <option value="">
+                                        Select
+                                    </option>
+
+                                    <option value="No">
+                                        No
+                                    </option>
+
+                                    <option value="Steady">
+                                        Steady
+                                    </option>
+
+                                    <option value="Up">
+                                        Increased
+                                    </option>
+
+                                    <option value="Down">
+                                        Decreased
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+
+                            <div class="form-group">
+
+                                <label>
+                                    HbA1c Result
+                                </label>
+
+                                <select id="a1c">
+
+                                    <option value="">
+                                        Select
+                                    </option>
+
+                                    <option value="Normal">
+                                        Normal
+                                    </option>
+
+                                    <option value=">7">
+                                        >7
+                                    </option>
+
+                                    <option value=">8">
+                                        >8
+                                    </option>
+
+                                    <option value="NotMeasured">
+                                        Not measured
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+
+                            <div class="form-group">
+
+                                <label>
+                                    Glucose Serum Test
+                                </label>
+
+                                <select id="glucose">
+
+                                    <option value="">
+                                        Select
+                                    </option>
+
+                                    <option value="Normal">
+                                        Normal
+                                    </option>
+
+                                    <option value=">200">
+                                        >200
+                                    </option>
+
+                                    <option value=">300">
+                                        >300
+                                    </option>
+
+                                    <option value="NotMeasured">
+                                        Not measured
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- ACTIONS -->
+
+                    <div class="form-actions">
+
+                        <button
+                            type="button"
+                            class="secondary-button"
+                            onclick="loadDemoPatient()">
+
+                            Load Demo Patient
+
+                        </button>
+
+                        <button
+                            type="submit"
+                            class="primary-button">
+
+                            Analyze Readmission Risk
+                            <span>→</span>
+
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+
+            <!-- RESULT -->
+
+            <div class="panel result-panel">
+
+                <div class="result-placeholder"
+                     id="resultPlaceholder">
+
+                    <div class="result-icon">
+                        ◎
+                    </div>
+
+                    <h3>Prediction Ready</h3>
+
+                    <p>
+                        Complete the patient information and click
+                        <strong>Analyze Readmission Risk</strong>
+                        to generate the assessment.
+                    </p>
+
+                    <div class="secure-note">
+                        🔒 Patient information is processed securely
+                    </div>
+
+                </div>
+
+
+                <div class="prediction-result"
+                     id="predictionResult">
+
+                    <div class="result-header">
+
+                        <div>
+
+                            <span class="eyebrow">
+                                AI ASSESSMENT
+                            </span>
+
+                            <h3>Readmission Risk</h3>
+
+                        </div>
+
+                        <span id="resultRiskBadge"
+                              class="risk-badge high">
+                            HIGH
+                        </span>
+
+                    </div>
+
+
+                    <div class="risk-score">
+
+                        <div class="score-circle"
+                             id="scoreCircle">
+
+                            <div>
+                                <strong id="probability">
+                                    0%
+                                </strong>
+
+                                <span>Probability</span>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="result-message">
+
+                        <h4 id="riskTitle">
+                            High Risk
+                        </h4>
+
+                        <p id="riskMessage">
+                            Patient shows several factors associated
+                            with increased readmission risk.
+                        </p>
+
+                    </div>
+
+
+                    <div class="risk-factors">
+
+                        <h4>Contributing Factors</h4>
+
+                        <div id="factorList"></div>
+
+                    </div>
+
+
+                    <div class="recommendations">
+
+                        <h4>Recommended Actions</h4>
+
+                        <ul id="recommendationList"></ul>
+
+                    </div>
+
+
+                    <div class="result-disclaimer">
+
+                        ⚠ Decision-support estimate only.
+                        This system does not replace professional
+                        clinical judgment.
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ================= HISTORY ================= -->
+
+    <section id="history" class="page">
+
+        <div class="section-heading">
+
+            <div>
+
+                <span class="eyebrow">
+                    PATIENT RECORDS
+                </span>
+
+                <h1>Prediction History</h1>
+
+                <p>
+                    Review previous readmission risk assessments.
+                </p>
+
+            </div>
+
+            <button class="primary-button"
+                    onclick="showPage('prediction')">
+
+                + New Prediction
+
+            </button>
+
+        </div>
+
+
+        <div class="panel">
+
+            <div class="history-toolbar">
+
+                <div class="search-box">
+
+                    🔍
+
+                    <input
+                        type="text"
+                        id="historySearch"
+                        placeholder="Search patient ID..."
+                        onkeyup="searchHistory()"
+                    >
+
+                </div>
+
+                <select id="riskFilter"
+                        onchange="filterHistory()">
+
+                    <option value="all">
+                        All Risk Levels
+                    </option>
+
+                    <option value="high">
+                        High Risk
+                    </option>
+
+                    <option value="moderate">
+                        Moderate Risk
+                    </option>
+
+                    <option value="low">
+                        Low Risk
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="table-wrapper">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Patient ID</th>
+                            <th>Age</th>
+                            <th>Hospital Stay</th>
+                            <th>Emergency</th>
+                            <th>Inpatient</th>
+                            <th>Risk</th>
+                            <th>Probability</th>
+                            <th>Date</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="historyTable">
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ================= ANALYTICS ================= -->
+
+    <section id="analytics" class="page">
+
+        <div class="section-heading">
+
+            <div>
+
+                <span class="eyebrow">
+                    CLINICAL ANALYTICS
+                </span>
+
+                <h1>Readmission Analytics</h1>
+
+                <p>
+                    Monitor prediction patterns and risk distribution.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="analytics-grid">
+
+            <div class="panel analytics-card">
+
+                <span>Total Encounters</span>
+
+                <strong>
+                    101,766
+                </strong>
+
+                <small>
+                    Dataset encounters
+                </small>
+
+            </div>
+
+
+            <div class="panel analytics-card">
+
+                <span>Readmitted &lt; 30 Days</span>
+
+                <strong>
+                    11,357
+                </strong>
+
+                <small>
+                    Dataset records
+                </small>
+
+            </div>
+
+
+            <div class="panel analytics-card">
+
+                <span>Readmitted &gt; 30 Days</span>
+
+                <strong>
+                    35,545
+                </strong>
+
+                <small>
+                    Dataset records
+                </small>
+
+            </div>
+
+
+            <div class="panel analytics-card">
+
+                <span>Not Readmitted</span>
+
+                <strong>
+                    54,864
+                </strong>
+
+                <small>
+                    Dataset records
+                </small>
+
+            </div>
+
+        </div>
+
+
+        <div class="dashboard-grid">
+
+            <div class="panel">
+
+                <div class="panel-header">
+
+                    <div>
+                        <h3>Dataset Readmission Distribution</h3>
+                        <p>Based on uploaded diabetic patient dataset</p>
+                    </div>
+
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="datasetChart"></canvas>
+                </div>
+
+            </div>
+
+
+            <div class="panel">
+
+                <div class="panel-header">
+
+                    <div>
+                        <h3>Clinical Feature Groups</h3>
+                        <p>Features used for risk assessment</p>
+                    </div>
+
+                </div>
+
+                <div class="feature-list">
+
+                    <div>
+                        <span>Patient demographics</span>
+                        <strong>4+</strong>
+                    </div>
+
+                    <div>
+                        <span>Hospital utilization</span>
+                        <strong>4+</strong>
+                    </div>
+
+                    <div>
+                        <span>Diabetes management</span>
+                        <strong>20+</strong>
+                    </div>
+
+                    <div>
+                        <span>Diagnosis information</span>
+                        <strong>3+</strong>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ================= MODEL ================= -->
+
+    <section id="model" class="page">
+
+        <div class="section-heading">
+
+            <div>
+
+                <span class="eyebrow">
+                    MACHINE LEARNING
+                </span>
+
+                <h1>AI Model Information</h1>
+
+                <p>
+                    Transparency and explainability for the
+                    HealthForecast prediction engine.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="model-grid">
+
+            <div class="panel model-card">
+
+                <div class="model-icon">
+                    ML
+                </div>
+
+                <h3>
+                    Hospital Readmission Classifier
+                </h3>
+
+                <p>
+                    The backend will use a machine-learning
+                    classification pipeline trained using the
+                    diabetic patient encounter dataset.
+                </p>
+
+                <div class="model-detail">
+
+                    <span>Task</span>
+                    <strong>Classification</strong>
+
+                </div>
+
+                <div class="model-detail">
+
+                    <span>Target</span>
+                    <strong>Readmission</strong>
+
+                </div>
+
+                <div class="model-detail">
+
+                    <span>Data Source</span>
+                    <strong>Diabetic Patient Dataset</strong>
+
+                </div>
+
+            </div>
+
+
+            <div class="panel">
+
+                <div class="panel-header">
+
+                    <div>
+
+                        <h3>Prediction Pipeline</h3>
+
+                        <p>
+                            How the system processes an encounter
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <div class="pipeline">
+
+                    <div class="pipeline-step">
+                        <span>1</span>
+                        <div>
+                            <strong>Patient Input</strong>
+                            <small>Clinical encounter data</small>
+                        </div>
+                    </div>
+
+                    <div class="pipeline-line"></div>
+
+                    <div class="pipeline-step">
+                        <span>2</span>
+                        <div>
+                            <strong>Preprocessing</strong>
+                            <small>Validation and transformation</small>
+                        </div>
+                    </div>
+
+                    <div class="pipeline-line"></div>
+
+                    <div class="pipeline-step">
+                        <span>3</span>
+                        <div>
+                            <strong>ML Prediction</strong>
+                            <small>Risk probability estimation</small>
+                        </div>
+                    </div>
+
+                    <div class="pipeline-line"></div>
+
+                    <div class="pipeline-step">
+                        <span>4</span>
+                        <div>
+                            <strong>Explainability</strong>
+                            <small>Important contributing factors</small>
+                        </div>
+                    </div>
+
+                    <div class="pipeline-line"></div>
+
+                    <div class="pipeline-step">
+                        <span>5</span>
+                        <div>
+                            <strong>Clinical Output</strong>
+                            <small>Risk and recommendations</small>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="panel disclaimer-panel">
+
+            <h3>Important Clinical Disclaimer</h3>
+
+            <p>
+                HealthForecast AI is a research and demonstration
+                decision-support prototype. Its predictions should
+                not be interpreted as medical diagnoses or used as
+                a substitute for professional clinical judgment.
             </p>
 
         </div>
 
+    </section>
+
+
+    <!-- ================= FOOTER ================= -->
+
+    <footer>
+
+        <div>
+            <strong>HealthForecast AI</strong>
+            <span>Hospital Readmission Intelligence</span>
+        </div>
+
+        <span>
+            © 2026 HealthForecast AI • Prototype
+        </span>
+
+    </footer>
+
+</main>
+
+
+<!-- ================= TOAST ================= -->
+
+<div class="toast"
+     id="toast">
+
+    <span>✓</span>
+
+    <div>
+        <strong id="toastTitle">
+            Success
+        </strong>
+
+        <small id="toastMessage">
+            Operation completed
+        </small>
     </div>
 
 </div>
 
-<footer>
-    HealthForecast AI | AI/ML Hospital Readmission Prediction Project
-</footer>
 
 <script src="script.js"></script>
-</body>
-</html>
 
+</body>
+                    </html>
