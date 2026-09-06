@@ -3,7 +3,7 @@ import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
 import { Users, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { getPatients } from "../api/client";
+import { getPatients, getAnalyticsSummary } from "../api/client";
 
 const trendData = [
   { month: "Jan", readmissions: 42 },
@@ -16,17 +16,29 @@ const trendData = [
 
 function Dashboard() {
   const [totalPatients, setTotalPatients] = useState(null);
+  const [highRiskPatients, setHighRiskPatients] = useState(null);
+  const [readmissionRate, setReadmissionRate] = useState(null);
 
   useEffect(() => {
     getPatients()
       .then((data) => setTotalPatients(data.length))
       .catch(() => setTotalPatients(null));
+
+    getAnalyticsSummary()
+      .then((data) => {
+        setHighRiskPatients(data.high_risk_patients);
+        setReadmissionRate(data.readmission_rate);
+      })
+      .catch(() => {
+        setHighRiskPatients(null);
+        setReadmissionRate(null);
+      });
   }, []);
 
   const stats = [
     { label: "Total Patients", value: totalPatients !== null ? totalPatients : "...", icon: Users, gradient: "from-pista-500 to-pista-600" },
-    { label: "High-Risk Patients", value: "87", icon: AlertTriangle, gradient: "from-amber-500 to-orange-500" },
-    { label: "Readmission Rate", value: "12.4%", icon: TrendingUp, gradient: "from-rose-500 to-pink-600" },
+    { label: "High-Risk Patients", value: highRiskPatients !== null ? highRiskPatients : "...", icon: AlertTriangle, gradient: "from-amber-500 to-orange-500" },
+    { label: "Readmission Rate", value: readmissionRate !== null ? readmissionRate + "%" : "...", icon: TrendingUp, gradient: "from-rose-500 to-pink-600" },
     { label: "Model Accuracy", value: "89%", icon: Activity, gradient: "from-emerald-500 to-teal-600" },
   ];
 

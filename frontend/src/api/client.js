@@ -98,3 +98,17 @@ export async function getModelInfo() {
   }
   return response.json();
 }
+
+
+export async function getPatientRecommendations() {
+  const token = localStorage.getItem("hf_token");
+  const response = await fetch(`${API_BASE_URL}/decision-support/patient-recommendations`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) {
+    throw new Error("Failed to load care recommendations.");
+  }
+  return response.json();
+}
