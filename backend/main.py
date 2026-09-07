@@ -2,16 +2,16 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 
-from schemas import (
+from backend.schemas import (
     PatientData,
     PredictionResponse,
     HealthResponse,
     ModelInfoResponse
 )
 
-from model_service import model_service
+from backend.model_service import model_service
 
-from database import (
+from backend.database import (
     save_prediction,
     get_history,
     get_stats,
