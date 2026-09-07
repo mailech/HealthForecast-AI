@@ -1,0 +1,43 @@
+{
+    "model_name": "HealthForecast AI Random Forest",
+    "algorithm": "Random Forest Classifier",
+    "version": "1.0",
+    "dataset_rows": 101766,
+    "feature_count": 22,
+    "features": [
+        "race",
+        "gender",
+        "age",
+        "admission_type_id",
+        "discharge_disposition_id",
+        "admission_source_id",
+        "time_in_hospital",
+        "num_lab_procedures",
+        "num_procedures",
+        "num_medications",
+        "number_outpatient",
+        "number_emergency",
+        "number_inpatient",
+        "diag_1",
+        "diag_2",
+        "diag_3",
+        "number_diagnoses",
+        "max_glu_serum",
+        "A1Cresult",
+        "insulin",
+        "change",
+        "diabetesMed"
+    ],
+    "target": "readmitted",
+    "classes": [
+        "<30",
+        ">30",
+        "NO"
+    ],
+    "metrics": {
+        "accuracy": 0.4943,
+        "precision": 0.5386,
+        "recall": 0.4943,
+        "f1_score": 0.5071
+    }
+}
