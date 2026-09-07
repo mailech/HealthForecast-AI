@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+backend/healthforecast_model.joblib
+backend/healthforecast.db
+
+.env
+.venv/
+venv/
