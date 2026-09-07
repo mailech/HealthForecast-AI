@@ -4,4 +4,4 @@ pydantic
 pandas
 numpy
 scikit-learn
-joblibv
+joblib
