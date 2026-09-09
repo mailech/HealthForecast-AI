@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: healthforecast
+      POSTGRES_USER: healthforecast
+      POSTGRES_PASSWORD: healthforecast
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_v2:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U healthforecast -d healthforecast"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://healthforecast:healthforecast@db:5432/healthforecast
+      JWT_SECRET: healthforecast-demo-secret-change-in-production
+      CORS_ORIGINS: http://localhost:5173
+      HF_DATA_DIR: /data
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./models:/models
+      - ./data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "python scripts/seed.py && python scripts/import_dataset.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  frontend:
+    build: ./frontend
+    environment:
+      VITE_API_URL: http://localhost:8000/api/v1
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data_v2:

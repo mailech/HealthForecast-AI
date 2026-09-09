@@ -1,0 +1,34 @@
+{
+  "model": "RandomForestClassifier",
+  "target": "readmitted == '<30'",
+  "dataset_rows": 101766,
+  "train_rows": 81412,
+  "test_rows": 20354,
+  "accuracy": 0.732141,
+  "precision": 0.182472,
+  "recall": 0.402466,
+  "f1": 0.251099,
+  "roc_auc": 0.634792,
+  "confusion_matrix": [
+    [
+      13988,
+      4095
+    ],
+    [
+      1357,
+      914
+    ]
+  ],
+  "features": [
+    "age",
+    "time_in_hospital",
+    "num_lab_procedures",
+    "num_procedures",
+    "num_medications",
+    "number_outpatient",
+    "number_emergency",
+    "number_inpatient",
+    "number_diagnoses"
+  ],
+  "note": "Educational decision-support model. Accuracy alone should not be used to assess clinical safety."
+}
