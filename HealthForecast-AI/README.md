@@ -55,17 +55,4 @@ npm install
 npm run dev
 ```
 
-Open the localhost URL printed by Vite.
 
-## Important
-Use this project as a fresh folder. Do not mix files from previous HealthForecast AI ZIPs.
-
-Predictions are educational decision-support outputs, not diagnoses or automatic treatment instructions.
-
-
-### Frontend troubleshooting note
-The frontend uses synchronous `useEffect` callbacks with inner async requests; this avoids React 19's `destroy is not a function` error. CORS permits both localhost:5173 and 127.0.0.1:5173 for local development.
-
-
-### Login behavior
-The application always opens on the login page when the browser application is opened or refreshed. Email and password fields are blank until the user enters credentials. A previous browser session is not automatically restored.
