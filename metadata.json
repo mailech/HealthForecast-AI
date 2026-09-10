@@ -1,0 +1,6 @@
+{
+  "name": "HealthForecast AI",
+  "description": "Hospital Readmission Prediction & Patient Risk Intelligence System",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
