@@ -170,4 +170,3 @@ Uses the **Diabetes 130-US Hospitals (1999–2008)** dataset (101,766 records) f
 Risk categories are derived per-patient from treatment outcomes as a practical proxy where live clinical-feature scoring isn't available:
 - **High**: at least one "Worsened" treatment outcome
 - **Medium**: at least one "No Change" outcome, no "Worsened"
-- **Low**: all treatment outcomes "Improved"
