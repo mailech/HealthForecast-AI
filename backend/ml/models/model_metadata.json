@@ -1,0 +1,55 @@
+{
+  "dataset": "Diabetes 130-US Hospitals (dataset/diabetic_data.csv)",
+  "train_samples": 79541,
+  "test_samples": 19802,
+  "features_count": 187,
+  "random_forest": {
+    "accuracy": 0.6934653065346935,
+    "precision": 0.17700301709688232,
+    "recall_sensitivity": 0.47653429602888087,
+    "f1_score": 0.25812759716450745,
+    "roc_auc": 0.6449357587119061,
+    "pr_auc": 0.19197528658272356,
+    "specificity": 0.7208006368702377,
+    "false_positive_rate": 0.2791993631297623,
+    "confusion_matrix": {
+      "tn": 12676,
+      "fp": 4910,
+      "fn": 1160,
+      "tp": 1056
+    }
+  },
+  "xgboost": {
+    "accuracy": 0.6508433491566509,
+    "precision": 0.17073170731707318,
+    "recall_sensitivity": 0.5496389891696751,
+    "f1_score": 0.2605347593582888,
+    "roc_auc": 0.6470999427876047,
+    "pr_auc": 0.20672219381702628,
+    "specificity": 0.66359604230638,
+    "false_positive_rate": 0.3364039576936199,
+    "confusion_matrix": {
+      "tn": 11670,
+      "fp": 5916,
+      "fn": 998,
+      "tp": 1218
+    }
+  },
+  "top_features_xgboost": {
+    "number_inpatient": 0.06320501863956451,
+    "number_diagnoses": 0.012006200850009918,
+    "number_emergency": 0.011506903916597366,
+    "age_ordinal": 0.011440188623964787,
+    "max_glu_serum_>200": 0.011302710510790348,
+    "diabetesMed_binary": 0.01090792566537857,
+    "payer_code_MC": 0.010905317030847073,
+    "diag_1_group_Respiratory": 0.010725238360464573,
+    "time_in_hospital": 0.009790210984647274,
+    "medical_specialty_Cardiology": 0.009586471132934093,
+    "medical_specialty_ObstetricsandGynecology": 0.009574587456882,
+    "medical_specialty_Surgery-Cardiovascular/Thoracic": 0.009392003528773785,
+    "diag_1_group_Circulatory": 0.009373410604894161,
+    "medical_specialty_Oncology": 0.009275833144783974,
+    "max_glu_serum_nan": 0.00910111702978611
+  }
+}
