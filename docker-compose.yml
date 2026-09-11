@@ -1,0 +1,20 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: healthforecast-current-backend
+
+    environment:
+      DATABASE_URL: postgresql+psycopg://healthforecast:healthforecast@healthforecast-db:5432/healthforecast
+
+    ports:
+      - "8001:8000"
+
+    networks:
+      - healthforecastai_default
+
+networks:
+  healthforecastai_default:
+    external: true
