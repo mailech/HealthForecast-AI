@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import { FaUserMd } from "react-icons/fa";
+import { FaUserMd, FaShieldAlt } from "react-icons/fa";
+import api from "../services/api";
 
 function Login() {
   const navigate = useNavigate();
@@ -12,6 +12,7 @@ function Login() {
     role: "Doctor",
   });
 
+  const [isSystemAdmin, setIsSystemAdmin] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -22,6 +23,11 @@ function Login() {
     });
   };
 
+  const handleAdminToggle = () => {
+    setIsSystemAdmin((previous) => !previous);
+    setError("");
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
 
@@ -29,9 +35,20 @@ function Login() {
       setLoading(true);
       setError("");
 
-      const response = await axios.post(
-        "http://127.0.0.1:8000/api/login",
-        formData
+      const loginData = {
+        email: formData.email,
+        password: formData.password,
+        is_system_admin: isSystemAdmin,
+      };
+
+      // Send selected role only for normal users
+      if (!isSystemAdmin) {
+        loginData.role = formData.role;
+      }
+
+      const response = await api.post(
+        "/api/login",
+        loginData
       );
 
       // Store JWT
@@ -46,7 +63,21 @@ function Login() {
         JSON.stringify(response.data.user)
       );
 
-      navigate("/dashboard");
+      // Get actual role returned by backend
+      const userRole = response.data.user?.role;
+
+      // Role-based navigation
+      if (userRole === "System Administrator") {
+        navigate("/admin");
+      } else if (userRole === "Doctor") {
+        navigate("/dashboard");
+      } else if (userRole === "Hospital Administrator") {
+        navigate("/hospital-dashboard");
+      } else if (userRole === "Healthcare Researcher") {
+        navigate("/research-dashboard");
+      } else {
+        navigate("/dashboard");
+      }
 
     } catch (error) {
       console.error(error);
@@ -68,8 +99,18 @@ function Login() {
 
         <div className="flex flex-col items-center mb-6">
 
-          <div className="bg-blue-600 text-white p-4 rounded-full">
-            <FaUserMd size={35} />
+          <div
+            className={`${
+              isSystemAdmin
+                ? "bg-slate-700"
+                : "bg-blue-600"
+            } text-white p-4 rounded-full`}
+          >
+            {isSystemAdmin ? (
+              <FaShieldAlt size={35} />
+            ) : (
+              <FaUserMd size={35} />
+            )}
           </div>
 
           <h2 className="text-3xl font-bold mt-4 text-slate-800">
@@ -90,7 +131,11 @@ function Login() {
           <input
             type="email"
             name="email"
-            placeholder="Email Address"
+            placeholder={
+              isSystemAdmin
+                ? "System Administrator Email"
+                : "Email Address"
+            }
             value={formData.email}
             onChange={handleChange}
             required
@@ -107,24 +152,69 @@ function Login() {
             className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
 
-          <select
-            name="role"
-            value={formData.role}
-            onChange={handleChange}
-            className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="Doctor">
-              Doctor
-            </option>
+          {!isSystemAdmin && (
+            <select
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="Doctor">
+                Doctor
+              </option>
 
-            <option value="Hospital Administrator">
-              Hospital Administrator
-            </option>
+              <option value="Hospital Administrator">
+                Hospital Administrator
+              </option>
 
-            <option value="Healthcare Researcher">
-              Healthcare Researcher
-            </option>
-          </select>
+              <option value="Healthcare Researcher">
+                Healthcare Researcher
+              </option>
+            </select>
+          )}
+
+          {/* System Administrator Toggle */}
+          <div className="flex items-center justify-between border border-gray-200 rounded-lg p-3 bg-gray-50">
+
+            <div>
+              <p className="text-sm font-semibold text-gray-700">
+                System Administrator Access
+              </p>
+
+              <p className="text-xs text-gray-500 mt-1">
+                Use configured administrator credentials
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleAdminToggle}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
+                isSystemAdmin
+                  ? "bg-slate-700"
+                  : "bg-gray-300"
+              }`}
+              aria-label="Toggle System Administrator Access"
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                  isSystemAdmin
+                    ? "translate-x-6"
+                    : "translate-x-1"
+                }`}
+              />
+            </button>
+
+          </div>
+
+          {isSystemAdmin && (
+            <div className="text-xs text-slate-600 bg-slate-100 border border-slate-200 rounded-lg p-3">
+              <strong>System Administrator Mode</strong>
+              <br />
+              Login using the System Administrator credentials
+              configured in the backend environment.
+            </div>
+          )}
 
           {error && (
             <p className="text-red-500 text-sm text-center">
@@ -135,20 +225,33 @@ function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white py-3 rounded-lg font-semibold transition duration-300"
+            className={`w-full ${
+              isSystemAdmin
+                ? "bg-slate-700 hover:bg-slate-800 disabled:bg-slate-400"
+                : "bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300"
+            } text-white py-3 rounded-lg font-semibold transition duration-300`}
           >
-            {loading ? "Logging in..." : "Login"}
+            {loading
+              ? "Logging in..."
+              : isSystemAdmin
+                ? "Login as System Administrator"
+                : "Login"}
           </button>
-          <p className="text-center text-gray-500 mt-6">
-  Don't have an account?{" "}
-  <button
-    type="button"
-    onClick={() => navigate("/signup")}
-    className="text-blue-600 font-semibold hover:underline"
-  >
-    Sign Up
-  </button>
-</p>
+
+          {!isSystemAdmin && (
+            <p className="text-center text-gray-500 mt-6">
+              Don't have an account?{" "}
+
+              <button
+                type="button"
+                onClick={() => navigate("/signup")}
+                className="text-blue-600 font-semibold hover:underline"
+              >
+                Sign Up
+              </button>
+            </p>
+          )}
+
         </form>
 
       </div>

@@ -13,11 +13,12 @@ from sklearn.impute import SimpleImputer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (
     accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    roc_auc_score,
     classification_report,
     confusion_matrix,
-    roc_auc_score,
-    precision_recall_curve,
-    f1_score,
 )
 
 
@@ -26,9 +27,11 @@ from sklearn.metrics import (
 # =========================================================
 
 DATASET_NAME = (
-    "siddharth0935/"
-    "hospital-readmission-predictionsynthetic-dataset"
+    "mkaur1141/"
+    "diabetes-130-us-hospitals-for-years-1999-2008"
 )
+
+TARGET = "readmitted"
 
 BASE_DIR = os.path.dirname(
     os.path.abspath(__file__)
@@ -41,21 +44,74 @@ MODEL_PATH = os.path.join(
 
 
 # =========================================================
+# SELECTED IMPORTANT FEATURES
+# =========================================================
+#
+# These features are selected from the actual
+# Diabetes 130-US Hospitals dataset.
+#
+# They cover:
+# - Patient demographics
+# - Admission information
+# - Hospital utilization
+# - Clinical/laboratory information
+# - Diabetes treatment information
+#
+# The PDF requires patient risk prediction and
+# readmission forecasting, but does not prescribe
+# an exact feature list.
+# =========================================================
+
+SELECTED_FEATURES = [
+    # Patient / demographic information
+    "race",
+    "gender",
+    "age",
+
+    # Admission / hospitalization information
+    "admission_type_id",
+    "discharge_disposition_id",
+    "admission_source_id",
+    "time_in_hospital",
+
+    # Hospital utilization
+    "num_lab_procedures",
+    "num_procedures",
+    "num_medications",
+    "number_outpatient",
+    "number_emergency",
+    "number_inpatient",
+    "number_diagnoses",
+
+    # Clinical / laboratory information
+    "max_glu_serum",
+    "a1cresult",
+
+    # Diabetes treatment information
+    "insulin",
+    "change",
+    "diabetesmed",
+]
+
+
+# =========================================================
 # 1. DOWNLOAD DATASET
 # =========================================================
 
-print("\nDownloading dataset from Kaggle...")
+print("\n========================================")
+print("DOWNLOADING DIABETES HOSPITAL DATASET")
+print("========================================")
 
 dataset_path = kagglehub.dataset_download(
     DATASET_NAME
 )
 
-print("Dataset downloaded to:")
+print("\nDataset path:")
 print(dataset_path)
 
 
 # =========================================================
-# 2. FIND CSV
+# 2. FIND CSV FILE
 # =========================================================
 
 csv_files = glob.glob(
@@ -67,28 +123,29 @@ csv_files = glob.glob(
 
 if not csv_files:
     raise FileNotFoundError(
-        "No CSV file found in the Kaggle dataset."
+        "No CSV file found in the downloaded dataset."
     )
 
 csv_path = csv_files[0]
 
-print("\nCSV file found:")
+print("\nCSV file:")
 print(csv_path)
 
 
 # =========================================================
-# 3. LOAD DATA
+# 3. LOAD DATASET
 # =========================================================
 
-df = pd.read_csv(csv_path)
+print("\nLoading dataset...")
 
-print("\nDataset loaded successfully.")
+df = pd.read_csv(
+    csv_path,
+    low_memory=False
+)
 
+print("Dataset loaded successfully.")
 print("Rows:", len(df))
 print("Columns:", len(df.columns))
-
-print("\nColumns:")
-print(df.columns.tolist())
 
 
 # =========================================================
@@ -102,132 +159,117 @@ df.columns = (
     .str.replace(" ", "_")
 )
 
-print("\nCleaned columns:")
-print(df.columns.tolist())
+print("\nColumns cleaned successfully.")
 
 
 # =========================================================
-# 5. TARGET
+# 5. CHECK TARGET
 # =========================================================
-
-TARGET = "readmitted_30_days"
 
 if TARGET not in df.columns:
     raise ValueError(
         f"Target column '{TARGET}' not found."
     )
 
-
 print("\nOriginal target distribution:")
 print(
-    df[TARGET].value_counts()
-)
-
-
-# =========================================================
-# 6. CONVERT TARGET
-# =========================================================
-
-def convert_target(value):
-
-    value = str(value).strip().lower()
-
-    if value in [
-        "yes",
-        "1",
-        "true"
-    ]:
-        return 1
-
-    if value in [
-        "no",
-        "0",
-        "false"
-    ]:
-        return 0
-
-    return np.nan
-
-
-df[TARGET] = df[TARGET].apply(
-    convert_target
-)
-
-df = df.dropna(
-    subset=[TARGET]
-)
-
-df[TARGET] = df[TARGET].astype(int)
-
-
-print("\nConverted target distribution:")
-print(
-    df[TARGET].value_counts()
-)
-
-
-# =========================================================
-# 7. REMOVE DUPLICATES
-# =========================================================
-
-before = len(df)
-
-df = df.drop_duplicates()
-
-print(
-    "\nDuplicates removed:",
-    before - len(df)
-)
-
-
-# =========================================================
-# 8. FEATURES / TARGET
-# =========================================================
-
-X = df.drop(
-    columns=[TARGET]
-)
-
-y = df[TARGET]
-
-
-# =========================================================
-# 9. REMOVE ID COLUMNS
-# =========================================================
-
-id_columns = []
-
-for column in X.columns:
-
-    name = column.lower()
-
-    if (
-        name == "id"
-        or name.endswith("_id")
-        or name in [
-            "patient_id",
-            "patientid",
-            "encounter_id"
-        ]
-    ):
-        id_columns.append(column)
-
-
-if id_columns:
-
-    print(
-        "\nRemoving ID columns:"
+    df[TARGET].value_counts(
+        dropna=False
     )
+)
 
-    print(id_columns)
 
-    X = X.drop(
-        columns=id_columns
+# =========================================================
+# 6. CREATE BINARY 30-DAY READMISSION TARGET
+# =========================================================
+#
+# <30 = Readmitted within 30 days -> 1
+# >30 = Readmitted after 30 days  -> 0
+# NO  = Not readmitted             -> 0
+#
+# Therefore the model specifically predicts
+# 30-day hospital readmission.
+# =========================================================
+
+print("\nCreating binary 30-day readmission target...")
+
+df["readmission_30_days"] = (
+    df[TARGET]
+    .astype(str)
+    .str.strip()
+    .eq("<30")
+    .astype(int)
+)
+
+print("\n30-day readmission distribution:")
+print(
+    df["readmission_30_days"].value_counts()
+)
+
+print("\n0 = No readmission within 30 days")
+print("1 = Readmitted within 30 days")
+
+
+# =========================================================
+# 7. CHECK SELECTED FEATURES
+# =========================================================
+
+missing_features = [
+    feature
+    for feature in SELECTED_FEATURES
+    if feature not in df.columns
+]
+
+if missing_features:
+    raise ValueError(
+        "The following selected features are missing "
+        f"from the dataset: {missing_features}"
     )
 
 
 # =========================================================
-# 10. IDENTIFY FEATURES
+# 8. CREATE INPUT DATA
+# =========================================================
+
+X = df[
+    SELECTED_FEATURES
+].copy()
+
+y = df[
+    "readmission_30_days"
+].copy()
+
+
+print("\n========================================")
+print("SELECTED MODEL FEATURES")
+print("========================================")
+
+for feature in SELECTED_FEATURES:
+    print("-", feature)
+
+print(
+    "\nTotal selected features:",
+    len(SELECTED_FEATURES)
+)
+
+
+# =========================================================
+# 9. CLEAN UNKNOWN VALUES
+# =========================================================
+
+X = X.replace(
+    "?",
+    np.nan
+)
+
+X = X.replace(
+    "Unknown/Invalid",
+    np.nan
+)
+
+
+# =========================================================
+# 10. IDENTIFY NUMERIC FEATURES
 # =========================================================
 
 numeric_features = X.select_dtypes(
@@ -239,6 +281,10 @@ numeric_features = X.select_dtypes(
     ]
 ).columns.tolist()
 
+
+# =========================================================
+# 11. IDENTIFY CATEGORICAL FEATURES
+# =========================================================
 
 categorical_features = X.select_dtypes(
     include=[
@@ -257,7 +303,7 @@ print(categorical_features)
 
 
 # =========================================================
-# 11. PREPROCESSING
+# 12. NUMERIC PREPROCESSING
 # =========================================================
 
 numeric_pipeline = Pipeline(
@@ -271,6 +317,10 @@ numeric_pipeline = Pipeline(
     ]
 )
 
+
+# =========================================================
+# 13. CATEGORICAL PREPROCESSING
+# =========================================================
 
 categorical_pipeline = Pipeline(
     steps=[
@@ -290,6 +340,10 @@ categorical_pipeline = Pipeline(
 )
 
 
+# =========================================================
+# 14. COMBINE PREPROCESSING
+# =========================================================
+
 preprocessor = ColumnTransformer(
     transformers=[
         (
@@ -307,10 +361,13 @@ preprocessor = ColumnTransformer(
 
 
 # =========================================================
-# 12. TRAIN / VALIDATION / TEST SPLIT
+# 15. TRAIN / VALIDATION / TEST SPLIT
 # =========================================================
 
-# First: 80% train+validation, 20% test
+print("\nCreating dataset splits...")
+
+# 80% temporary
+# 20% final test
 
 X_temp, X_test, y_temp, y_test = train_test_split(
     X,
@@ -321,9 +378,9 @@ X_temp, X_test, y_temp, y_test = train_test_split(
 )
 
 
-# Then split the 80% into:
-# 60% training
-# 20% validation
+# Remaining 80%:
+# 75% -> training = 60% total
+# 25% -> validation = 20% total
 
 X_train, X_validation, y_train, y_validation = train_test_split(
     X_temp,
@@ -335,31 +392,21 @@ X_train, X_validation, y_train, y_validation = train_test_split(
 
 
 print("\nDataset split:")
-
-print(
-    "Training:",
-    len(X_train)
-)
-
-print(
-    "Validation:",
-    len(X_validation)
-)
-
-print(
-    "Testing:",
-    len(X_test)
-)
+print("Training:", len(X_train))
+print("Validation:", len(X_validation))
+print("Testing:", len(X_test))
 
 
 # =========================================================
-# 13. RANDOM FOREST
+# 16. RANDOM FOREST CLASSIFIER
 # =========================================================
+
+print("\nCreating Random Forest model...")
 
 classifier = RandomForestClassifier(
     n_estimators=400,
-    max_depth=12,
-    min_samples_leaf=5,
+    max_depth=14,
+    min_samples_leaf=4,
     class_weight="balanced_subsample",
     random_state=42,
     n_jobs=-1
@@ -367,7 +414,7 @@ classifier = RandomForestClassifier(
 
 
 # =========================================================
-# 14. COMPLETE PIPELINE
+# 17. COMPLETE ML PIPELINE
 # =========================================================
 
 model = Pipeline(
@@ -385,26 +432,26 @@ model = Pipeline(
 
 
 # =========================================================
-# 15. TRAIN
+# 18. TRAIN MODEL
 # =========================================================
 
-print(
-    "\nTraining Random Forest..."
-)
+print("\n========================================")
+print("TRAINING RANDOM FOREST")
+print("========================================")
 
 model.fit(
     X_train,
     y_train
 )
 
-print(
-    "Training completed!"
-)
+print("\nTraining completed successfully!")
 
 
 # =========================================================
-# 16. VALIDATION PROBABILITIES
+# 19. VALIDATION PROBABILITIES
 # =========================================================
+
+print("\nGenerating validation probabilities...")
 
 validation_probabilities = model.predict_proba(
     X_validation
@@ -412,16 +459,13 @@ validation_probabilities = model.predict_proba(
 
 
 # =========================================================
-# 17. FIND BEST THRESHOLD
+# 20. FIND BEST CLASSIFICATION THRESHOLD
 # =========================================================
+
+print("\nSearching for best prediction threshold...")
 
 best_threshold = 0.50
 best_f1 = 0.0
-
-print(
-    "\nSearching for best prediction threshold..."
-)
-
 
 for threshold in np.arange(
     0.20,
@@ -430,23 +474,22 @@ for threshold in np.arange(
 ):
 
     validation_predictions = (
-        validation_probabilities
-        >= threshold
+        validation_probabilities >= threshold
     ).astype(int)
 
     score = f1_score(
         y_validation,
-        validation_predictions
+        validation_predictions,
+        zero_division=0
     )
 
     if score > best_f1:
-
         best_f1 = score
         best_threshold = threshold
 
 
 print(
-    f"Best threshold: "
+    f"\nBest threshold: "
     f"{best_threshold:.2f}"
 )
 
@@ -457,22 +500,22 @@ print(
 
 
 # =========================================================
-# 18. FINAL TEST
+# 21. FINAL TEST PREDICTIONS
 # =========================================================
+
+print("\nEvaluating final model on test data...")
 
 test_probabilities = model.predict_proba(
     X_test
 )[:, 1]
 
-
 test_predictions = (
-    test_probabilities
-    >= best_threshold
+    test_probabilities >= best_threshold
 ).astype(int)
 
 
 # =========================================================
-# 19. METRICS
+# 22. CALCULATE REQUIRED METRICS
 # =========================================================
 
 accuracy = accuracy_score(
@@ -480,6 +523,23 @@ accuracy = accuracy_score(
     test_predictions
 )
 
+precision = precision_score(
+    y_test,
+    test_predictions,
+    zero_division=0
+)
+
+recall = recall_score(
+    y_test,
+    test_predictions,
+    zero_division=0
+)
+
+f1 = f1_score(
+    y_test,
+    test_predictions,
+    zero_division=0
+)
 
 roc_auc = roc_auc_score(
     y_test,
@@ -487,52 +547,63 @@ roc_auc = roc_auc_score(
 )
 
 
+# =========================================================
+# 23. DISPLAY FINAL RESULTS
+# =========================================================
+
+print("\n========================================")
+print("FINAL MODEL PERFORMANCE")
+print("========================================")
+
 print(
-    "\n===================================="
+    f"Accuracy : {accuracy:.4f}"
 )
 
 print(
-    "FINAL MODEL PERFORMANCE"
+    f"Precision: {precision:.4f}"
 )
 
 print(
-    "===================================="
+    f"Recall   : {recall:.4f}"
 )
-
 
 print(
-    f"Accuracy: {accuracy:.4f}"
+    f"F1 Score : {f1:.4f}"
 )
-
 
 print(
-    f"ROC-AUC:  {roc_auc:.4f}"
+    f"ROC-AUC  : {roc_auc:.4f}"
 )
-
 
 print(
     f"Threshold: {best_threshold:.2f}"
 )
 
 
-print(
-    "\nClassification Report:"
-)
+# =========================================================
+# 24. CLASSIFICATION REPORT
+# =========================================================
 
+print("\nClassification Report:")
 
 print(
     classification_report(
         y_test,
         test_predictions,
+        target_names=[
+            "Not Readmitted Within 30 Days",
+            "Readmitted Within 30 Days"
+        ],
         zero_division=0
     )
 )
 
 
-print(
-    "\nConfusion Matrix:"
-)
+# =========================================================
+# 25. CONFUSION MATRIX
+# =========================================================
 
+print("\nConfusion Matrix:")
 
 print(
     confusion_matrix(
@@ -543,7 +614,7 @@ print(
 
 
 # =========================================================
-# 20. SAVE MODEL + THRESHOLD
+# 26. SAVE MODEL PACKAGE
 # =========================================================
 
 model_package = {
@@ -554,9 +625,29 @@ model_package = {
         best_threshold
     ),
 
-    "features": X.columns.tolist(),
+    "features": SELECTED_FEATURES,
 
-    "target": TARGET
+    "target": "readmission_30_days",
+
+    "original_target": TARGET,
+
+    "risk_thresholds": {
+        "medium": 0.40,
+        "high": 0.70
+    },
+
+    "dataset": (
+        "Diabetes 130-US Hospitals "
+        "for Years 1999-2008"
+    ),
+
+    "metrics": {
+        "accuracy": float(accuracy),
+        "precision": float(precision),
+        "recall": float(recall),
+        "f1": float(f1),
+        "roc_auc": float(roc_auc)
+    }
 }
 
 
@@ -566,89 +657,70 @@ joblib.dump(
 )
 
 
-print(
-    "\n===================================="
-)
+# =========================================================
+# 27. VERIFY MODEL FILE
+# =========================================================
 
-print(
-    "MODEL SAVED SUCCESSFULLY"
-)
+print("\n========================================")
+print("MODEL SAVED SUCCESSFULLY")
+print("========================================")
 
-print(
-    "===================================="
-)
-
-print(
-    MODEL_PATH
-)
+print("Model path:")
+print(MODEL_PATH)
 
 
 # =========================================================
-# 21. SAMPLE PREDICTION
+# 28. SAMPLE PREDICTION
 # =========================================================
 
 sample_patient = X_test.iloc[
     [0]
 ]
 
-
 sample_probability = model.predict_proba(
     sample_patient
 )[0][1]
 
-
 sample_prediction = int(
-    sample_probability
-    >= best_threshold
+    sample_probability >= best_threshold
 )
 
 
+# Risk category
 if sample_probability >= 0.70:
-
     risk = "HIGH"
 
 elif sample_probability >= 0.40:
-
     risk = "MEDIUM"
 
 else:
-
     risk = "LOW"
 
 
-print(
-    "\n===================================="
-)
+print("\n========================================")
+print("SAMPLE PREDICTION")
+print("========================================")
 
 print(
-    "SAMPLE PREDICTION"
-)
-
-print(
-    "===================================="
-)
-
-
-print(
-    "Prediction:",
+    "30-Day Readmission Prediction:",
     "READMITTED"
     if sample_prediction == 1
     else "NOT READMITTED"
 )
 
-
 print(
-    f"Probability: "
+    f"Readmission Probability: "
     f"{sample_probability * 100:.2f}%"
 )
 
-
 print(
-    "Risk:",
+    "Risk Level:",
     risk
 )
 
-
 print(
-    "\nTraining process completed!"
+    "\nTotal model input features:",
+    len(SELECTED_FEATURES)
 )
+
+print("\nTRAINING PROCESS COMPLETED")

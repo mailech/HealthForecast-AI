@@ -3,44 +3,31 @@ import DashboardLayout from "../layouts/DashboardLayout";
 import {
   FaHeartbeat,
   FaRobot,
-  FaChartLine,
   FaClipboardCheck,
 } from "react-icons/fa";
 
 function RiskPrediction() {
   const [formData, setFormData] = useState({
-    age: "",
+    age: "[60-70)",
     gender: "Male",
-    blood_pressure: "Normal",
-    cholesterol: "",
-    bmi: "",
-    diabetes: "No",
-    hypertension: "No",
-    medication_count: "",
-    length_of_stay: "",
-    discharge_destination: "Home",
+    number_diagnoses: "5",
+    diabetesmed: "Yes",
+    insulin: "No",
+    max_glu_serum: "None",
+    a1cresult: "None",
+    change: "No",
   });
 
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // =====================================================
-  // HANDLE FORM INPUT
-  // =====================================================
-
   const handleChange = (e) => {
-    const { name, value } = e.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
   };
-
-  // =====================================================
-  // PREDICT RISK
-  // =====================================================
 
   const predictRisk = async () => {
     setLoading(true);
@@ -48,333 +35,293 @@ function RiskPrediction() {
     setResult(null);
 
     try {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("Please log in again.");
+      }
+
+      const payload = {
+        age: formData.age,
+        gender: formData.gender,
+        number_diagnoses: Number(formData.number_diagnoses),
+        diabetesmed: formData.diabetesmed,
+        insulin: formData.insulin,
+        max_glu_serum: formData.max_glu_serum,
+        a1cresult: formData.a1cresult,
+        change: formData.change,
+      };
+
       const response = await fetch(
         "http://127.0.0.1:8000/api/predict-risk",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            age: Number(formData.age),
-
-            gender: formData.gender,
-
-            blood_pressure:
-              formData.blood_pressure,
-
-            cholesterol:
-              Number(formData.cholesterol),
-
-            bmi:
-              Number(formData.bmi),
-
-            diabetes:
-              formData.diabetes,
-
-            hypertension:
-              formData.hypertension,
-
-            medication_count:
-              Number(formData.medication_count),
-
-            length_of_stay:
-              Number(formData.length_of_stay),
-
-            discharge_destination:
-              formData.discharge_destination,
-          }),
+          body: JSON.stringify(payload),
         }
       );
 
       const data = await response.json();
 
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        throw new Error("Session expired. Please log in again.");
+      }
+
       if (!response.ok) {
+        if (Array.isArray(data.detail)) {
+          throw new Error(
+            data.detail.map((x) => x.msg).join(", ")
+          );
+        }
+
         throw new Error(
           data.detail || "Risk prediction failed."
         );
       }
 
       setResult(data);
-
     } catch (err) {
       console.error(err);
-
       setError(
-        err.message ||
-          "Unable to connect to the backend."
+        err.message || "Unable to connect to backend."
       );
-
     } finally {
       setLoading(false);
     }
   };
 
-  // =====================================================
-  // RISK LEVEL
-  // =====================================================
+  const getRiskStyle = () => {
+    const level = String(
+      result?.risk_level || ""
+    ).toUpperCase();
 
-  const getRiskLevel = () => {
-    if (!result) {
+    if (level === "HIGH") {
       return {
-        text: "",
-        color: "",
-        bg: "",
-      };
-    }
-
-    if (result.risk_level === "HIGH") {
-      return {
-        text: "High Risk",
+        title: "High Risk",
         color: "text-red-600",
         bg: "bg-red-100",
       };
     }
 
-    if (result.risk_level === "MEDIUM") {
+    if (level === "MEDIUM") {
       return {
-        text: "Medium Risk",
+        title: "Medium Risk",
         color: "text-yellow-600",
         bg: "bg-yellow-100",
       };
     }
 
     return {
-      text: "Low Risk",
+      title: "Low Risk",
       color: "text-green-600",
       bg: "bg-green-100",
     };
   };
 
-  // =====================================================
-  // FORM VALIDATION
-  // =====================================================
+  const style = getRiskStyle();
 
-  const isFormValid =
-    formData.age &&
-    formData.cholesterol &&
-    formData.bmi &&
-    formData.medication_count &&
-    formData.length_of_stay;
+  const inputClass =
+    "w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400";
 
-  // =====================================================
-  // UI
-  // =====================================================
+  const labelClass =
+    "block text-sm font-medium text-gray-600 mb-1";
 
   return (
     <DashboardLayout>
 
-      <h1 className="text-3xl font-bold mb-8">
+      <h1 className="text-3xl font-bold mb-2">
         Patient Risk Prediction
       </h1>
 
+      <p className="text-gray-500 mb-6">
+        Evaluate the patient's current condition and
+        estimate their readmission risk.
+      </p>
+
       <div className="grid lg:grid-cols-2 gap-8">
 
-        {/* =================================================
-            PREDICTION FORM
-        ================================================= */}
+        {/* INPUT */}
 
-        <div className="bg-white rounded-xl shadow p-8">
+        <div className="bg-white rounded-xl shadow p-6">
 
           <h2 className="text-xl font-bold mb-6">
-            Enter Patient Details
+            Current Patient Condition
           </h2>
 
-          <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
 
-            {/* AGE */}
+            <div>
+              <label className={labelClass}>
+                Age Group
+              </label>
 
-            <input
-              type="number"
-              name="age"
-              value={formData.age}
-              onChange={handleChange}
-              placeholder="Age"
-              min="1"
-              max="120"
-              className="w-full border rounded-lg p-3"
-            />
+              <select
+                name="age"
+                value={formData.age}
+                onChange={handleChange}
+                className={inputClass}
+              >
+                <option value="[0-10)">0–10</option>
+                <option value="[10-20)">10–20</option>
+                <option value="[20-30)">20–30</option>
+                <option value="[30-40)">30–40</option>
+                <option value="[40-50)">40–50</option>
+                <option value="[50-60)">50–60</option>
+                <option value="[60-70)">60–70</option>
+                <option value="[70-80)">70–80</option>
+                <option value="[80-90)">80–90</option>
+                <option value="[90-100)">90–100</option>
+              </select>
+            </div>
 
-            {/* GENDER */}
+            <div>
+              <label className={labelClass}>
+                Gender
+              </label>
 
-            <select
-              name="gender"
-              value={formData.gender}
-              onChange={handleChange}
-              className="w-full border rounded-lg p-3"
-            >
-              <option value="Male">
-                Male
-              </option>
+              <select
+                name="gender"
+                value={formData.gender}
+                onChange={handleChange}
+                className={inputClass}
+              >
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+            </div>
 
-              <option value="Female">
-                Female
-              </option>
-            </select>
+            <div>
+              <label className={labelClass}>
+                Number of Diagnoses
+              </label>
 
-            {/* BLOOD PRESSURE */}
+              <input
+                type="number"
+                name="number_diagnoses"
+                value={formData.number_diagnoses}
+                onChange={handleChange}
+                min="1"
+                max="16"
+                className={inputClass}
+              />
+            </div>
 
-            <select
-              name="blood_pressure"
-              value={formData.blood_pressure}
-              onChange={handleChange}
-              className="w-full border rounded-lg p-3"
-            >
-              <option value="Normal">
-                Normal Blood Pressure
-              </option>
+            <div>
+              <label className={labelClass}>
+                Diabetes Medication
+              </label>
 
-              <option value="High">
-                High Blood Pressure
-              </option>
+              <select
+                name="diabetesmed"
+                value={formData.diabetesmed}
+                onChange={handleChange}
+                className={inputClass}
+              >
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+              </select>
+            </div>
 
-              <option value="Low">
-                Low Blood Pressure
-              </option>
-            </select>
+            <div>
+              <label className={labelClass}>
+                Insulin Status
+              </label>
 
-            {/* CHOLESTEROL */}
+              <select
+                name="insulin"
+                value={formData.insulin}
+                onChange={handleChange}
+                className={inputClass}
+              >
+                <option value="No">No</option>
+                <option value="Steady">Steady</option>
+                <option value="Up">Increased</option>
+                <option value="Down">Decreased</option>
+              </select>
+            </div>
 
-            <input
-              type="number"
-              name="cholesterol"
-              value={formData.cholesterol}
-              onChange={handleChange}
-              placeholder="Cholesterol"
-              min="0"
-              className="w-full border rounded-lg p-3"
-            />
+            <div>
+              <label className={labelClass}>
+                Maximum Glucose
+              </label>
 
-            {/* BMI */}
+              <select
+                name="max_glu_serum"
+                value={formData.max_glu_serum}
+                onChange={handleChange}
+                className={inputClass}
+              >
+                <option value="None">Not Tested</option>
+                <option value="Norm">Normal</option>
+                <option value=">200">&gt;200</option>
+                <option value=">300">&gt;300</option>
+              </select>
+            </div>
 
-            <input
-              type="number"
-              name="bmi"
-              value={formData.bmi}
-              onChange={handleChange}
-              placeholder="BMI"
-              min="0"
-              step="0.1"
-              className="w-full border rounded-lg p-3"
-            />
+            <div>
+              <label className={labelClass}>
+                HbA1c
+              </label>
 
-            {/* DIABETES */}
+              <select
+                name="a1cresult"
+                value={formData.a1cresult}
+                onChange={handleChange}
+                className={inputClass}
+              >
+                <option value="None">Not Tested</option>
+                <option value="Norm">Normal</option>
+                <option value=">7">&gt;7</option>
+                <option value=">8">&gt;8</option>
+              </select>
+            </div>
 
-            <select
-              name="diabetes"
-              value={formData.diabetes}
-              onChange={handleChange}
-              className="w-full border rounded-lg p-3"
-            >
-              <option value="No">
-                Diabetes: No
-              </option>
+            <div>
+              <label className={labelClass}>
+                Medication Changed
+              </label>
 
-              <option value="Yes">
-                Diabetes: Yes
-              </option>
-            </select>
-
-            {/* HYPERTENSION */}
-
-            <select
-              name="hypertension"
-              value={formData.hypertension}
-              onChange={handleChange}
-              className="w-full border rounded-lg p-3"
-            >
-              <option value="No">
-                Hypertension: No
-              </option>
-
-              <option value="Yes">
-                Hypertension: Yes
-              </option>
-            </select>
-
-            {/* MEDICATION COUNT */}
-
-            <input
-              type="number"
-              name="medication_count"
-              value={formData.medication_count}
-              onChange={handleChange}
-              placeholder="Number of Medications"
-              min="0"
-              className="w-full border rounded-lg p-3"
-            />
-
-            {/* LENGTH OF STAY */}
-
-            <input
-              type="number"
-              name="length_of_stay"
-              value={formData.length_of_stay}
-              onChange={handleChange}
-              placeholder="Length of Hospital Stay (Days)"
-              min="1"
-              className="w-full border rounded-lg p-3"
-            />
-
-            {/* DISCHARGE DESTINATION */}
-
-            <select
-              name="discharge_destination"
-              value={
-                formData.discharge_destination
-              }
-              onChange={handleChange}
-              className="w-full border rounded-lg p-3"
-            >
-              <option value="Home">
-                Home
-              </option>
-
-              <option value="Home Health">
-                Home Health
-              </option>
-
-              <option value="Skilled Nursing Facility">
-                Skilled Nursing Facility
-              </option>
-
-              <option value="Rehabilitation">
-                Rehabilitation
-              </option>
-            </select>
-
-            {/* ERROR */}
-
-            {error && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-lg">
-                {error}
-              </div>
-            )}
-
-            {/* BUTTON */}
-
-            <button
-              onClick={predictRisk}
-              disabled={!isFormValid || loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white py-3 rounded-xl"
-            >
-              {loading
-                ? "Analyzing Patient..."
-                : "Predict Risk"}
-            </button>
+              <select
+                name="change"
+                value={formData.change}
+                onChange={handleChange}
+                className={inputClass}
+              >
+                <option value="No">No</option>
+                <option value="Ch">Yes</option>
+              </select>
+            </div>
 
           </div>
+
+          {error && (
+            <div className="mt-5 bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
+          <button
+            onClick={predictRisk}
+            disabled={loading}
+            className="w-full mt-6 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white py-3 rounded-xl font-semibold"
+          >
+            {loading
+              ? "Analyzing Patient..."
+              : "Predict Risk"}
+          </button>
+
         </div>
 
+        {/* RESULT */}
 
-        {/* =================================================
-            RESULT
-        ================================================= */}
-
-        <div className="bg-white rounded-xl shadow p-8">
+        <div className="bg-white rounded-xl shadow p-6">
 
           <h2 className="text-xl font-bold mb-6">
-            AI Risk Prediction
+            AI Risk Assessment
           </h2>
 
           {!result ? (
@@ -384,8 +331,9 @@ function RiskPrediction() {
               <FaRobot className="text-6xl mx-auto text-blue-600" />
 
               <p className="mt-6 text-gray-500">
-                Enter patient information and
-                click Predict Risk.
+                Enter the patient's current condition
+                <br />
+                and click <strong>Predict Risk</strong>.
               </p>
 
             </div>
@@ -393,84 +341,53 @@ function RiskPrediction() {
           ) : (
 
             <>
-
-              {/* RISK SCORE */}
-
               <div className="flex justify-center">
 
                 <div
-                  className={`
-                    w-44
-                    h-44
-                    rounded-full
-                    flex
-                    items-center
-                    justify-center
-                    text-4xl
-                    font-bold
-                    ${getRiskLevel().bg}
-                  `}
+                  className={`w-44 h-44 rounded-full flex items-center justify-center text-4xl font-bold ${style.bg}`}
                 >
                   {result.risk_score}%
                 </div>
 
               </div>
 
+              <h2
+                className={`text-center text-3xl font-bold mt-6 ${style.color}`}
+              >
+                {style.title}
+              </h2>
 
-              {/* RISK LEVEL */}
-
-              <div className="text-center mt-6">
-
-                <h2
-                  className={`
-                    text-3xl
-                    font-bold
-                    ${getRiskLevel().color}
-                  `}
-                >
-                  {getRiskLevel().text}
-                </h2>
-
-              </div>
-
-
-              {/* DETAILS */}
+              <p className="text-center text-gray-500 mt-2">
+                Patient Risk Score
+              </p>
 
               <div className="mt-8 space-y-4">
 
                 <div className="flex items-center gap-3">
-
                   <FaHeartbeat className="text-red-500" />
 
                   <p>
-                    Readmission Risk:
+                    Risk Score:
                     <strong>
                       {" "}
                       {result.risk_score}%
                     </strong>
                   </p>
-
                 </div>
 
-
                 <div className="flex items-center gap-3">
-
-                  <FaChartLine className="text-green-600" />
+                  <FaRobot className="text-blue-500" />
 
                   <p>
-                    Prediction:
+                    Assessment:
                     <strong>
                       {" "}
                       {result.prediction}
                     </strong>
                   </p>
-
                 </div>
 
               </div>
-
-
-              {/* AI RECOMMENDATION */}
 
               <div className="mt-8 bg-blue-50 rounded-xl p-5">
 
@@ -479,83 +396,65 @@ function RiskPrediction() {
                   <FaClipboardCheck className="text-blue-600" />
 
                   <h3 className="font-bold text-blue-700">
-                    AI Recommendation
+                    Recommended Actions
                   </h3>
 
                 </div>
 
+                {String(
+                  result.risk_level
+                ).toUpperCase() === "HIGH" ? (
 
-                {result.risk_level === "HIGH" ? (
-
-                  <ul className="list-disc pl-5 space-y-2">
-
-                    <li>
-                      Schedule an early follow-up.
-                    </li>
-
+                  <ul className="list-disc pl-5 space-y-2 text-sm">
                     <li>
                       Closely monitor the patient.
                     </li>
+                    <li>
+                      Review current treatment and medications.
+                    </li>
+                    <li>
+                      Consider early follow-up planning.
+                    </li>
+                  </ul>
 
+                ) : String(
+                    result.risk_level
+                  ).toUpperCase() === "MEDIUM" ? (
+
+                  <ul className="list-disc pl-5 space-y-2 text-sm">
+                    <li>
+                      Continue monitoring the patient.
+                    </li>
                     <li>
                       Review medication adherence.
                     </li>
-
                     <li>
-                      Consider additional post-discharge support.
+                      Plan regular follow-up.
                     </li>
-
-                  </ul>
-
-                ) : result.risk_level === "MEDIUM" ? (
-
-                  <ul className="list-disc pl-5 space-y-2">
-
-                    <li>
-                      Schedule regular follow-up.
-                    </li>
-
-                    <li>
-                      Monitor medication adherence.
-                    </li>
-
-                    <li>
-                      Continue appropriate lifestyle management.
-                    </li>
-
                   </ul>
 
                 ) : (
 
-                  <ul className="list-disc pl-5 space-y-2">
-
+                  <ul className="list-disc pl-5 space-y-2 text-sm">
                     <li>
                       Continue the planned treatment.
                     </li>
-
                     <li>
-                      Follow the routine healthcare schedule.
+                      Maintain routine monitoring.
                     </li>
-
                     <li>
-                      Maintain healthy lifestyle practices.
+                      Follow the regular healthcare schedule.
                     </li>
-
                   </ul>
 
                 )}
 
               </div>
 
-
-              {/* MODEL INFORMATION */}
-
-              <div className="mt-6 text-xs text-gray-400 text-center">
-
-                Risk score generated using the
-                trained hospital readmission ML model.
-
-              </div>
+              <p className="text-xs text-gray-400 text-center mt-6">
+                Powered by the trained Diabetes 130-US
+                Hospitals Random Forest model.
+              </p>
 
             </>
 

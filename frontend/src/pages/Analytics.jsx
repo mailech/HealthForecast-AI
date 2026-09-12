@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import api from "../services/api";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 
@@ -39,17 +39,27 @@ function Analytics() {
       setLoading(true);
       setError("");
 
-      const response = await axios.get(
-        "http://127.0.0.1:8000/api/patients"
-      );
+      // Use authenticated API instance.
+      // JWT token is automatically added by services/api.js.
+      const response = await api.get("/api/patients");
 
       setPatients(response.data);
     } catch (error) {
       console.error("Analytics error:", error);
 
-      setError(
-        "Unable to load analytics data. Please make sure the backend is running."
-      );
+      if (error.response?.status === 401) {
+        setError(
+          "Your session has expired. Please login again."
+        );
+      } else if (error.response?.status === 403) {
+        setError(
+          "You do not have permission to view analytics."
+        );
+      } else {
+        setError(
+          "Unable to load analytics data. Please make sure the backend is running."
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -62,26 +72,32 @@ function Analytics() {
   const totalPatients = patients.length;
 
   const highRisk = patients.filter(
-    (patient) => patient.risk === "High"
+    (patient) =>
+      String(patient.risk || "").toLowerCase() === "high"
   ).length;
 
   const mediumRisk = patients.filter(
-    (patient) => patient.risk === "Medium"
+    (patient) =>
+      String(patient.risk || "").toLowerCase() === "medium"
   ).length;
 
   const lowRisk = patients.filter(
-    (patient) => patient.risk === "Low"
+    (patient) =>
+      String(patient.risk || "").toLowerCase() === "low"
   ).length;
 
   const readmissions = patients.filter(
     (patient) =>
-      patient.status?.toLowerCase() === "readmission" ||
-      patient.status?.toLowerCase() === "readmitted"
+      String(patient.status || "").toLowerCase() ===
+        "readmission" ||
+      String(patient.status || "").toLowerCase() ===
+        "readmitted"
   ).length;
 
   const recoveredPatients = patients.filter(
     (patient) =>
-      patient.status?.toLowerCase() === "recovered"
+      String(patient.status || "").toLowerCase() ===
+      "recovered"
   ).length;
 
   const recoveryRate =
@@ -115,16 +131,22 @@ function Analytics() {
   // =====================================================
   // Convert MongoDB ObjectId to creation date
   // =====================================================
+  //
+  // Backend serialize_patient() converts:
+  //
+  // _id → id
+  //
+  // Therefore we use patient.id here.
+  //
 
   const getPatientDate = (patient) => {
     try {
-      if (!patient._id) {
+      if (!patient.id) {
         return null;
       }
 
-      // MongoDB ObjectId first 8 characters contain timestamp
       const timestamp = parseInt(
-        patient._id.substring(0, 8),
+        patient.id.substring(0, 8),
         16
       );
 
@@ -203,7 +225,7 @@ function Analytics() {
 
     patients.forEach((patient) => {
       if (
-        patient.status?.toLowerCase() !==
+        String(patient.status || "").toLowerCase() !==
         "recovered"
       ) {
         return;
@@ -215,15 +237,18 @@ function Analytics() {
         return;
       }
 
-      const difference =
-        Math.floor(
-          (now - date) /
-            (1000 * 60 * 60 * 24)
-        );
+      const difference = Math.floor(
+        (now - date) /
+          (1000 * 60 * 60 * 24)
+      );
 
-      if (difference >= 0 && difference < 28) {
-        const weekIndex =
-          Math.floor(difference / 7);
+      if (
+        difference >= 0 &&
+        difference < 28
+      ) {
+        const weekIndex = Math.floor(
+          difference / 7
+        );
 
         if (weekIndex < 4) {
           weeks[3 - weekIndex].value++;
@@ -252,6 +277,10 @@ function Analytics() {
         )
       : 0;
 
+  // =====================================================
+  // RETURN
+  // =====================================================
+
   return (
     <DashboardLayout>
 
@@ -271,7 +300,6 @@ function Analytics() {
 
       </div>
 
-
       {/* =================================================
           Loading
       ================================================= */}
@@ -285,7 +313,6 @@ function Analytics() {
 
         </div>
       )}
-
 
       {/* =================================================
           Error
@@ -307,7 +334,6 @@ function Analytics() {
 
         </div>
       )}
-
 
       {!loading && !error && (
         <>
@@ -332,7 +358,6 @@ function Analytics() {
 
             </div>
 
-
             {/* Readmissions */}
 
             <div className="bg-white shadow rounded-xl p-6">
@@ -351,7 +376,6 @@ function Analytics() {
 
             </div>
 
-
             {/* Recovery */}
 
             <div className="bg-white shadow rounded-xl p-6">
@@ -369,7 +393,6 @@ function Analytics() {
               </p>
 
             </div>
-
 
             {/* High Risk */}
 
@@ -391,13 +414,11 @@ function Analytics() {
 
           </div>
 
-
           {/* =================================================
               Charts
           ================================================= */}
 
           <div className="grid lg:grid-cols-2 gap-8 mt-8">
-
 
             {/* Monthly Admissions */}
 
@@ -441,7 +462,6 @@ function Analytics() {
               </ResponsiveContainer>
 
             </div>
-
 
             {/* Risk Distribution */}
 
@@ -503,7 +523,6 @@ function Analytics() {
 
           </div>
 
-
           {/* =================================================
               Recovery Trend
           ================================================= */}
@@ -551,7 +570,6 @@ function Analytics() {
             </ResponsiveContainer>
 
           </div>
-
 
           {/* =================================================
               Real Summary Insights

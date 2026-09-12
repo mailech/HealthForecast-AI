@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../services/api";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import DashboardCard from "../components/DashboardCard";
@@ -40,8 +40,7 @@ const colors = [
   "bg-green-100 text-green-600",
 ];
 
-// Temporary chart data.
-// Later we can make this dynamic using admissionDate.
+// Temporary chart data
 const lineData = [
   { month: "Jan", patients: 40 },
   { month: "Feb", patients: 55 },
@@ -54,11 +53,8 @@ const lineData = [
 const COLORS = ["#ef4444", "#f59e0b", "#22c55e"];
 
 function Dashboard() {
-
   const [patients, setPatients] = useState([]);
-
   const [loading, setLoading] = useState(true);
-
   const [error, setError] = useState("");
 
   // =========================
@@ -70,33 +66,30 @@ function Dashboard() {
   }, []);
 
   const fetchPatients = async () => {
-
     try {
-
       setLoading(true);
       setError("");
 
-      const response = await axios.get(
-        "http://127.0.0.1:8000/api/patients"
-      );
+      // IMPORTANT:
+      // Use the authenticated api instance so JWT token
+      // is automatically sent in the Authorization header.
+      const response = await api.get("/api/patients");
 
       setPatients(response.data);
-
     } catch (error) {
-
       console.error("Error fetching patients:", error);
 
-      setError(
-        "Unable to load dashboard data."
-      );
-
+      if (error.response?.status === 401) {
+        setError("Your session has expired. Please login again.");
+      } else if (error.response?.status === 403) {
+        setError("You do not have permission to view this dashboard.");
+      } else {
+        setError("Unable to load dashboard data.");
+      }
     } finally {
-
       setLoading(false);
-
     }
   };
-
 
   // =========================
   // Dynamic Statistics
@@ -105,29 +98,24 @@ function Dashboard() {
   const totalPatients = patients.length;
 
   const highRisk = patients.filter(
-    (patient) => patient.risk === "High"
+    (patient) =>
+      String(patient.risk || "").toLowerCase() === "high"
   ).length;
 
   const readmissions = patients.filter(
-    (patient) => patient.status === "Readmission"
+    (patient) =>
+      String(patient.status || "").toLowerCase() === "readmission"
   ).length;
 
   const recovered = patients.filter(
-    (patient) => patient.status === "Recovered"
+    (patient) =>
+      String(patient.status || "").toLowerCase() === "recovered"
   ).length;
-
 
   const recoveryRate =
     totalPatients > 0
-      ? Math.round(
-          (recovered / totalPatients) * 100
-        )
+      ? Math.round((recovered / totalPatients) * 100)
       : 0;
-
-
-  // =========================
-  // Dashboard Cards
-  // =========================
 
   const dashboardStats = [
     {
@@ -152,7 +140,6 @@ function Dashboard() {
     },
   ];
 
-
   // =========================
   // Risk Distribution
   // =========================
@@ -165,17 +152,18 @@ function Dashboard() {
     {
       name: "Medium",
       value: patients.filter(
-        (patient) => patient.risk === "Medium"
+        (patient) =>
+          String(patient.risk || "").toLowerCase() === "medium"
       ).length,
     },
     {
       name: "Low",
       value: patients.filter(
-        (patient) => patient.risk === "Low"
+        (patient) =>
+          String(patient.risk || "").toLowerCase() === "low"
       ).length,
     },
   ];
-
 
   // =========================
   // Recent Patients
@@ -185,19 +173,14 @@ function Dashboard() {
     .reverse()
     .slice(0, 5);
 
-
   return (
-
     <DashboardLayout>
-
       {/* =========================
           Header
       ========================= */}
 
       <div className="flex justify-between items-center mb-8">
-
         <div>
-
           <h1 className="text-3xl font-bold">
             Doctor Dashboard
           </h1>
@@ -205,37 +188,27 @@ function Dashboard() {
           <p className="text-gray-500 mt-1">
             Welcome back 👋
           </p>
-
         </div>
-
       </div>
-
 
       {/* =========================
           Loading
       ========================= */}
 
       {loading && (
-
         <div className="bg-white rounded-xl shadow p-6 mb-8 text-center">
-
           <p className="text-gray-500">
             Loading dashboard...
           </p>
-
         </div>
-
       )}
-
 
       {/* =========================
           Error
       ========================= */}
 
       {!loading && error && (
-
         <div className="bg-red-50 border border-red-200 rounded-xl p-6 mb-8">
-
           <p className="text-red-600">
             {error}
           </p>
@@ -246,38 +219,26 @@ function Dashboard() {
           >
             Try Again
           </button>
-
         </div>
-
       )}
 
-
       {!loading && !error && (
-
         <>
-
           {/* =========================
               Cards
           ========================= */}
 
           <div className="grid lg:grid-cols-4 md:grid-cols-2 gap-6">
-
-            {dashboardStats.map(
-              (item, index) => (
-
-                <DashboardCard
-                  key={item.id}
-                  title={item.title}
-                  value={item.value}
-                  icon={icons[index]}
-                  color={colors[index]}
-                />
-
-              )
-            )}
-
+            {dashboardStats.map((item, index) => (
+              <DashboardCard
+                key={item.id}
+                title={item.title}
+                value={item.value}
+                icon={icons[index]}
+                color={colors[index]}
+              />
+            ))}
           </div>
-
 
           {/* =========================
               Charts
@@ -285,21 +246,15 @@ function Dashboard() {
 
           <div className="grid lg:grid-cols-2 gap-8 mt-10">
 
-
             {/* Monthly Admissions */}
 
             <ChartCard title="Monthly Admissions">
-
               <ResponsiveContainer
                 width="100%"
                 height={300}
               >
-
                 <LineChart data={lineData}>
-
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                  />
+                  <CartesianGrid strokeDasharray="3 3" />
 
                   <XAxis dataKey="month" />
 
@@ -313,76 +268,50 @@ function Dashboard() {
                     stroke="#2563eb"
                     strokeWidth={3}
                   />
-
                 </LineChart>
-
               </ResponsiveContainer>
-
             </ChartCard>
-
 
             {/* Risk Distribution */}
 
             <ChartCard title="Risk Distribution">
-
               {totalPatients > 0 ? (
-
                 <ResponsiveContainer
                   width="100%"
                   height={300}
                 >
-
                   <PieChart>
-
                     <Pie
                       data={riskData}
                       dataKey="value"
                       outerRadius={100}
                       label
                     >
-
-                      {riskData.map(
-                        (entry, index) => (
-
-                          <Cell
-                            key={entry.name}
-                            fill={COLORS[index]}
-                          />
-
-                        )
-                      )}
-
+                      {riskData.map((entry, index) => (
+                        <Cell
+                          key={entry.name}
+                          fill={COLORS[index]}
+                        />
+                      ))}
                     </Pie>
 
                     <Tooltip />
-
                   </PieChart>
-
                 </ResponsiveContainer>
-
               ) : (
-
                 <div className="h-[300px] flex items-center justify-center text-gray-500">
-
                   No patient data available
-
                 </div>
-
               )}
-
             </ChartCard>
-
           </div>
-
 
           {/* =========================
               Recent Patients
           ========================= */}
 
           <div className="mt-10">
-
             <div className="flex justify-between items-center mb-5">
-
               <h2 className="text-2xl font-bold">
                 Recent Patients
               </h2>
@@ -390,29 +319,20 @@ function Dashboard() {
               <span className="text-gray-500 text-sm">
                 Showing latest {recentPatients.length}
               </span>
-
             </div>
 
             {recentPatients.length > 0 ? (
-
               <PatientTable
                 patients={recentPatients}
               />
-
             ) : (
-
               <div className="bg-white rounded-xl shadow p-10 text-center">
-
                 <p className="text-gray-500">
                   No patients available.
                 </p>
-
               </div>
-
             )}
-
           </div>
-
 
           {/* =========================
               Alerts
@@ -420,17 +340,14 @@ function Dashboard() {
 
           <div className="grid lg:grid-cols-3 gap-6 mt-10">
 
-
             {/* High Risk */}
 
             <div className="bg-red-50 border-l-4 border-red-500 rounded-xl p-5">
-
               <h2 className="font-bold text-red-700">
                 High Risk Alert
               </h2>
 
               <p className="mt-2 text-gray-600">
-
                 {highRisk === 0
                   ? "No high-risk patients currently."
                   : `${highRisk} ${
@@ -438,22 +355,17 @@ function Dashboard() {
                         ? "patient requires"
                         : "patients require"
                     } immediate follow-up.`}
-
               </p>
-
             </div>
-
 
             {/* Readmissions */}
 
             <div className="bg-yellow-50 border-l-4 border-yellow-500 rounded-xl p-5">
-
               <h2 className="font-bold text-yellow-700">
                 Readmissions
               </h2>
 
               <p className="mt-2 text-gray-600">
-
                 {readmissions === 0
                   ? "No readmissions recorded."
                   : `${readmissions} ${
@@ -461,37 +373,24 @@ function Dashboard() {
                         ? "readmission"
                         : "readmissions"
                     } recorded.`}
-
               </p>
-
             </div>
-
 
             {/* Recovery */}
 
             <div className="bg-green-50 border-l-4 border-green-500 rounded-xl p-5">
-
               <h2 className="font-bold text-green-700">
                 Recovery Rate
               </h2>
 
               <p className="mt-2 text-gray-600">
-
                 Current recovery rate is{" "}
-                <strong>
-                  {recoveryRate}%
-                </strong>
-
+                <strong>{recoveryRate}%</strong>
               </p>
-
             </div>
-
           </div>
-
         </>
-
       )}
-
     </DashboardLayout>
   );
 }

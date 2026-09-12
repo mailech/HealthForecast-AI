@@ -1,1 +1,12 @@
-kagglehub pandas numpy scikit-learn joblib
+fastapi
+uvicorn
+pymongo
+python-dotenv
+bcrypt
+PyJWT
+email-validator
+kagglehub
+pandas
+numpy
+scikit-learn
+joblib
