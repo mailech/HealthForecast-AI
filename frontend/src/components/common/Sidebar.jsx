@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
+
 import {
   LayoutDashboard,
   Users,
@@ -6,65 +7,202 @@ import {
   Settings,
   LogOut,
   Activity,
+  UserCog,
+  HeartPulse,
+  ClipboardList,
+  BarChart3,
+  FlaskConical,
+  Zap
 } from "lucide-react";
 
 function Sidebar() {
   const navigate = useNavigate();
 
-  const menuItems = [
+  const user = JSON.parse(
+    localStorage.getItem("user") || "{}"
+  );
+
+  const role = user.role || "patient";
+
+
+  // ==========================================================
+  // MENU ITEMS
+  // ==========================================================
+
+  const allMenuItems = [
     {
       name: "Dashboard",
       path: "/dashboard",
       icon: <LayoutDashboard size={20} />,
+      roles: [
+        "admin",
+        "doctor",
+        "staff",
+        "patient",
+      ],
     },
+
     {
       name: "Patients",
       path: "/patients",
       icon: <Users size={20} />,
+      roles: [
+        "admin",
+        "doctor",
+        "staff",
+      ],
     },
+
     {
       name: "Prediction",
       path: "/prediction",
       icon: <Brain size={20} />,
+      roles: [
+        "admin",
+        "doctor",
+      ],
     },
+
+    {
+      name: "Admission History",
+      path: "/admission-history",
+      icon: <ClipboardList size={20} />,
+      roles: [
+        "admin",
+        "doctor",
+        "staff",
+        "patient",
+      ],
+    },
+
+    {
+      name: "Clinical Analytics",
+      path: "/clinical-analytics",
+      icon: <BarChart3 size={20} />,
+      roles: [
+        "admin",
+        "doctor",
+        "staff",
+        "patient",
+      ],
+    },
+
+    {
+      name: "User Management",
+      path: "/users",
+      icon: <UserCog size={20} />,
+      roles: [
+        "admin",
+      ],
+    },
+
+    {
+      name: "My Health",
+      path: "/my-health",
+      icon: <HeartPulse size={20} />,
+      roles: [
+        "patient",
+      ],
+    },
+
     {
       name: "Settings",
       path: "/settings",
       icon: <Settings size={20} />,
+      roles: [
+        "admin",
+        "doctor",
+        "staff",
+        "patient",
+      ],
+    },
+
+    {
+      name: "Research",
+      path: "/research",
+      icon: <FlaskConical size={20} />,
+      roles: ["admin", "doctor"],
+    },
+
+    {
+      name: "Optimization",
+      path: "/optimization",
+      icon: <Zap size={20} />,
+      roles: ["admin", "doctor", "staff", "patient"]
     },
   ];
+
+
+  // ==========================================================
+  // ROLE FILTER
+  // ==========================================================
+
+  const menuItems = allMenuItems.filter(
+    (item) =>
+      item.roles.includes(role)
+  );
+
+
+  // ==========================================================
+  // LOGOUT
+  // ==========================================================
 
   const handleLogout = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("hf_token");
 
-    navigate("/login", { replace: true });
+    navigate("/login", {
+      replace: true,
+    });
   };
 
+
+  // ==========================================================
+  // UI
+  // ==========================================================
+
   return (
-    <aside className="w-64 bg-white shadow-lg min-h-screen flex flex-col">
+    <aside
+      className="
+        w-64
+        bg-white
+        dark:bg-slate-800
+        shadow-lg
+        min-h-screen
+        flex flex-col
+        border-r
+        border-slate-100
+        dark:border-slate-700
+      "
+    >
 
-      {/* LOGO */}
+      {/* ====================================================
+          LOGO
+      ==================================================== */}
 
-      <div className="px-6 py-6 border-b border-slate-100">
+      <div className="px-6 py-6 border-b border-slate-100 dark:border-slate-700">
 
         <div className="flex items-center gap-3">
 
           <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center">
+
             <Activity
               size={22}
               className="text-white"
             />
+
           </div>
 
           <div>
-            <h1 className="text-lg font-bold text-slate-800">
+
+            <h1 className="text-lg font-bold text-slate-800 dark:text-white">
               HealthForecast
             </h1>
 
             <p className="text-xs text-blue-600 font-medium">
               AI Healthcare
             </p>
+
           </div>
 
         </div>
@@ -72,7 +210,9 @@ function Sidebar() {
       </div>
 
 
-      {/* NAVIGATION */}
+      {/* ====================================================
+          NAVIGATION
+      ==================================================== */}
 
       <nav className="flex-1 px-4 py-6">
 
@@ -91,7 +231,7 @@ function Sidebar() {
                 `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                   isActive
                     ? "bg-blue-600 text-white shadow-md"
-                    : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
+                    : "text-gray-600 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400"
                 }`
               }
             >
@@ -111,7 +251,9 @@ function Sidebar() {
       </nav>
 
 
-      {/* BOTTOM SECTION */}
+      {/* ====================================================
+          BOTTOM SECTION
+      ==================================================== */}
 
       <div className="px-4 pb-5">
 
@@ -119,7 +261,16 @@ function Sidebar() {
 
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 transition-all duration-200"
+          className="
+            w-full
+            flex items-center gap-3
+            px-4 py-3
+            rounded-xl
+            text-red-600
+            hover:bg-red-50
+            dark:hover:bg-red-900/20
+            transition-all duration-200
+          "
         >
 
           <LogOut size={20} />
@@ -133,7 +284,7 @@ function Sidebar() {
 
         {/* VERSION */}
 
-        <div className="mt-5 px-4 pt-4 border-t border-slate-100">
+        <div className="mt-5 px-4 pt-4 border-t border-slate-100 dark:border-slate-700">
 
           <p className="text-xs text-gray-400">
             HealthForecast AI

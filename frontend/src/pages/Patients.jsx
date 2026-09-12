@@ -15,6 +15,20 @@ import {
 import api from "../api/api";
 
 function Patients() {
+  const user = JSON.parse(
+    localStorage.getItem("user") || "{}"
+  );
+
+  const role = user.role || "patient";
+
+  const isAdmin = role === "admin";
+  const isDoctor = role === "doctor";
+  const isStaff = role === "staff";
+
+  const canAdd = isAdmin || isDoctor;
+  const canEdit = isAdmin || isDoctor;
+  const canDelete = isAdmin;
+
   const [patients, setPatients] = useState([]);
   const [search, setSearch] = useState("");
 
@@ -25,7 +39,6 @@ function Patients() {
     useState(null);
 
   const [loading, setLoading] = useState(true);
-
 
   // =========================
   // FETCH PATIENTS
@@ -48,11 +61,9 @@ function Patients() {
     }
   };
 
-
   useEffect(() => {
     fetchPatients();
   }, []);
-
 
   // =========================
   // ADD PATIENT
@@ -71,7 +82,6 @@ function Patients() {
       ]);
 
       setIsAddOpen(false);
-
     } catch (error) {
       console.error(
         "Failed to add patient:",
@@ -86,7 +96,6 @@ function Patients() {
       throw error;
     }
   };
-
 
   // =========================
   // EDIT PATIENT
@@ -112,7 +121,6 @@ function Patients() {
 
       setIsEditOpen(false);
       setSelectedPatient(null);
-
     } catch (error) {
       console.error(
         "Failed to update patient:",
@@ -128,7 +136,6 @@ function Patients() {
     }
   };
 
-
   // =========================
   // DELETE PATIENT
   // =========================
@@ -136,6 +143,8 @@ function Patients() {
   const handleDeletePatient = async (
     patientId
   ) => {
+    if (!canDelete) return;
+
     const confirmed = window.confirm(
       "Are you sure you want to delete this patient?"
     );
@@ -153,7 +162,6 @@ function Patients() {
             patient.id !== patientId
         )
       );
-
     } catch (error) {
       console.error(
         "Failed to delete patient:",
@@ -167,14 +175,12 @@ function Patients() {
     }
   };
 
-
   // =========================
   // SEARCH
   // =========================
 
   const filteredPatients = patients.filter(
     (patient) => {
-
       const query =
         search.toLowerCase();
 
@@ -198,23 +204,21 @@ function Patients() {
     }
   );
 
-
   // =========================
   // OPEN EDIT
   // =========================
 
   const openEdit = (patient) => {
+    if (!canEdit) return;
+
     setSelectedPatient(patient);
     setIsEditOpen(true);
   };
 
-
   return (
     <MainLayout>
 
-      {/* =========================
-          HEADER
-      ========================= */}
+      {/* HEADER */}
 
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
 
@@ -230,26 +234,50 @@ function Patients() {
 
         </div>
 
+        {canAdd && (
+          <button
+            onClick={() =>
+              setIsAddOpen(true)
+            }
+            className="flex items-center justify-center gap-2 bg-blue-600 text-white px-5 py-3 rounded-xl hover:bg-blue-700 transition shadow-sm"
+          >
+            <Plus size={19} />
 
-        <button
-          onClick={() =>
-            setIsAddOpen(true)
-          }
-          className="flex items-center justify-center gap-2 bg-blue-600 text-white px-5 py-3 rounded-xl hover:bg-blue-700 transition shadow-sm"
-        >
-
-          <Plus size={19} />
-
-          Add Patient
-
-        </button>
+            Add Patient
+          </button>
+        )}
 
       </div>
 
 
-      {/* =========================
-          SUMMARY
-      ========================= */}
+      {/* ROLE INFORMATION */}
+
+      <div className="bg-blue-50 border border-blue-100 rounded-xl px-5 py-3 mb-6">
+
+        <p className="text-sm text-blue-700">
+
+          Logged in as{" "}
+
+          <span className="font-semibold">
+            {role.charAt(0).toUpperCase() +
+              role.slice(1)}
+          </span>
+
+          {isAdmin &&
+            " — Full patient management access."}
+
+          {isDoctor &&
+            " — Patient records and clinical management access."}
+
+          {isStaff &&
+            " — Patient records are view-only."}
+
+        </p>
+
+      </div>
+
+
+      {/* SUMMARY */}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
 
@@ -258,10 +286,12 @@ function Patients() {
           <div className="flex items-center gap-3">
 
             <div className="w-11 h-11 rounded-lg bg-blue-100 flex items-center justify-center">
+
               <Users
                 size={21}
                 className="text-blue-600"
               />
+
             </div>
 
             <div>
@@ -317,9 +347,7 @@ function Patients() {
       </div>
 
 
-      {/* =========================
-          SEARCH
-      ========================= */}
+      {/* SEARCH */}
 
       <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
 
@@ -345,9 +373,7 @@ function Patients() {
       </div>
 
 
-      {/* =========================
-          TABLE
-      ========================= */}
+      {/* TABLE */}
 
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
 
@@ -395,18 +421,14 @@ function Patients() {
             <tbody>
 
               {loading && (
-
                 <tr>
-
                   <td
                     colSpan="7"
                     className="text-center py-12 text-gray-500"
                   >
                     Loading patients...
                   </td>
-
                 </tr>
-
               )}
 
 
@@ -509,11 +531,9 @@ function Patients() {
 
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            patient.risk ===
-                            "High"
+                            patient.risk === "High"
                               ? "bg-red-100 text-red-600"
-                              : patient.risk ===
-                                "Medium"
+                              : patient.risk === "Medium"
                               ? "bg-yellow-100 text-yellow-700"
                               : "bg-green-100 text-green-600"
                           }`}
@@ -530,14 +550,11 @@ function Patients() {
 
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            patient.status ===
-                            "Critical"
+                            patient.status === "Critical"
                               ? "bg-red-100 text-red-600"
-                              : patient.status ===
-                                "Recovered"
+                              : patient.status === "Recovered"
                               ? "bg-green-100 text-green-600"
-                              : patient.status ===
-                                "Stable"
+                              : patient.status === "Stable"
                               ? "bg-blue-100 text-blue-600"
                               : "bg-gray-100 text-gray-600"
                           }`}
@@ -554,6 +571,8 @@ function Patients() {
 
                         <div className="flex justify-center gap-2">
 
+                          {/* VIEW */}
+
                           <button
                             title="View patient"
                             className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 transition"
@@ -562,28 +581,36 @@ function Patients() {
                           </button>
 
 
-                          <button
-                            title="Edit patient"
-                            onClick={() =>
-                              openEdit(patient)
-                            }
-                            className="p-2 rounded-lg text-green-600 hover:bg-green-50 transition"
-                          >
-                            <Pencil size={17} />
-                          </button>
+                          {/* EDIT */}
+
+                          {canEdit && (
+                            <button
+                              title="Edit patient"
+                              onClick={() =>
+                                openEdit(patient)
+                              }
+                              className="p-2 rounded-lg text-green-600 hover:bg-green-50 transition"
+                            >
+                              <Pencil size={17} />
+                            </button>
+                          )}
 
 
-                          <button
-                            title="Delete patient"
-                            onClick={() =>
-                              handleDeletePatient(
-                                patient.id
-                              )
-                            }
-                            className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition"
-                          >
-                            <Trash2 size={17} />
-                          </button>
+                          {/* DELETE */}
+
+                          {canDelete && (
+                            <button
+                              title="Delete patient"
+                              onClick={() =>
+                                handleDeletePatient(
+                                  patient.id
+                                )
+                              }
+                              className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition"
+                            >
+                              <Trash2 size={17} />
+                            </button>
+                          )}
 
                         </div>
 
@@ -603,36 +630,36 @@ function Patients() {
       </div>
 
 
-      {/* =========================
-          ADD MODAL
-      ========================= */}
+      {/* ADD MODAL */}
 
-      <AddPatientModal
-        isOpen={isAddOpen}
-        onClose={() =>
-          setIsAddOpen(false)
-        }
-        onAddPatient={
-          handleAddPatient
-        }
-      />
+      {canAdd && (
+        <AddPatientModal
+          isOpen={isAddOpen}
+          onClose={() =>
+            setIsAddOpen(false)
+          }
+          onAddPatient={
+            handleAddPatient
+          }
+        />
+      )}
 
 
-      {/* =========================
-          EDIT MODAL
-      ========================= */}
+      {/* EDIT MODAL */}
 
-      <EditPatientModal
-        isOpen={isEditOpen}
-        patient={selectedPatient}
-        onClose={() => {
-          setIsEditOpen(false);
-          setSelectedPatient(null);
-        }}
-        onUpdatePatient={
-          handleEditPatient
-        }
-      />
+      {canEdit && (
+        <EditPatientModal
+          isOpen={isEditOpen}
+          patient={selectedPatient}
+          onClose={() => {
+            setIsEditOpen(false);
+            setSelectedPatient(null);
+          }}
+          onUpdatePatient={
+            handleEditPatient
+          }
+        />
+      )}
 
     </MainLayout>
   );

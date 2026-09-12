@@ -2,73 +2,91 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../api/api";
 
-function Login() {
+
+function Signup() {
+
   const navigate = useNavigate();
 
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const handleLogin = async (e) => {
+
+  const handleSignup = async (e) => {
+
     e.preventDefault();
 
     setError("");
+    setSuccess("");
+
+
+    if (password !== confirmPassword) {
+
+      setError("Passwords do not match.");
+
+      return;
+    }
+
+
     setLoading(true);
 
+
     try {
-      const response = await api.post("/users/login", {
-        email,
-        password,
-      });
 
-      console.log("LOGIN RESPONSE:", response.data);
-      console.log("ACCESS TOKEN:", response.data.access_token);
-
-      // Save JWT token
-      localStorage.setItem(
-        "hf_token",
-        response.data.access_token
+      await api.post(
+        "/users/register",
+        {
+          name,
+          email,
+          password,
+        }
       );
 
-      // Save logged-in user
-      localStorage.setItem(
-        "user",
-        JSON.stringify(response.data.user)
+
+      setSuccess(
+        "Account created successfully. You can now login."
       );
 
-      // Verify it was saved
-      console.log(
-        "SAVED USER:",
-        localStorage.getItem("user")
-      );
 
-      // Go to dashboard
-      navigate("/dashboard");
+      setTimeout(() => {
+        navigate("/login");
+      }, 1200);
+
 
     } catch (err) {
 
-      console.error("LOGIN ERROR:", err);
+      console.error(
+        "SIGNUP ERROR:",
+        err
+      );
 
       setError(
         err.response?.data?.detail ||
-          "Login failed. Please try again."
+        "Unable to create account. Please try again."
       );
 
     } finally {
+
       setLoading(false);
+
     }
   };
 
+
   return (
+
     <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
 
       <div className="w-full max-w-md">
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
 
-          {/* Header */}
+
           <div className="text-center mb-8">
 
             <h1 className="text-3xl font-bold text-blue-600">
@@ -76,25 +94,55 @@ function Login() {
             </h1>
 
             <p className="text-gray-500 mt-2">
-              Healthcare Risk Management System
+              Create your Patient Account
             </p>
 
           </div>
 
 
-          {/* Error Message */}
           {error && (
+
             <div className="mb-5 bg-red-50 border border-red-200 text-red-600 rounded-lg px-4 py-3 text-sm">
               {error}
             </div>
+
           )}
 
 
-          {/* Login Form */}
-          <form onSubmit={handleLogin}>
+          {success && (
 
-            {/* Email */}
-            <div className="mb-5">
+            <div className="mb-5 bg-green-50 border border-green-200 text-green-600 rounded-lg px-4 py-3 text-sm">
+              {success}
+            </div>
+
+          )}
+
+
+          <form onSubmit={handleSignup}>
+
+
+            <div className="mb-4">
+
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Full Name
+              </label>
+
+              <input
+                type="text"
+                value={name}
+                onChange={(e) =>
+                  setName(e.target.value)
+                }
+                placeholder="Enter your name"
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                required
+                minLength={2}
+              />
+
+            </div>
+
+
+            <div className="mb-4">
 
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Email
@@ -114,8 +162,7 @@ function Login() {
             </div>
 
 
-            {/* Password */}
-            <div className="mb-6">
+            <div className="mb-4">
 
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Password
@@ -127,7 +174,28 @@ function Login() {
                 onChange={(e) =>
                   setPassword(e.target.value)
                 }
-                placeholder="Enter your password"
+                placeholder="Create a password"
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                required
+                minLength={6}
+              />
+
+            </div>
+
+
+            <div className="mb-6">
+
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Confirm Password
+              </label>
+
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) =>
+                  setConfirmPassword(e.target.value)
+                }
+                placeholder="Confirm your password"
                 className="w-full border border-gray-300 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
@@ -135,40 +203,39 @@ function Login() {
             </div>
 
 
-            {/* Login Button */}
             <button
               type="submit"
               disabled={loading}
               className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-60"
             >
               {loading
-                ? "Signing in..."
-                : "Login"}
+                ? "Creating Account..."
+                : "Create Account"}
             </button>
+
 
           </form>
 
 
-          {/* Signup Link */}
           <div className="text-center mt-6">
 
             <span className="text-gray-500 text-sm">
-              Don't have a patient account?
+              Already have an account?
             </span>
 
             <Link
-              to="/signup"
+              to="/login"
               className="text-blue-600 font-semibold text-sm ml-1 hover:underline"
             >
-              Create Account
+              Login
             </Link>
 
           </div>
 
+
         </div>
 
 
-        {/* Footer */}
         <p className="text-center text-gray-400 text-sm mt-6">
           © 2026 HealthForecast AI
         </p>
@@ -179,4 +246,5 @@ function Login() {
   );
 }
 
-export default Login; 
+
+export default Signup;

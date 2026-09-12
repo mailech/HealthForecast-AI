@@ -39,7 +39,8 @@ class User(Base):
 
     role = Column(
         String,
-        default="doctor"
+        default="patient",
+        nullable=False
     )
 
 
@@ -54,6 +55,14 @@ class Patient(Base):
     id = Column(
         Integer,
         primary_key=True,
+        index=True
+    )
+
+    # Link patient record to a login user
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id"),
+        nullable=True,
         index=True
     )
 
@@ -124,3 +133,119 @@ class Prediction(Base):
         DateTime,
         server_default=func.now()
     ) 
+
+# =========================
+# TREATMENT MODEL
+# =========================
+
+class TreatmentRecord(Base):
+
+    __tablename__ = "treatment_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    patient_id = Column(
+        Integer,
+        ForeignKey("patients.id"),
+        nullable=False,
+        index=True
+    )
+
+    treatment_name = Column(String, nullable=False)
+
+    outcome = Column(String, nullable=False)
+
+    effectiveness_score = Column(
+        Float,
+        nullable=False,
+        default=0
+    )
+
+    notes = Column(
+        String,
+        nullable=True
+    )
+
+    recorded_at = Column(
+        DateTime,
+        server_default=func.now()
+    )
+
+
+# =========================
+# MEDICATION MODEL
+# =========================
+
+class MedicationRecord(Base):
+
+    __tablename__ = "medication_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    patient_id = Column(
+        Integer,
+        ForeignKey("patients.id"),
+        nullable=False,
+        index=True
+    )
+
+    medication_name = Column(String, nullable=False)
+
+    outcome = Column(String, nullable=False)
+
+    effectiveness_score = Column(
+        Float,
+        nullable=False,
+        default=0
+    )
+
+    notes = Column(
+        String,
+        nullable=True
+    )
+
+    recorded_at = Column(
+        DateTime,
+        server_default=func.now()
+    )
+
+
+# =========================
+# RECOVERY MODEL
+# =========================
+
+class RecoveryRecord(Base):
+
+    __tablename__ = "recovery_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    patient_id = Column(
+        Integer,
+        ForeignKey("patients.id"),
+        nullable=False,
+        index=True
+    )
+
+    recovery_stage = Column(String, nullable=False)
+
+    recovery_score = Column(
+        Float,
+        nullable=False,
+        default=0
+    )
+
+    days_to_recovery = Column(
+        Integer,
+        nullable=True
+    )
+
+    notes = Column(
+        String,
+        nullable=True
+    )
+
+    recorded_at = Column(
+        DateTime,
+        server_default=func.now()
+    )    

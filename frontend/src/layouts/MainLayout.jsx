@@ -4,7 +4,7 @@ import Footer from "../components/common/Footer";
 
 function MainLayout({ children }) {
   return (
-    <div className="flex min-h-screen bg-slate-100">
+    <div className="flex min-h-screen bg-slate-100 dark:bg-slate-900">
 
       <Sidebar />
 
@@ -12,7 +12,7 @@ function MainLayout({ children }) {
 
         <Navbar />
 
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-6 bg-slate-100 dark:bg-slate-900">
           {children}
         </main>
 
@@ -24,4 +24,4 @@ function MainLayout({ children }) {
   );
 }
 
-export default MainLayout; 
+export default MainLayout;

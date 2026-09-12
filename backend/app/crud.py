@@ -1,18 +1,56 @@
 from sqlalchemy.orm import Session
-from . import models
+
+from . import models, schemas
+from .auth import hash_password
 
 
-# =========================
+# ============================================================
 # USER CRUD
-# =========================
+# ============================================================
 
-def create_user(db: Session, user):
+def get_user_by_email(
+    db: Session,
+    email: str
+):
+    return (
+        db.query(models.User)
+        .filter(models.User.email == email)
+        .first()
+    )
 
+
+def get_user(
+    db: Session,
+    user_id: int
+):
+    return (
+        db.query(models.User)
+        .filter(models.User.id == user_id)
+        .first()
+    )
+
+
+def get_users(
+    db: Session
+):
+    return (
+        db.query(models.User)
+        .order_by(models.User.id.desc())
+        .all()
+    )
+
+
+def create_user(
+    db: Session,
+    user: schemas.UserCreate
+):
     db_user = models.User(
         name=user.name,
         email=user.email,
-        password=user.password,
-        role="doctor",
+        password=hash_password(user.password),
+
+        # Public signup creates a Patient account
+        role="patient",
     )
 
     db.add(db_user)
@@ -22,45 +60,31 @@ def create_user(db: Session, user):
     return db_user
 
 
-def get_user_by_email(
+def create_staff_or_doctor(
     db: Session,
-    email: str,
+    user: schemas.AdminUserCreate
 ):
-    return (
-        db.query(models.User)
-        .filter(models.User.email == email)
-        .first()
+    db_user = models.User(
+        name=user.name,
+        email=user.email,
+        password=hash_password(user.password),
+        role=user.role,
     )
 
-
-# =========================
-# PATIENT CRUD
-# =========================
-
-def create_patient(db: Session, patient):
-
-    db_patient = models.Patient(
-        name=patient.name,
-        age=patient.age,
-        gender=patient.gender,
-        disease=patient.disease,
-        risk=patient.risk,
-        status=patient.status,
-        admission_date=patient.admission_date,
-        notes=patient.notes,
-    )
-
-    db.add(db_patient)
+    db.add(db_user)
     db.commit()
-    db.refresh(db_patient)
+    db.refresh(db_user)
 
-    return db_patient 
+    return db_user
 
+
+# ============================================================
+# PATIENT CRUD
+# ============================================================
 
 def get_patients(
-    db: Session,
+    db: Session
 ):
-
     return (
         db.query(models.Patient)
         .order_by(models.Patient.id.desc())
@@ -70,23 +94,50 @@ def get_patients(
 
 def get_patient(
     db: Session,
-    patient_id: int,
+    patient_id: int
 ):
-
     return (
         db.query(models.Patient)
-        .filter(
-            models.Patient.id == patient_id
-        )
+        .filter(models.Patient.id == patient_id)
         .first()
     )
 
 
+def create_patient(
+    db: Session,
+    patient: schemas.PatientCreate
+):
+    db_patient = models.Patient(
+        name=patient.name,
+        age=patient.age,
+        gender=patient.gender,
+        disease=patient.disease,
+        risk=patient.risk,
+        status=patient.status,
+        admission_date=patient.admission_date,
+        notes=patient.notes,
+        user_id=patient.user_id,
+    )
+
+    db.add(db_patient)
+    db.commit()
+    db.refresh(db_patient)
+
+    return db_patient
+
+
 def update_patient(
     db: Session,
-    db_patient,
-    patient,
+    patient_id: int,
+    patient: schemas.PatientUpdate
 ):
+    db_patient = get_patient(
+        db,
+        patient_id
+    )
+
+    if not db_patient:
+        return None
 
     update_data = patient.model_dump(
         exclude_unset=True
@@ -96,7 +147,7 @@ def update_patient(
         setattr(
             db_patient,
             key,
-            value,
+            value
         )
 
     db.commit()
@@ -107,25 +158,33 @@ def update_patient(
 
 def delete_patient(
     db: Session,
-    db_patient,
+    patient_id: int
 ):
+    db_patient = get_patient(
+        db,
+        patient_id
+    )
+
+    if not db_patient:
+        return None
 
     db.delete(db_patient)
     db.commit()
 
-    return db_patient 
-# =========================
+    return db_patient
+
+
+# ============================================================
 # PREDICTION CRUD
-# =========================
+# ============================================================
 
 def create_prediction(
     db: Session,
     patient_id: int,
     risk_score: float,
     risk_level: str,
-    recommendation: str,
+    recommendation: str
 ):
-
     db_prediction = models.Prediction(
         patient_id=patient_id,
         risk_score=risk_score,
@@ -142,17 +201,15 @@ def create_prediction(
 
 def get_patient_predictions(
     db: Session,
-    patient_id: int,
+    patient_id: int
 ):
-
     return (
         db.query(models.Prediction)
         .filter(
-            models.Prediction.patient_id
-            == patient_id
+            models.Prediction.patient_id == patient_id
         )
         .order_by(
-            models.Prediction.id.desc()
+            models.Prediction.created_at.desc()
         )
         .all()
-    )
+    ) 

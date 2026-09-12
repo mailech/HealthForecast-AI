@@ -1,66 +1,77 @@
 import { useEffect, useState } from "react";
 import MainLayout from "../layouts/MainLayout";
 import api from "../api/api";
-
+import ClinicalDecisionSupport from "../components/prediction/ClinicalDecisionSupport";
 import {
   Brain,
-  Activity,
-  HeartPulse,
-  AlertTriangle,
-  CheckCircle,
   User,
+  AlertTriangle,
+  HeartPulse,
+  CheckCircle,
   RefreshCw,
 } from "lucide-react";
 
 function Prediction() {
   const [patients, setPatients] = useState([]);
   const [patientId, setPatientId] = useState("");
-
   const [prediction, setPrediction] = useState(null);
-
-  const [loadingPatients, setLoadingPatients] =
-    useState(true);
-
-  const [loadingPrediction, setLoadingPrediction] =
-    useState(false);
-
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [predicting, setPredicting] = useState(false);
   const [error, setError] = useState("");
 
-  // =========================
-  // LOAD PATIENTS
-  // =========================
-
   useEffect(() => {
-    fetchPatients();
+    loadPatients();
   }, []);
 
-  const fetchPatients = async () => {
+  const loadPatients = async () => {
     try {
-      setLoadingPatients(true);
-      setError("");
+      const res = await api.get("/patients");
+      setPatients(res.data || []);
 
-      const response = await api.get("/patients");
-
-      setPatients(response.data);
-
+      if (res.data?.length === 1) {
+        setPatientId(String(res.data[0].id));
+        loadHistory(res.data[0].id);
+      }
     } catch (err) {
-      console.error(err);
-
       setError(
         err.response?.data?.detail ||
           "Unable to load patients."
       );
     } finally {
-      setLoadingPatients(false);
+      setLoading(false);
     }
   };
 
+  const loadHistory = async (id) => {
+    if (!id) return;
 
-  // =========================
-  // RUN PREDICTION
-  // =========================
+    try {
+      const res = await api.get(
+        `/prediction/patient/${id}`
+      );
+      setHistory(res.data || []);
+    } catch (err) {
+      console.error(err);
+      setHistory([]);
+    }
+  };
 
-  const handlePrediction = async (e) => {
+  const handlePatientChange = async (e) => {
+    const id = e.target.value;
+
+    setPatientId(id);
+    setPrediction(null);
+    setError("");
+
+    if (id) {
+      await loadHistory(id);
+    } else {
+      setHistory([]);
+    }
+  };
+
+  const handlePredict = async (e) => {
     e.preventDefault();
 
     if (!patientId) {
@@ -69,554 +80,310 @@ function Prediction() {
     }
 
     try {
-      setLoadingPrediction(true);
-      setPrediction(null);
+      setPredicting(true);
       setError("");
 
-      const response = await api.post(
-        "/prediction",
-        {
-          patient_id: Number(patientId),
-        }
-      );
+      const res = await api.post("/prediction", {
+        patient_id: Number(patientId),
+      });
 
-      setPrediction(response.data);
-
+      setPrediction(res.data);
+      await loadHistory(patientId);
     } catch (err) {
-      console.error(err);
-
       setError(
         err.response?.data?.detail ||
-          "Prediction failed. Please try again."
+          "Prediction failed."
       );
-
     } finally {
-      setLoadingPrediction(false);
+      setPredicting(false);
     }
   };
 
-
-  // =========================
-  // SELECTED PATIENT
-  // =========================
-
   const selectedPatient = patients.find(
-    (patient) =>
-      patient.id === Number(patientId)
+    (p) => p.id === Number(patientId)
   );
 
+  const riskStyle = {
+    High: {
+      box: "bg-red-50 dark:bg-red-900/20",
+      text: "text-red-600",
+      icon: <AlertTriangle size={42} />,
+    },
+    Medium: {
+      box: "bg-yellow-50 dark:bg-yellow-900/20",
+      text: "text-yellow-600",
+      icon: <HeartPulse size={42} />,
+    },
+    Low: {
+      box: "bg-green-50 dark:bg-green-900/20",
+      text: "text-green-600",
+      icon: <CheckCircle size={42} />,
+    },
+  };
 
   return (
     <MainLayout>
 
-      {/* =========================
-          HEADER
-      ========================= */}
-
       <div className="mb-8">
-
-        <div className="flex items-center gap-3">
-
-          <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
-
-            <Brain
-              size={26}
-              className="text-blue-600"
-            />
-
-          </div>
-
-          <div>
-
-            <h1 className="text-3xl font-bold text-slate-800">
-              Health Risk Prediction
-            </h1>
-
-            <p className="text-gray-500 mt-1">
-              Analyze patient data and predict
-              readmission risk
-            </p>
-
-          </div>
-
-        </div>
-
+        <h1 className="text-3xl font-bold text-slate-800 dark:text-white">
+          Health Risk Prediction
+        </h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">
+          AI-powered readmission risk prediction
+        </p>
       </div>
 
-
-      {/* =========================
-          ERROR
-      ========================= */}
+      <div className="mb-6 bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 text-sm text-blue-700 dark:text-blue-300">
+        This prediction uses the trained Diabetes
+        130-US Hospitals dataset model.
+      </div>
 
       {error && (
-
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 rounded-xl px-5 py-4">
-
+        <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-300 rounded-xl p-4">
           {error}
-
         </div>
-
       )}
 
+      <div className="grid lg:grid-cols-3 gap-6">
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-
-        {/* =========================
-            PATIENT SELECTION
-        ========================= */}
-
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm p-6">
+        {/* PATIENT */}
+        <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl shadow p-6">
 
           <div className="flex items-center gap-3 mb-6">
-
-            <div className="p-3 rounded-lg bg-blue-50">
-
-              <User
-                size={21}
-                className="text-blue-600"
-              />
-
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+              <User className="text-blue-600" />
             </div>
-
             <div>
-
-              <h2 className="text-xl font-semibold text-slate-800">
+              <h2 className="text-xl font-semibold text-slate-800 dark:text-white">
                 Select Patient
               </h2>
-
-              <p className="text-sm text-gray-500">
-                Select a patient from your database
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Choose a patient for prediction
               </p>
-
             </div>
-
           </div>
 
+          <form onSubmit={handlePredict} className="space-y-6">
 
-          <form
-            onSubmit={handlePrediction}
-            className="space-y-6"
-          >
+            <select
+              value={patientId}
+              onChange={handlePatientChange}
+              disabled={loading}
+              className="w-full border rounded-lg px-4 py-3 bg-white dark:bg-slate-700 dark:text-white"
+            >
+              <option value="">
+                {loading
+                  ? "Loading patients..."
+                  : "Select a patient"}
+              </option>
 
-            {/* PATIENT */}
-
-            <div>
-
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Patient
-              </label>
-
-              <select
-                value={patientId}
-                onChange={(e) => {
-                  setPatientId(e.target.value);
-                  setPrediction(null);
-                  setError("");
-                }}
-                disabled={loadingPatients}
-                className="w-full border border-gray-200 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-              >
-
-                <option value="">
-                  {loadingPatients
-                    ? "Loading patients..."
-                    : "Select a patient"}
+              {patients.map((patient) => (
+                <option key={patient.id} value={patient.id}>
+                  {patient.name} — Age {patient.age} —{" "}
+                  {patient.disease}
                 </option>
-
-                {patients.map((patient) => (
-
-                  <option
-                    key={patient.id}
-                    value={patient.id}
-                  >
-
-                    {patient.name} — Age{" "}
-                    {patient.age} —{" "}
-                    {patient.disease}
-
-                  </option>
-
-                ))}
-
-              </select>
-
-            </div>
-
-
-            {/* PATIENT INFORMATION */}
+              ))}
+            </select>
 
             {selectedPatient && (
-
-              <div className="bg-slate-50 rounded-xl p-5">
-
-                <h3 className="font-semibold text-slate-800 mb-4">
-                  Patient Information
-                </h3>
-
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-
-                  <div>
-
-                    <p className="text-xs text-gray-500">
-                      Name
-                    </p>
-
-                    <p className="font-medium mt-1">
-                      {selectedPatient.name}
-                    </p>
-
-                  </div>
-
-
-                  <div>
-
-                    <p className="text-xs text-gray-500">
-                      Age
-                    </p>
-
-                    <p className="font-medium mt-1">
-                      {selectedPatient.age}
-                    </p>
-
-                  </div>
-
-
-                  <div>
-
-                    <p className="text-xs text-gray-500">
-                      Gender
-                    </p>
-
-                    <p className="font-medium mt-1">
-                      {selectedPatient.gender}
-                    </p>
-
-                  </div>
-
-
-                  <div>
-
-                    <p className="text-xs text-gray-500">
-                      Disease
-                    </p>
-
-                    <p className="font-medium mt-1">
-                      {selectedPatient.disease}
-                    </p>
-
-                  </div>
-
-
-                  <div>
-
-                    <p className="text-xs text-gray-500">
-                      Current Risk
-                    </p>
-
-                    <p className="font-medium mt-1">
-                      {selectedPatient.risk}
-                    </p>
-
-                  </div>
-
-
-                  <div>
-
-                    <p className="text-xs text-gray-500">
-                      Status
-                    </p>
-
-                    <p className="font-medium mt-1">
-                      {selectedPatient.status}
-                    </p>
-
-                  </div>
-
-                </div>
-
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 bg-slate-50 dark:bg-slate-700 rounded-xl p-5">
+                <Info label="Name" value={selectedPatient.name} />
+                <Info label="Age" value={selectedPatient.age} />
+                <Info label="Gender" value={selectedPatient.gender} />
+                <Info label="Disease" value={selectedPatient.disease} />
+                <Info label="Risk" value={selectedPatient.risk} />
+                <Info label="Status" value={selectedPatient.status} />
               </div>
-
             )}
 
-
-            {/* BUTTON */}
-
-            <div className="flex justify-end">
-
-              <button
-                type="submit"
-                disabled={
-                  loadingPrediction ||
-                  !patientId
-                }
-                className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-
-                {loadingPrediction ? (
-
-                  <>
-                    <RefreshCw
-                      size={18}
-                      className="animate-spin"
-                    />
-
-                    Analyzing...
-
-                  </>
-
-                ) : (
-
-                  <>
-                    <Brain size={18} />
-
-                    Predict Risk
-
-                  </>
-
-                )}
-
-              </button>
-
-            </div>
+            <button
+              type="submit"
+              disabled={!patientId || predicting}
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 ml-auto"
+            >
+              {predicting ? (
+                <>
+                  <RefreshCw size={18} className="animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <Brain size={18} />
+                  Predict Risk
+                </>
+              )}
+            </button>
 
           </form>
-
         </div>
 
+        {/* RESULT */}
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow p-6">
 
-        {/* =========================
-            RESULT
-        ========================= */}
-
-        <div className="bg-white rounded-xl shadow-sm p-6 h-fit">
-
-          <h2 className="text-xl font-semibold text-slate-800">
+          <h2 className="text-xl font-semibold text-slate-800 dark:text-white">
             Prediction Result
           </h2>
 
-          <p className="text-sm text-gray-500 mt-1 mb-6">
-            AI-assisted readmission risk assessment
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-6">
+            AI-assisted readmission assessment
           </p>
 
-
-          {/* NO RESULT */}
-
-          {!prediction &&
-            !loadingPrediction && (
-
-              <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center">
-
-                <Brain
-                  size={45}
-                  className="mx-auto text-gray-300 mb-4"
-                />
-
-                <p className="font-medium text-gray-600">
-                  No prediction yet
-                </p>
-
-                <p className="text-sm text-gray-400 mt-2">
-                  Select a patient and click
-                  Predict Risk.
-                </p>
-
-              </div>
-
-            )}
-
-
-          {/* LOADING */}
-
-          {loadingPrediction && (
-
-            <div className="border border-blue-100 bg-blue-50 rounded-xl p-8 text-center">
-
-              <RefreshCw
-                size={42}
-                className="mx-auto text-blue-500 mb-4 animate-spin"
+          {!prediction ? (
+            <div className="border-2 border-dashed rounded-xl p-8 text-center text-gray-400">
+              <Brain
+                size={44}
+                className="mx-auto mb-3"
               />
-
-              <p className="font-medium text-blue-700">
-                Analyzing patient data...
-              </p>
-
-              <p className="text-sm text-blue-500 mt-2">
-                Connecting to HealthForecast AI
-              </p>
-
+              Select a patient and predict risk.
             </div>
+          ) : (
+            <div className="space-y-5">
 
-          )}
-
-
-          {/* RESULT */}
-
-          {prediction &&
-            !loadingPrediction && (
-
-              <div className="space-y-5">
-
-
-                {/* RISK */}
-
+              <div
+                className={`rounded-xl p-6 text-center ${
+                  riskStyle[prediction.risk_level]?.box
+                }`}
+              >
                 <div
-                  className={`rounded-xl p-6 text-center ${
-                    prediction.risk_level ===
-                    "High"
-                      ? "bg-red-50"
-                      : prediction.risk_level ===
-                        "Medium"
-                      ? "bg-yellow-50"
-                      : "bg-green-50"
+                  className={`mx-auto w-fit mb-2 ${
+                    riskStyle[prediction.risk_level]?.text
                   }`}
                 >
-
-                  {prediction.risk_level ===
-                  "High" ? (
-
-                    <AlertTriangle
-                      size={42}
-                      className="mx-auto text-red-500 mb-3"
-                    />
-
-                  ) : prediction.risk_level ===
-                    "Medium" ? (
-
-                    <HeartPulse
-                      size={42}
-                      className="mx-auto text-yellow-600 mb-3"
-                    />
-
-                  ) : (
-
-                    <CheckCircle
-                      size={42}
-                      className="mx-auto text-green-600 mb-3"
-                    />
-
-                  )}
-
-
-                  <p className="text-sm text-gray-500">
-                    Predicted Risk
-                  </p>
-
-                  <h3
-                    className={`text-3xl font-bold mt-1 ${
-                      prediction.risk_level ===
-                      "High"
-                        ? "text-red-600"
-                        : prediction.risk_level ===
-                          "Medium"
-                        ? "text-yellow-600"
-                        : "text-green-600"
-                    }`}
-                  >
-
-                    {prediction.risk_level}
-
-                  </h3>
-
+                  {riskStyle[prediction.risk_level]?.icon}
                 </div>
 
+                <p className="text-sm text-gray-500">
+                  Predicted Risk
+                </p>
 
-                {/* SCORE */}
-
-                <div className="bg-slate-50 rounded-xl p-5">
-
-                  <div className="flex justify-between mb-2">
-
-                    <span className="text-sm text-gray-500">
-                      Risk Probability
-                    </span>
-
-                    <span className="font-semibold">
-
-                      {Math.round(
-                        prediction.risk_score *
-                          100
-                      )}
-                      %
-
-                    </span>
-
-                  </div>
-
-
-                  <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-
-                    <div
-                      className={`h-full rounded-full transition-all duration-700 ${
-                        prediction.risk_level ===
-                        "High"
-                          ? "bg-red-500"
-                          : prediction.risk_level ===
-                            "Medium"
-                          ? "bg-yellow-500"
-                          : "bg-green-500"
-                      }`}
-                      style={{
-                        width: `${
-                          prediction.risk_score *
-                          100
-                        }%`,
-                      }}
-                    />
-
-                  </div>
-
-                </div>
-
-
-                {/* RECOMMENDATION */}
-
-                <div className="border rounded-xl p-5">
-
-                  <div className="flex items-center gap-2 mb-2">
-
-                    <Activity
-                      size={18}
-                      className="text-blue-600"
-                    />
-
-                    <h3 className="font-semibold">
-                      Recommendation
-                    </h3>
-
-                  </div>
-
-                  <p className="text-sm text-gray-600 leading-6">
-                    {prediction.recommendation}
-                  </p>
-
-                </div>
-
-
-                {/* DISCLAIMER */}
-
-                <div className="text-xs text-gray-400 bg-gray-50 rounded-lg p-4">
-
-                  <strong>
-                    Disclaimer:
-                  </strong>{" "}
-                  This prediction is intended
-                  for demonstration and
-                  decision-support purposes only.
-                  It is not a medical diagnosis.
-
-                </div>
-
+                <h3
+                  className={`text-3xl font-bold ${
+                    riskStyle[prediction.risk_level]?.text
+                  }`}
+                >
+                  {prediction.risk_level}
+                </h3>
               </div>
 
-            )}
+              <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-5">
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm text-gray-500">
+                    Risk Probability
+                  </span>
+                  <b className="dark:text-white">
+                    {Math.round(
+                      prediction.risk_score * 100
+                    )}%
+                  </b>
+                </div>
 
+                <div className="h-3 bg-gray-200 dark:bg-slate-600 rounded-full">
+                  <div
+                    className="h-3 rounded-full bg-blue-600"
+                    style={{
+                      width: `${prediction.risk_score * 100}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="border rounded-xl p-5">
+                <h3 className="font-semibold dark:text-white mb-2">
+                  Recommendation
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300 leading-6">
+                  {prediction.recommendation}
+                </p>
+              </div>
+
+              <p className="text-xs text-gray-400">
+                This result is for decision-support and
+                demonstration purposes only, not a diagnosis.
+              </p>
+            </div>
+          )}
         </div>
-
       </div>
+      
+      {/* CLINICAL DECISION SUPPORT */}
+      <ClinicalDecisionSupport prediction={prediction} />
+
+      {/* HISTORY */}
+      {patientId && (
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow mt-6 overflow-hidden">
+
+          <div className="p-6 border-b">
+            <h2 className="text-xl font-semibold dark:text-white">
+              Prediction History
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Previous predictions for this patient
+            </p>
+          </div>
+
+          {history.length === 0 ? (
+            <p className="p-6 text-gray-500">
+              No previous predictions.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 dark:bg-slate-700">
+                  <tr>
+                    <th className="p-4 text-left">Date</th>
+                    <th className="p-4">Risk</th>
+                    <th className="p-4">Probability</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {history.map((item) => (
+                    <tr
+                      key={item.id}
+                      className="border-t"
+                    >
+                      <td className="p-4 text-sm text-gray-600 dark:text-gray-300">
+                        {item.created_at
+                          ? new Date(
+                              item.created_at
+                            ).toLocaleString()
+                          : "—"}
+                      </td>
+
+                      <td className="p-4 text-center">
+                        <span className="px-3 py-1 rounded-full text-xs bg-slate-100">
+                          {item.risk_level}
+                        </span>
+                      </td>
+
+                      <td className="p-4 text-center dark:text-white">
+                        {Math.round(
+                          item.risk_score * 100
+                        )}%
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
     </MainLayout>
+  );
+}
+
+function Info({ label, value }) {
+  return (
+    <div>
+      <p className="text-xs text-gray-500">
+        {label}
+      </p>
+      <p className="font-medium text-slate-800 dark:text-white mt-1">
+        {value}
+      </p>
+    </div>
   );
 }
 

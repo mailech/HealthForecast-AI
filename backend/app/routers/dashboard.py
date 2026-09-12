@@ -1,42 +1,119 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import User, Patient
+from .. import models
+from ..auth import get_current_user
 
 
 router = APIRouter(
     prefix="/dashboard",
-    tags=["Dashboard"],
+    tags=["Dashboard"]
 )
 
 
 @router.get("/stats")
-def dashboard_stats(
+def get_dashboard_stats(
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
 ):
-    total_patients = (
-        db.query(Patient).count()
-    )
 
-    high_risk = (
-        db.query(Patient)
-        .filter(Patient.risk == "High")
-        .count()
-    )
+    # ============================================================
+    # ADMIN / DOCTOR / STAFF
+    # Hospital-wide dashboard
+    # ============================================================
 
-    total_doctors = (
-        db.query(User)
-        .filter(User.role == "doctor")
-        .count()
-    )
+    if current_user.role in [
+        "admin",
+        "doctor",
+        "staff",
+    ]:
 
-    total_users = db.query(User).count()
+        patients = (
+            db.query(models.Patient)
+            .count()
+        )
+
+        high_risk = (
+            db.query(models.Patient)
+            .filter(
+                models.Patient.risk.ilike("high")
+            )
+            .count()
+        )
+
+        doctors = (
+            db.query(models.User)
+            .filter(
+                models.User.role == "doctor"
+            )
+            .count()
+        )
+
+        users = (
+            db.query(models.User)
+            .count()
+        )
+
+        return {
+            "role": current_user.role,
+            "patients": patients,
+            "high_risk": high_risk,
+            "doctors": doctors,
+            "users": users,
+        }
+
+
+    # ============================================================
+    # PATIENT
+    # Only own health information
+    # ============================================================
+
+    if current_user.role == "patient":
+
+        patient = (
+            db.query(models.Patient)
+            .filter(
+                models.Patient.user_id ==
+                current_user.id
+            )
+            .first()
+        )
+
+        if not patient:
+
+            return {
+                "role": "patient",
+                "patients": 0,
+                "high_risk": 0,
+                "doctors": 0,
+                "users": 0,
+            }
+
+        high_risk = (
+            1
+            if patient.risk and
+            patient.risk.lower() == "high"
+            else 0
+        )
+
+        return {
+            "role": "patient",
+            "patients": 1,
+            "high_risk": high_risk,
+            "doctors": 0,
+            "users": 0,
+        }
+
+
+    # ============================================================
+    # UNKNOWN ROLE
+    # ============================================================
 
     return {
-        "patients": total_patients,
-        "high_risk": high_risk,
-        "doctors": total_doctors,
-        "users": total_users,
-    }
+        "role": current_user.role,
+        "patients": 0,
+        "high_risk": 0,
+        "doctors": 0,
+        "users": 0,
+    } 

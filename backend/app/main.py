@@ -8,6 +8,10 @@ from .routers import (
     patients,
     dashboard,
     prediction,
+    notifications,
+    clinical,
+    research,
+    optimization,
 )
 
 
@@ -58,6 +62,14 @@ app.include_router(patients.router)
 app.include_router(dashboard.router)
 
 app.include_router(prediction.router)
+
+app.include_router(notifications.router)
+
+app.include_router(clinical.router)
+
+app.include_router(research.router)
+
+app.include_router(optimization.router)
 
 
 # =========================

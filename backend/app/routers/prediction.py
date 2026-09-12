@@ -1,201 +1,138 @@
-from fastapi import (
-    APIRouter,
-    Depends,
-    HTTPException,
-)
-
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from .. import schemas, crud
-from ..models import Patient
+from .. import models, schemas
+from ..auth import (
+    get_current_user,
+    require_roles,
+)
+
+from ml.model_service import (
+    predict_readmission,
+)
 
 
 router = APIRouter(
     prefix="/prediction",
-    tags=["Prediction"],
+    tags=["Prediction"]
 )
 
 
-# =========================
+# ============================================================
 # CREATE PREDICTION
-# =========================
+# ADMIN + DOCTOR
+# ============================================================
 
 @router.post(
-    "",
-    response_model=schemas.PredictionResponse,
+    "/",
+    response_model=schemas.PredictionResponse
 )
-def predict_risk(
-    data: schemas.PredictionRequest,
-    db: Session = Depends(get_db),
+def create_prediction(
+    request: schemas.PredictionRequest,
+    current_user=Depends(
+        require_roles(
+            "admin",
+            "doctor",
+        )
+    ),
+    db: Session = Depends(get_db)
 ):
 
-    # -------------------------
-    # Find patient
-    # -------------------------
+    # ========================================================
+    # GET PATIENT
+    # ========================================================
 
     patient = (
-        db.query(Patient)
+        db.query(models.Patient)
         .filter(
-            Patient.id == data.patient_id
+            models.Patient.id ==
+            request.patient_id
         )
         .first()
     )
 
     if not patient:
-
         raise HTTPException(
             status_code=404,
-            detail="Patient not found",
+            detail="Patient not found"
         )
 
 
-    # -------------------------
-    # Risk calculation
-    # -------------------------
-    #
-    # This is the current
-    # rule-based prediction.
-    #
-    # Later we can replace
-    # this section with your
-    # trained ML model.
-    # -------------------------
+    # ========================================================
+    # ML PREDICTION
+    # ========================================================
 
-    score = 0.0
+    try:
 
-
-    # Age
-
-    if patient.age >= 65:
-
-        score += 0.40
-
-    elif patient.age >= 50:
-
-        score += 0.20
-
-    else:
-
-        score += 0.10
-
-
-    # Existing patient risk
-
-    if patient.risk:
-
-        risk = patient.risk.lower()
-
-        if risk == "high":
-
-            score += 0.35
-
-        elif risk == "medium":
-
-            score += 0.20
-
-        else:
-
-            score += 0.05
-
-
-    # Disease
-
-    if patient.disease:
-
-        disease = patient.disease.lower()
-
-        high_risk_diseases = [
-            "heart disease",
-            "stroke",
-            "cancer",
-            "kidney disease",
-            "diabetes",
-        ]
-
-        if any(
-            item in disease
-            for item in high_risk_diseases
-        ):
-
-            score += 0.15
-
-
-    # Make sure score stays between 0 and 1
-
-    score = min(score, 1.0)
-
-
-    # -------------------------
-    # Risk level
-    # -------------------------
-
-    if score >= 0.70:
-
-        level = "High"
-
-        recommendation = (
-            "High readmission risk detected. "
-            "Close monitoring and regular "
-            "follow-up are recommended."
+        result = predict_readmission(
+            age=patient.age,
+            gender=patient.gender,
+            disease=patient.disease,
         )
 
-    elif score >= 0.40:
+    except FileNotFoundError as error:
 
-        level = "Medium"
-
-        recommendation = (
-            "Moderate readmission risk detected. "
-            "Regular monitoring and follow-up "
-            "are recommended."
+        raise HTTPException(
+            status_code=500,
+            detail=str(error)
         )
 
-    else:
+    except Exception as error:
 
-        level = "Low"
+        print(
+            "ML prediction error:",
+            error
+        )
 
-        recommendation = (
-            "Low readmission risk detected. "
-            "Routine follow-up and monitoring "
-            "are recommended."
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to generate ML prediction"
         )
 
 
-    # -------------------------
-    # Save prediction
-    # -------------------------
+    # ========================================================
+    # SAVE PREDICTION
+    # ========================================================
 
-    prediction = crud.create_prediction(
-        db=db,
+    prediction = models.Prediction(
         patient_id=patient.id,
-        risk_score=score,
-        risk_level=level,
-        recommendation=recommendation,
+        risk_score=result["risk_score"],
+        risk_level=result["risk_level"],
+        recommendation=result["recommendation"],
     )
+
+    db.add(prediction)
+
+    db.commit()
+
+    db.refresh(prediction)
 
 
     return prediction
 
 
-# =========================
+# ============================================================
 # GET PATIENT PREDICTIONS
-# =========================
+# ============================================================
 
 @router.get(
     "/patient/{patient_id}",
-    response_model=list[
-        schemas.PredictionResponse
-    ],
+    response_model=list[schemas.PredictionResponse]
 )
-def get_predictions(
+def get_patient_predictions(
     patient_id: int,
-    db: Session = Depends(get_db),
+    current_user=Depends(
+        get_current_user
+    ),
+    db: Session = Depends(get_db)
 ):
 
     patient = (
-        db.query(Patient)
+        db.query(models.Patient)
         .filter(
-            Patient.id == patient_id
+            models.Patient.id ==
+            patient_id
         )
         .first()
     )
@@ -204,11 +141,39 @@ def get_predictions(
 
         raise HTTPException(
             status_code=404,
-            detail="Patient not found",
+            detail="Patient not found"
         )
 
 
-    return crud.get_patient_predictions(
-        db,
-        patient_id,
+    # ========================================================
+    # PATIENT CAN SEE ONLY THEIR OWN PREDICTIONS
+    # ========================================================
+
+    if current_user.role == "patient":
+
+        if patient.user_id != current_user.id:
+
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    "You can only access "
+                    "your own predictions"
+                )
+            )
+
+
+    # ========================================================
+    # RETURN HISTORY
+    # ========================================================
+
+    return (
+        db.query(models.Prediction)
+        .filter(
+            models.Prediction.patient_id ==
+            patient_id
+        )
+        .order_by(
+            models.Prediction.created_at.desc()
+        )
+        .all()
     ) 

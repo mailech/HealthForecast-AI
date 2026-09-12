@@ -1,52 +1,164 @@
 @import "tailwindcss";
 
-:root {
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
-  color: #0f172a;
-  background: #f8fafc;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-}
+/* ============================================================
+   TAILWIND V4 DARK MODE
+============================================================ */
 
-* {
-  box-sizing: border-box;
-}
+@custom-variant dark (&:where(.dark, .dark *));
+
+
+/* ============================================================
+   GLOBAL
+============================================================ */
 
 html,
 body,
 #root {
-  margin: 0;
   min-height: 100%;
-  width: 100%;
 }
 
-body {
-  min-height: 100vh;
-  background: #f8fafc;
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
-
-button {
-  cursor: pointer;
-}
-
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
+html {
   background: #f1f5f9;
 }
 
-::-webkit-scrollbar-thumb {
-  background: #94a3b8;
-  border-radius: 10px;
+html.dark {
+  background: #0f172a;
+}
+
+body {
+  margin: 0;
+  background: #f1f5f9;
+  color: #1e293b;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+html.dark body {
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+
+/* ============================================================
+   GLOBAL DARK OVERRIDES
+   This allows existing pages to work in dark mode too.
+============================================================ */
+
+/* White backgrounds */
+
+html.dark .bg-white {
+  background-color: #1e293b !important;
+}
+
+html.dark .bg-slate-50 {
+  background-color: #1e293b !important;
+}
+
+html.dark .bg-slate-100 {
+  background-color: #0f172a !important;
+}
+
+
+/* Text */
+
+html.dark .text-slate-800 {
+  color: #f1f5f9 !important;
+}
+
+html.dark .text-slate-700 {
+  color: #e2e8f0 !important;
+}
+
+html.dark .text-gray-700 {
+  color: #e2e8f0 !important;
+}
+
+html.dark .text-gray-600 {
+  color: #cbd5e1 !important;
+}
+
+html.dark .text-gray-500 {
+  color: #94a3b8 !important;
+}
+
+html.dark .text-gray-400 {
+  color: #64748b !important;
+}
+
+
+/* Borders */
+
+html.dark .border,
+html.dark .border-gray-200,
+html.dark .border-gray-300,
+html.dark .border-slate-100,
+html.dark .border-slate-200 {
+  border-color: #334155 !important;
+}
+
+
+/* Inputs */
+
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: #334155 !important;
+  color: #f8fafc !important;
+  border-color: #475569 !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+html.dark option {
+  background-color: #1e293b;
+  color: #f8fafc;
+}
+
+
+/* Table */
+
+html.dark table {
+  color: #e2e8f0;
+}
+
+html.dark thead {
+  background-color: #334155 !important;
+}
+
+html.dark tr:hover {
+  background-color: #334155 !important;
+}
+
+
+/* Slate cards */
+
+html.dark .bg-slate-50 {
+  color: #e2e8f0;
+}
+
+
+/* Hover backgrounds */
+
+html.dark .hover\:bg-gray-50:hover {
+  background-color: #334155 !important;
+}
+
+html.dark .hover\:bg-slate-50:hover {
+  background-color: #334155 !important;
+}
+
+
+/* ============================================================
+   SMOOTH TRANSITIONS
+============================================================ */
+
+* {
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
 }
