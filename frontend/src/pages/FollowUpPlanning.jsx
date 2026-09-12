@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../layouts/DashboardLayout";
 import api from "../services/api";
+
 import {
   FaCalendarCheck,
   FaUserInjured,
   FaHeartbeat,
+  FaPills,
 } from "react-icons/fa";
 
 function FollowUpPlanning() {
@@ -21,9 +23,12 @@ function FollowUpPlanning() {
       setLoading(true);
       setError("");
 
-      const response = await api.get("/api/patients");
+      const response = await api.get(
+        "/api/patients"
+      );
 
-      setPatients(response.data);
+      setPatients(response.data || []);
+
     } catch (error) {
       console.error(
         "Error fetching patients:",
@@ -48,7 +53,41 @@ function FollowUpPlanning() {
     }
   };
 
+
+  // =====================================================
+  // FORMAT DATE
+  // =====================================================
+
+  const formatDate = (dateString) => {
+    if (!dateString) {
+      return "Not scheduled";
+    }
+
+    const date = new Date(
+      `${dateString}T00:00:00`
+    );
+
+    if (Number.isNaN(date.getTime())) {
+      return dateString;
+    }
+
+    return date.toLocaleDateString(
+      "en-IN",
+      {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }
+    );
+  };
+
+
+  // =====================================================
+  // GET FOLLOW-UP PLAN
+  // =====================================================
+
   const getFollowUpPlan = (patient) => {
+
     const risk = String(
       patient.risk || ""
     ).toLowerCase();
@@ -57,228 +96,405 @@ function FollowUpPlanning() {
       patient.status || ""
     ).toLowerCase();
 
-    if (risk === "high") {
+    const treatment =
+      patient.treatment_plan;
+
+    // ---------------------------------------------------
+    // FIRST PRIORITY:
+    // DOCTOR'S ACTUAL FOLLOW-UP DATE
+    // ---------------------------------------------------
+
+    if (treatment?.follow_up_date) {
+
       return {
-        priority: "High Priority",
-        timing: "Within 7 days",
+        priority:
+          risk === "high"
+            ? "High Priority"
+            : risk === "medium"
+            ? "Moderate Priority"
+            : "Scheduled Follow-up",
+
+        timing: formatDate(
+          treatment.follow_up_date
+        ),
+
         recommendation:
-          "Schedule an early follow-up review and closely monitor the patient's recovery and readmission risk.",
+          "Follow the follow-up date specified in the patient's treatment plan. Review treatment response, medication adherence and recovery progress during the appointment.",
+
+        source:
+          "Doctor's Treatment Plan",
       };
     }
 
+
+    // ---------------------------------------------------
+    // FALLBACK IF NO DATE WAS ENTERED
+    // ---------------------------------------------------
+
+    if (risk === "high") {
+
+      return {
+        priority: "High Priority",
+        timing: "Date not scheduled",
+        recommendation:
+          "No follow-up date has been entered in the treatment plan. Schedule an early follow-up review because the patient is currently classified as high risk.",
+        source:
+          "Risk-based recommendation",
+      };
+
+    }
+
+
     if (risk === "medium") {
+
       return {
         priority: "Moderate Priority",
-        timing: "Within 14 days",
+        timing: "Date not scheduled",
         recommendation:
-          "Schedule a follow-up consultation to evaluate treatment response and recovery progress.",
+          "No follow-up date has been entered in the treatment plan. Schedule a follow-up consultation to evaluate treatment response and recovery.",
+        source:
+          "Risk-based recommendation",
       };
+
     }
+
 
     if (
       status === "discharged" ||
       status === "recovered"
     ) {
+
       return {
         priority: "Routine Follow-up",
-        timing: "Within 30 days",
+        timing: "Date not scheduled",
         recommendation:
-          "Continue routine post-discharge follow-up and assess recovery progress.",
+          "The patient has been discharged or recovered, but no specific follow-up date has been entered. Schedule follow-up according to the care plan.",
+        source:
+          "Status-based recommendation",
       };
+
     }
+
 
     return {
       priority: "Standard Monitoring",
-      timing: "As clinically appropriate",
+      timing: "Date not scheduled",
       recommendation:
-        "Continue monitoring and schedule follow-up based on the patient's clinical progress.",
+        "No specific follow-up date has been entered. Continue monitoring and schedule follow-up based on clinical progress.",
+      source:
+        "Standard monitoring",
     };
   };
+
 
   return (
     <DashboardLayout>
 
       {/* HEADER */}
+
       <div className="mb-8">
+
         <h1 className="text-3xl font-bold text-slate-800">
           Follow-up Planning
         </h1>
 
         <p className="text-gray-500 mt-2">
-          Review follow-up planning suggestions for your
-          assigned patients.
+          Review follow-up dates and planning information
+          from each patient's treatment plan.
         </p>
+
       </div>
 
 
       {/* ERROR */}
+
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-5 mb-6">
+
           <p className="text-red-600">
             {error}
           </p>
+
         </div>
       )}
 
 
       {/* LOADING */}
+
       {loading && (
         <div className="bg-white rounded-xl shadow p-10 text-center">
+
           <p className="text-gray-500">
             Loading follow-up information...
           </p>
+
         </div>
       )}
 
 
       {/* PATIENT CARDS */}
+
       {!loading &&
         !error &&
         patients.length > 0 && (
+
           <div className="space-y-5">
 
-            {patients.map((patient, index) => {
+            {patients.map(
+              (patient, index) => {
 
-              const plan =
-                getFollowUpPlan(patient);
+                const plan =
+                  getFollowUpPlan(patient);
 
-              return (
-                <div
-                  key={
-                    patient.id ||
-                    patient._id ||
-                    index
-                  }
-                  className="bg-white rounded-xl shadow-md p-6"
-                >
+                const treatment =
+                  patient.treatment_plan;
 
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+                return (
 
-                    {/* PATIENT */}
-                    <div className="flex items-center gap-4">
+                  <div
+                    key={
+                      patient.id ||
+                      patient._id ||
+                      index
+                    }
+                    className="bg-white rounded-xl shadow-md p-6"
+                  >
 
-                      <div className="bg-blue-100 text-blue-600 p-3 rounded-full">
-                        <FaUserInjured size={24} />
+                    {/* PATIENT HEADER */}
+
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+
+                      <div className="flex items-center gap-4">
+
+                        <div className="bg-blue-100 text-blue-600 p-3 rounded-full">
+
+                          <FaUserInjured
+                            size={24}
+                          />
+
+                        </div>
+
+                        <div>
+
+                          <h2 className="text-xl font-bold text-slate-800">
+
+                            {patient.name ||
+                              "Unknown Patient"}
+
+                          </h2>
+
+                          <p className="text-sm text-gray-500">
+
+                            {patient.disease ||
+                              "No disease recorded"}
+
+                            {" • "}
+
+                            Age{" "}
+
+                            {patient.age ??
+                              "—"}
+
+                          </p>
+
+                        </div>
+
                       </div>
 
-                      <div>
-                        <h2 className="text-xl font-bold text-slate-800">
-                          {patient.name || "Unknown Patient"}
-                        </h2>
+
+                      {/* RISK */}
+
+                      <div className="flex items-center gap-2">
+
+                        <FaHeartbeat className="text-red-500" />
+
+                        <span className="text-gray-600">
+                          Risk:
+                        </span>
+
+                        <span
+                          className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                            String(
+                              patient.risk ||
+                                ""
+                            ).toLowerCase() ===
+                            "high"
+                              ? "bg-red-100 text-red-600"
+                              : String(
+                                  patient.risk ||
+                                    ""
+                                ).toLowerCase() ===
+                                "medium"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-green-100 text-green-700"
+                          }`}
+                        >
+
+                          {patient.risk ||
+                            "Unknown"}
+
+                        </span>
+
+                      </div>
+
+                    </div>
+
+
+                    {/* =================================================
+                        FOLLOW UP INFORMATION
+                    ================================================= */}
+
+                    <div className="grid md:grid-cols-3 gap-4 mt-6">
+
+                      {/* PRIORITY */}
+
+                      <div className="bg-blue-50 rounded-lg p-4">
 
                         <p className="text-sm text-gray-500">
-                          {patient.disease || "No disease recorded"}
-                          {" • "}
-                          Age {patient.age ?? "—"}
+                          Follow-up Priority
                         </p>
+
+                        <p className="font-bold text-blue-700 mt-1">
+                          {plan.priority}
+                        </p>
+
+                      </div>
+
+
+                      {/* DATE */}
+
+                      <div className="bg-green-50 rounded-lg p-4">
+
+                        <p className="text-sm text-gray-500">
+                          Follow-up Date
+                        </p>
+
+                        <p className="font-bold text-green-700 mt-1">
+
+                          {plan.timing}
+
+                        </p>
+
+                      </div>
+
+
+                      {/* STATUS */}
+
+                      <div className="bg-gray-50 rounded-lg p-4">
+
+                        <p className="text-sm text-gray-500">
+                          Current Status
+                        </p>
+
+                        <p className="font-bold text-gray-700 mt-1">
+                          {patient.status ||
+                            "—"}
+                        </p>
+
                       </div>
 
                     </div>
 
 
-                    {/* RISK */}
-                    <div className="flex items-center gap-2">
+                    {/* =================================================
+                        TREATMENT INFORMATION
+                    ================================================= */}
 
-                      <FaHeartbeat className="text-red-500" />
+                    {treatment && (
+                      <div className="mt-5 border border-purple-100 bg-purple-50 rounded-xl p-5">
 
-                      <span className="text-gray-600">
-                        Risk:
-                      </span>
+                        <div className="flex items-center gap-3 mb-3">
 
-                      <span
-                        className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                          String(patient.risk).toLowerCase() ===
-                          "high"
-                            ? "bg-red-100 text-red-600"
-                            : String(patient.risk).toLowerCase() ===
-                              "medium"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : "bg-green-100 text-green-700"
-                        }`}
-                      >
-                        {patient.risk || "Unknown"}
-                      </span>
+                          <FaPills className="text-purple-600" />
+
+                          <h3 className="font-bold text-purple-800">
+                            Treatment Plan
+                          </h3>
+
+                        </div>
+
+
+                        {treatment.medicines && (
+                          <div className="mb-3">
+
+                            <p className="text-sm font-semibold text-gray-600">
+                              Prescribed Medicines
+                            </p>
+
+                            <p className="text-gray-700 whitespace-pre-line mt-1">
+                              {treatment.medicines}
+                            </p>
+
+                          </div>
+                        )}
+
+
+                        {treatment.doctor_recommendations && (
+                          <div>
+
+                            <p className="text-sm font-semibold text-gray-600">
+                              Doctor Recommendations
+                            </p>
+
+                            <p className="text-gray-700 whitespace-pre-line mt-1">
+                              {
+                                treatment.doctor_recommendations
+                              }
+                            </p>
+
+                          </div>
+                        )}
+
+                      </div>
+                    )}
+
+
+                    {/* =================================================
+                        RECOMMENDATION
+                    ================================================= */}
+
+                    <div className="mt-5 border border-blue-100 bg-blue-50 rounded-xl p-5">
+
+                      <div className="flex items-center gap-3 mb-2">
+
+                        <FaCalendarCheck className="text-blue-600" />
+
+                        <h3 className="font-bold text-blue-800">
+                          Follow-up Suggestion
+                        </h3>
+
+                      </div>
+
+                      <p className="text-gray-700 leading-relaxed">
+
+                        {plan.recommendation}
+
+                      </p>
+
+                      <p className="text-xs text-gray-500 mt-3">
+
+                        Source: {plan.source}
+
+                      </p>
 
                     </div>
 
                   </div>
 
-
-                  {/* PLAN */}
-                  <div className="grid md:grid-cols-3 gap-4 mt-6">
-
-                    <div className="bg-blue-50 rounded-lg p-4">
-
-                      <p className="text-sm text-gray-500">
-                        Follow-up Priority
-                      </p>
-
-                      <p className="font-bold text-blue-700 mt-1">
-                        {plan.priority}
-                      </p>
-
-                    </div>
-
-
-                    <div className="bg-green-50 rounded-lg p-4">
-
-                      <p className="text-sm text-gray-500">
-                        Suggested Timing
-                      </p>
-
-                      <p className="font-bold text-green-700 mt-1">
-                        {plan.timing}
-                      </p>
-
-                    </div>
-
-
-                    <div className="bg-gray-50 rounded-lg p-4">
-
-                      <p className="text-sm text-gray-500">
-                        Current Status
-                      </p>
-
-                      <p className="font-bold text-gray-700 mt-1">
-                        {patient.status || "—"}
-                      </p>
-
-                    </div>
-
-                  </div>
-
-
-                  {/* RECOMMENDATION */}
-                  <div className="mt-5 border border-blue-100 bg-blue-50 rounded-xl p-5">
-
-                    <div className="flex items-center gap-3 mb-2">
-
-                      <FaCalendarCheck className="text-blue-600" />
-
-                      <h3 className="font-bold text-blue-800">
-                        Follow-up Suggestion
-                      </h3>
-
-                    </div>
-
-                    <p className="text-gray-700 leading-relaxed">
-                      {plan.recommendation}
-                    </p>
-
-                  </div>
-
-                </div>
-              );
-            })}
+                );
+              }
+            )}
 
           </div>
         )}
 
 
       {/* NO PATIENTS */}
+
       {!loading &&
         !error &&
         patients.length === 0 && (
+
           <div className="bg-white rounded-xl shadow p-10 text-center">
 
             <FaCalendarCheck
@@ -291,10 +507,12 @@ function FollowUpPlanning() {
             </h2>
 
             <p className="text-gray-500 mt-2">
-              You currently have no patients assigned to you.
+              You currently have no patients assigned
+              to you.
             </p>
 
           </div>
+
         )}
 
     </DashboardLayout>

@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../layouts/DashboardLayout";
 import api from "../services/api";
+
 import {
   FaHeartbeat,
   FaUserInjured,
   FaNotesMedical,
+  FaPills,
+  FaUserMd,
+  FaCalendarCheck,
 } from "react-icons/fa";
 
 function CareRecommendations() {
@@ -21,11 +25,17 @@ function CareRecommendations() {
       setLoading(true);
       setError("");
 
-      const response = await api.get("/api/patients");
+      const response = await api.get(
+        "/api/patients"
+      );
 
-      setPatients(response.data);
+      setPatients(response.data || []);
+
     } catch (error) {
-      console.error("Error fetching patients:", error);
+      console.error(
+        "Error fetching patients:",
+        error
+      );
 
       if (error.response?.status === 403) {
         setError(
@@ -44,6 +54,10 @@ function CareRecommendations() {
       setLoading(false);
     }
   };
+
+  // =====================================================
+  // RECOMMENDATION BASED ON RISK
+  // =====================================================
 
   const getRecommendation = (patient) => {
     const risk = String(
@@ -92,19 +106,23 @@ function CareRecommendations() {
     <DashboardLayout>
 
       {/* HEADER */}
+
       <div className="mb-8">
+
         <h1 className="text-3xl font-bold text-slate-800">
           Care Recommendations
         </h1>
 
         <p className="text-gray-500 mt-2">
-          Generate patient care recommendations based on
-          current risk and clinical status.
+          Review patient-specific care recommendations,
+          prescribed medicines and doctor advice.
         </p>
+
       </div>
 
 
       {/* ERROR */}
+
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-5 mb-6">
           <p className="text-red-600">
@@ -115,138 +133,268 @@ function CareRecommendations() {
 
 
       {/* LOADING */}
+
       {loading && (
         <div className="bg-white rounded-xl shadow p-10 text-center">
+
           <p className="text-gray-500">
             Loading patient information...
           </p>
+
         </div>
       )}
 
 
       {/* PATIENTS */}
+
       {!loading &&
         !error &&
         patients.length > 0 && (
           <div className="grid lg:grid-cols-2 gap-6">
 
-            {patients.map((patient, index) => {
-              const recommendation =
-                getRecommendation(patient);
+            {patients.map(
+              (patient, index) => {
 
-              return (
-                <div
-                  key={
-                    patient.id ||
-                    patient._id ||
-                    index
-                  }
-                  className="bg-white rounded-xl shadow-md p-6"
-                >
+                const recommendation =
+                  getRecommendation(patient);
 
-                  {/* PATIENT HEADER */}
-                  <div className="flex items-center gap-4 mb-5">
+                const treatment =
+                  patient.treatment_plan;
 
-                    <div className="bg-blue-100 text-blue-600 p-3 rounded-full">
-                      <FaUserInjured size={24} />
+                return (
+                  <div
+                    key={
+                      patient.id ||
+                      patient._id ||
+                      index
+                    }
+                    className="bg-white rounded-xl shadow-md p-6"
+                  >
+
+                    {/* PATIENT HEADER */}
+
+                    <div className="flex items-center gap-4 mb-5">
+
+                      <div className="bg-blue-100 text-blue-600 p-3 rounded-full">
+
+                        <FaUserInjured size={24} />
+
+                      </div>
+
+                      <div>
+
+                        <h2 className="text-xl font-bold text-slate-800">
+
+                          {patient.name ||
+                            "Unknown Patient"}
+
+                        </h2>
+
+                        <p className="text-sm text-gray-500">
+
+                          Age:{" "}
+                          {patient.age ?? "—"}
+
+                        </p>
+
+                      </div>
+
                     </div>
 
-                    <div>
-                      <h2 className="text-xl font-bold text-slate-800">
-                        {patient.name || "Unknown Patient"}
-                      </h2>
 
-                      <p className="text-sm text-gray-500">
-                        Age: {patient.age ?? "—"}
+                    {/* PATIENT INFORMATION */}
+
+                    <div className="grid grid-cols-2 gap-4 mb-5">
+
+                      <div className="bg-gray-50 rounded-lg p-4">
+
+                        <p className="text-sm text-gray-500">
+                          Disease
+                        </p>
+
+                        <p className="font-semibold text-gray-800 mt-1">
+                          {patient.disease ||
+                            "—"}
+                        </p>
+
+                      </div>
+
+                      <div className="bg-gray-50 rounded-lg p-4">
+
+                        <p className="text-sm text-gray-500">
+                          Current Status
+                        </p>
+
+                        <p className="font-semibold text-gray-800 mt-1">
+                          {patient.status ||
+                            "—"}
+                        </p>
+
+                      </div>
+
+                    </div>
+
+
+                    {/* RISK */}
+
+                    <div className="flex items-center gap-3 mb-5">
+
+                      <FaHeartbeat className="text-red-500" />
+
+                      <span className="text-gray-600">
+                        Risk Level:
+                      </span>
+
+                      <span
+                        className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                          String(
+                            patient.risk || ""
+                          ).toLowerCase() ===
+                          "high"
+                            ? "bg-red-100 text-red-600"
+                            : String(
+                                patient.risk || ""
+                              ).toLowerCase() ===
+                              "medium"
+                            ? "bg-yellow-100 text-yellow-700"
+                            : "bg-green-100 text-green-700"
+                        }`}
+                      >
+
+                        {patient.risk ||
+                          "Unknown"}
+
+                      </span>
+
+                    </div>
+
+
+                    {/* =================================================
+                        CURRENT TREATMENT
+                    ================================================= */}
+
+                    <div className="border border-purple-100 bg-purple-50 rounded-xl p-5 mb-5">
+
+                      <div className="flex items-center gap-3 mb-4">
+
+                        <FaPills className="text-purple-600" />
+
+                        <h3 className="font-bold text-purple-800">
+                          Current Treatment
+                        </h3>
+
+                      </div>
+
+
+                      {/* MEDICINES */}
+
+                      <div className="mb-4">
+
+                        <p className="text-sm font-semibold text-gray-600 mb-1">
+                          Prescribed Medicines
+                        </p>
+
+                        {treatment?.medicines ? (
+                          <p className="text-gray-700 whitespace-pre-line">
+                            {treatment.medicines}
+                          </p>
+                        ) : (
+                          <p className="text-gray-400">
+                            No medicines recorded.
+                          </p>
+                        )}
+
+                      </div>
+
+
+                      {/* DOCTOR RECOMMENDATIONS */}
+
+                      <div className="mb-4">
+
+                        <p className="text-sm font-semibold text-gray-600 mb-1">
+                          Doctor Recommendations
+                        </p>
+
+                        {treatment?.doctor_recommendations ? (
+                          <p className="text-gray-700 whitespace-pre-line">
+                            {
+                              treatment.doctor_recommendations
+                            }
+                          </p>
+                        ) : (
+                          <p className="text-gray-400">
+                            No recommendations recorded.
+                          </p>
+                        )}
+
+                      </div>
+
+
+                      {/* FOLLOW UP */}
+
+                      <div className="flex items-center gap-2">
+
+                        <FaCalendarCheck className="text-orange-500" />
+
+                        <span className="text-sm text-gray-600">
+
+                          Follow-up:{" "}
+
+                          <strong>
+
+                            {treatment?.follow_up_date ||
+                              "Not scheduled"}
+
+                          </strong>
+
+                        </span>
+
+                      </div>
+
+                    </div>
+
+
+                    {/* =================================================
+                        CARE RECOMMENDATION
+                    ================================================= */}
+
+                    <div className="border border-blue-100 bg-blue-50 rounded-xl p-5">
+
+                      <div className="flex items-center gap-3 mb-3">
+
+                        <FaNotesMedical className="text-blue-600" />
+
+                        <h3 className="font-bold text-blue-800">
+
+                          {recommendation.title}
+
+                        </h3>
+
+                      </div>
+
+                      <p className="text-gray-700 leading-relaxed">
+
+                        {recommendation.recommendation}
+
                       </p>
+
                     </div>
 
                   </div>
-
-
-                  {/* PATIENT INFORMATION */}
-                  <div className="grid grid-cols-2 gap-4 mb-5">
-
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-sm text-gray-500">
-                        Disease
-                      </p>
-
-                      <p className="font-semibold text-gray-800 mt-1">
-                        {patient.disease || "—"}
-                      </p>
-                    </div>
-
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-sm text-gray-500">
-                        Current Status
-                      </p>
-
-                      <p className="font-semibold text-gray-800 mt-1">
-                        {patient.status || "—"}
-                      </p>
-                    </div>
-
-                  </div>
-
-
-                  {/* RISK */}
-                  <div className="flex items-center gap-3 mb-5">
-
-                    <FaHeartbeat className="text-red-500" />
-
-                    <span className="text-gray-600">
-                      Risk Level:
-                    </span>
-
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                        String(patient.risk).toLowerCase() ===
-                        "high"
-                          ? "bg-red-100 text-red-600"
-                          : String(patient.risk).toLowerCase() ===
-                            "medium"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-green-100 text-green-700"
-                      }`}
-                    >
-                      {patient.risk || "Unknown"}
-                    </span>
-
-                  </div>
-
-
-                  {/* RECOMMENDATION */}
-                  <div className="border border-blue-100 bg-blue-50 rounded-xl p-5">
-
-                    <div className="flex items-center gap-3 mb-3">
-
-                      <FaNotesMedical className="text-blue-600" />
-
-                      <h3 className="font-bold text-blue-800">
-                        {recommendation.title}
-                      </h3>
-
-                    </div>
-
-                    <p className="text-gray-700 leading-relaxed">
-                      {recommendation.recommendation}
-                    </p>
-
-                  </div>
-
-                </div>
-              );
-            })}
+                );
+              }
+            )}
 
           </div>
         )}
 
 
       {/* NO PATIENTS */}
+
       {!loading &&
         !error &&
         patients.length === 0 && (
+
           <div className="bg-white rounded-xl shadow p-10 text-center">
 
             <FaUserInjured
@@ -259,10 +407,12 @@ function CareRecommendations() {
             </h2>
 
             <p className="text-gray-500 mt-2">
-              You currently have no patients assigned to you.
+              You currently have no patients assigned
+              to you.
             </p>
 
           </div>
+
         )}
 
     </DashboardLayout>

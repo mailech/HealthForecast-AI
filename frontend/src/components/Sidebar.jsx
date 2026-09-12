@@ -28,11 +28,7 @@ function Sidebar() {
   );
 
   const role = user?.role;
-
   // --------------------------------------------------
-  // DOCTOR MENU
-  // --------------------------------------------------
-// --------------------------------------------------
 // DOCTOR MENU
 // --------------------------------------------------
 
@@ -131,7 +127,7 @@ const doctorMenus = [
     },
     {
       name: "Export Analytics",
-      path: "/analytics/export",
+      path: "/export",
       icon: <FaDownload />,
     },
     {
@@ -193,63 +189,62 @@ const doctorMenus = [
     },
   ];
 
-  // --------------------------------------------------
-  // SYSTEM ADMINISTRATOR MENU
-  // --------------------------------------------------
+// --------------------------------------------------
+// SYSTEM ADMINISTRATOR MENU
+// --------------------------------------------------
 
-  const systemAdminMenus = [
-    {
-      name: "System Dashboard",
-      path: "/admin",
-      icon: <FaChartPie />,
-    },
-    {
-      name: "All Patients",
-      path: "/patients",
-      icon: <FaUserInjured />,
-    },
-    {
-      name: "Hospital Analytics",
-      path: "/analytics",
-      icon: <FaChartBar />,
-    },
-    {
-      name: "Reports",
-      path: "/reports",
-      icon: <FaFileMedical />,
-    },
-    {
-      name: "Users & Roles",
-      path: "/admin/users",
-      icon: <FaUsers />,
-    },
-    {
-      name: "Datasets",
-      path: "/admin/datasets",
-      icon: <FaDatabase />,
-    },
-    {
-      name: "AI Model",
-      path: "/admin/model",
-      icon: <FaRobot />,
-    },
-    {
-      name: "Audit Logs",
-      path: "/admin/audit-logs",
-      icon: <FaClipboardList />,
-    },
-    {
-      name: "System Settings",
-      path: "/admin/settings",
-      icon: <FaCog />,
-    },
-    {
-      name: "Profile",
-      path: "/profile",
-      icon: <FaUserCircle />,
-    },
-  ];
-
+const systemAdminMenus = [
+  {
+    name: "System Dashboard",
+    path: "/admin",
+    icon: <FaChartPie />,
+  },
+  {
+    name: "All Patients",
+    path: "/patients",
+    icon: <FaUserInjured />,
+  },
+  {
+    name: "Hospital Analytics",
+    path: "/analytics",
+    icon: <FaChartBar />,
+  },
+  {
+    name: "Reports",
+    path: "/export",
+    icon: <FaFileMedical />,
+  },
+  {
+    name: "Users & Roles",
+    path: "/admin/users",
+    icon: <FaUsers />,
+  },
+  {
+    name: "Datasets",
+    path: "/admin/datasets",
+    icon: <FaDatabase />,
+  },
+  {
+    name: "AI Model",
+    path: "/readmission",
+    icon: <FaRobot />,
+  },
+  {
+    name: "Audit Logs",
+    path: "/admin/audit-logs",
+    icon: <FaClipboardList />,
+  },
+  {
+    name: "System Settings",
+    path: "/admin/settings",
+    icon: <FaCog />,
+  },
+  {
+    name: "Profile",
+    path: "/profile",
+    icon: <FaUserCircle />,
+  },
+];
   // --------------------------------------------------
   // SELECT MENU BASED ON ROLE
   // --------------------------------------------------

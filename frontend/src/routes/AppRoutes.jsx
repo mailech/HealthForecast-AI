@@ -8,7 +8,6 @@ import Landing from "../pages/Landing";
 import Login from "../pages/Login";
 import Signup from "../pages/Signup";
 
-
 // =========================================================
 // EXISTING PAGES
 // =========================================================
@@ -22,7 +21,7 @@ import Treatment from "../pages/Treatment";
 import Analytics from "../pages/Analytics";
 import Reports from "../pages/Reports";
 import Profile from "../pages/Profile";
-
+import ExportAnalytics from "../pages/ExportAnalytics";
 
 // =========================================================
 // DOCTOR-SPECIFIC PAGES
@@ -31,7 +30,6 @@ import Profile from "../pages/Profile";
 import CareRecommendations from "../pages/CareRecommendations";
 import FollowUpPlanning from "../pages/FollowUpPlanning";
 
-
 // =========================================================
 // ROLE-SPECIFIC DASHBOARDS
 // =========================================================
@@ -39,7 +37,6 @@ import FollowUpPlanning from "../pages/FollowUpPlanning";
 import HospitalDashboard from "../pages/HospitalDashboard";
 import ResearchDashboard from "../pages/ResearchDashboard";
 import SystemAdminDashboard from "../pages/SystemAdminDashboard";
-
 
 // =========================================================
 // PROTECTED ROUTE
@@ -97,7 +94,7 @@ function AppRoutes() {
 
 
       {/* =====================================================
-          DOCTOR DASHBOARD
+          DOCTOR
       ===================================================== */}
 
       <Route
@@ -127,7 +124,7 @@ function AppRoutes() {
 
 
       {/* =====================================================
-          HOSPITAL ADMINISTRATOR DASHBOARD
+          HOSPITAL ADMINISTRATOR
       ===================================================== */}
 
       <Route
@@ -147,7 +144,7 @@ function AppRoutes() {
 
 
       {/* =====================================================
-          HEALTHCARE RESEARCHER DASHBOARD
+          HEALTHCARE RESEARCHER
       ===================================================== */}
 
       <Route
@@ -167,7 +164,7 @@ function AppRoutes() {
 
 
       {/* =====================================================
-          SYSTEM ADMINISTRATOR DASHBOARD
+          SYSTEM ADMINISTRATOR
       ===================================================== */}
 
       <Route
@@ -187,8 +184,11 @@ function AppRoutes() {
 
 
       {/* =====================================================
-          SHARED AUTHENTICATED PAGES
-          Backend still enforces detailed permissions.
+          SHARED PATIENT / ANALYTICS PAGES
+          
+          Doctor
+          Hospital Administrator
+          System Administrator
       ===================================================== */}
 
       <Route
@@ -227,8 +227,78 @@ function AppRoutes() {
 
 
       {/* =====================================================
-          DOCTOR + SYSTEM ADMIN
-          AI PREDICTION FEATURES
+          EXPORT ANALYTICS
+          
+          Hospital Administrator:
+          → Hospital analytics export
+
+          System Administrator:
+          → Same export page
+      ===================================================== */}
+
+      <Route
+        element={
+          <ProtectedRoute
+            allowedRoles={[
+              "Hospital Administrator",
+              "System Administrator",
+            ]}
+          />
+        }
+      >
+
+        <Route
+          path="/export"
+          element={<ExportAnalytics />}
+        />
+
+      </Route>
+
+
+      {/* =====================================================
+          READMISSION
+          
+          Doctor:
+          → Patient readmission prediction
+
+          Hospital Administrator:
+          → Hospital-wide readmission statistics
+
+          System Administrator:
+          → Same readmission prediction page as Doctor
+      ===================================================== */}
+
+      <Route
+        element={
+          <ProtectedRoute
+            allowedRoles={[
+              "Doctor",
+              "Hospital Administrator",
+              "System Administrator",
+            ]}
+          />
+        }
+      >
+
+        <Route
+          path="/readmission"
+          element={<Readmission />}
+        />
+
+      </Route>
+
+
+      {/* =====================================================
+          AI RISK PREDICTION + TREATMENT
+          
+          Doctor:
+          → Allowed
+
+          System Administrator:
+          → Allowed
+
+          Hospital Administrator:
+          → NOT allowed
       ===================================================== */}
 
       <Route
@@ -245,11 +315,6 @@ function AppRoutes() {
         <Route
           path="/risk-prediction"
           element={<RiskPrediction />}
-        />
-
-        <Route
-          path="/readmission"
-          element={<Readmission />}
         />
 
         <Route

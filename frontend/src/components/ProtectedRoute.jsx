@@ -4,16 +4,26 @@ function ProtectedRoute({ allowedRoles }) {
   const token = localStorage.getItem("token");
   const userData = localStorage.getItem("user");
 
-  // Not logged in
+  // =========================================================
+  // NOT LOGGED IN
+  // =========================================================
+
   if (!token) {
     return <Navigate to="/login" replace />;
   }
 
-  // User information missing
+  // =========================================================
+  // USER DATA MISSING
+  // =========================================================
+
   if (!userData) {
     localStorage.removeItem("token");
     return <Navigate to="/login" replace />;
   }
+
+  // =========================================================
+  // READ USER DATA
+  // =========================================================
 
   let user;
 
@@ -26,30 +36,46 @@ function ProtectedRoute({ allowedRoles }) {
     return <Navigate to="/login" replace />;
   }
 
-  // If this route has role restrictions,
-  // check the logged-in user's role.
+  // =========================================================
+  // USER ROLE MISSING
+  // =========================================================
+
+  if (!user?.role) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    return <Navigate to="/login" replace />;
+  }
+
+  // =========================================================
+  // ROLE-BASED ACCESS CONTROL
+  // =========================================================
+
   if (
     allowedRoles &&
     allowedRoles.length > 0 &&
     !allowedRoles.includes(user.role)
   ) {
-    // User is authenticated but does not have permission.
-    // Send them to their own dashboard.
-    if (user.role === "Doctor") {
-      return <Navigate to="/dashboard" replace />;
+    // -------------------------------------------------------
+    // REDIRECT USER TO THEIR OWN DASHBOARD
+    // -------------------------------------------------------
+
+    const dashboardByRole = {
+      Doctor: "/dashboard",
+      "Hospital Administrator": "/hospital-dashboard",
+      "Healthcare Researcher": "/research-dashboard",
+      "System Administrator": "/admin",
+    };
+
+    const dashboard = dashboardByRole[user.role];
+
+    if (dashboard) {
+      return <Navigate to={dashboard} replace />;
     }
 
-    if (user.role === "Hospital Administrator") {
-      return <Navigate to="/hospital-dashboard" replace />;
-    }
-
-    if (user.role === "Healthcare Researcher") {
-      return <Navigate to="/research-dashboard" replace />;
-    }
-
-    if (user.role === "System Administrator") {
-      return <Navigate to="/admin" replace />;
-    }
+    // Unknown role
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
 
     return <Navigate to="/login" replace />;
   }
