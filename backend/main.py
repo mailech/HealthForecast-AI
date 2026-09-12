@@ -2,6 +2,8 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 from backend.auth_routes import router as auth_router
+from backend.user_routes import router as user_router
+
 from backend.schemas import (
     PatientData,
     PredictionResponse,
@@ -32,7 +34,7 @@ app = FastAPI(
     version="1.0.0"
 )
 app.include_router(auth_router)
-
+app.include_router(user_router)
 # ---------------------------------------------------------
 # CORS Configuration
 # ---------------------------------------------------------
