@@ -202,8 +202,8 @@ export const LoginPage = () => {
           </div>
         </div>
 
-        <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-          Need an account? <Link to="/register" style={{ fontWeight: '600', color: 'var(--primary-600)' }}>Register Work Profile</Link>
+        <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+          Need access credentials? Contact your Hospital or System Administrator to provision an account.
         </div>
       </div>
     </div>

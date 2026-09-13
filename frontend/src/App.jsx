@@ -8,7 +8,6 @@ import { LandingPage } from './pages/LandingPage';
 
 // Module-based Page Imports
 import { LoginPage } from './pages/auth/LoginPage';
-import { RegisterPage } from './pages/auth/RegisterPage';
 import { UnauthorizedPage } from './pages/auth/UnauthorizedPage';
 
 import { DoctorDashboard } from './pages/dashboard/DoctorDashboard';
@@ -33,7 +32,6 @@ export function App() {
 
           {/* Public Auth Routes */}
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
           {/* Role-Protected Dashboard Routes */}

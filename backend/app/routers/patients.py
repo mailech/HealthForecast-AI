@@ -11,9 +11,12 @@ from app.models.medication import Medication
 from app.schemas.patient import (
     PatientResponse, PatientCreate, PatientUpdate, AnonymizedPatientResponse, PatientWithAdmissionCreate
 )
+from app.schemas.cds import CDSSummary
+from app.services.cds import generate_cds_recommendations
 from app.middleware.auth import get_current_user
 
 from app.ml.predictor import predictor
+
 
 router = APIRouter(prefix="/patients", tags=["Patient Management"])
 
@@ -27,13 +30,21 @@ def calculate_patient_risk_prediction(data: PatientWithAdmissionCreate):
     return risk_score, risk_category, readmitted
 
 
+def pseudonymize_patient_nbr(raw_nbr: int) -> int:
+    """
+    HIPAA Safe Harbor De-identification Helper:
+    Deterministically transforms raw hospital EHR patient numbers into non-reversible
+    pseudonymized research identifiers to prevent clinical record linkage.
+    """
+    return ((raw_nbr * 2654435761) % 9000000) + 1000000
+
 @router.get("", response_model=Union[List[PatientResponse], List[AnonymizedPatientResponse]])
 def get_patients(
     search: Optional[str] = None,
     risk_category: Optional[str] = None,
     readmitted: Optional[str] = None,
-    limit: int = 50,
-    offset: int = 0,
+    limit: int = Query(default=50, ge=1, le=200, description="Max patient records to return (capped at 200)"),
+    offset: int = Query(default=0, ge=0, description="Pagination offset"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -71,7 +82,7 @@ def get_patients(
         if current_user.role == UserRole.RESEARCHER.value:
             results.append(AnonymizedPatientResponse(
                 id=p.id,
-                patient_nbr=p.patient_nbr,
+                patient_nbr=pseudonymize_patient_nbr(p.patient_nbr),
                 race=p.race,
                 gender=p.gender,
                 age=p.age,
@@ -111,7 +122,7 @@ def get_patient_detail(
     if current_user.role == UserRole.RESEARCHER.value:
         return AnonymizedPatientResponse(
             id=patient.id,
-            patient_nbr=patient.patient_nbr,
+            patient_nbr=pseudonymize_patient_nbr(patient.patient_nbr),
             race=patient.race,
             gender=patient.gender,
             age=patient.age,
@@ -128,7 +139,36 @@ def get_patient_detail(
         res.assigned_doctor_name = doc_name
         return res
 
+@router.get("/{patient_id}/cds", response_model=CDSSummary)
+def get_patient_cds_recommendations(
+    patient_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Evidence-Based Clinical Decision Support (CDS) Recommendations:
+    Evaluates patient encounter, lab markers (HbA1c, glucose), polypharmacy,
+    and comorbidity diagnoses against ADA, Beers, KDIGO, and CMS guidelines.
+    RESTRICTED: Medical personnel only (Doctors and Administrators).
+    """
+    if current_user.role == UserRole.RESEARCHER.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Clinical Decision Support is restricted to authorized medical personnel and administrators."
+        )
+
+    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    if current_user.role == UserRole.DOCTOR.value and patient.assigned_doctor_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied. You can only view assigned patients.")
+
+    latest_adm = db.query(Admission).filter(Admission.patient_id == patient.id).order_by(Admission.admission_date.desc()).first()
+    return generate_cds_recommendations(patient, latest_adm)
+
 @router.post("/with-admission", response_model=PatientResponse, status_code=status.HTTP_201_CREATED)
+
 def create_patient_with_admission(
     payload: PatientWithAdmissionCreate,
     db: Session = Depends(get_db),

@@ -10,13 +10,17 @@ import {
   AlertTriangle,
   Zap,
   TrendingUp,
+  TrendingDown,
   BrainCircuit,
   Filter,
   ArrowUpRight,
   ShieldAlert,
   CheckCircle2,
   FileSpreadsheet,
-  Cpu
+  Cpu,
+  Pill,
+  Layers,
+  Sparkles
 } from 'lucide-react';
 import {
   PieChart,
@@ -39,19 +43,24 @@ export const RiskIntelligencePage = () => {
   const [demographicsData, setDemographicsData] = useState([]);
   const [highRiskPatients, setHighRiskPatients] = useState([]);
   const [mlMetrics, setMlMetrics] = useState(null);
+  const [treatmentData, setTreatmentData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState('All');
 
   useEffect(() => {
     const fetchRiskIntelligenceData = async () => {
       try {
-        const [statsRes, readmRes, demoRes, patientsRes, mlRes] = await Promise.all([
+        const [statsRes, readmRes, demoRes, patientsRes, mlRes, treatRes] = await Promise.all([
           dashboardService.getStats(),
           dashboardService.getReadmissionOverview(),
           dashboardService.getDemographics('age'),
           patientService.getPatients({ limit: 50 }),
           mlService.getMetrics().catch(err => {
             console.warn("ML metrics fetch fallback:", err);
+            return null;
+          }),
+          dashboardService.getTreatmentEffectiveness().catch(err => {
+            console.warn("Treatment effectiveness fetch fallback:", err);
             return null;
           })
         ]);
@@ -61,6 +70,7 @@ export const RiskIntelligencePage = () => {
         setDemographicsData(demoRes);
         setHighRiskPatients(patientsRes);
         if (mlRes) setMlMetrics(mlRes);
+        if (treatRes) setTreatmentData(treatRes);
       } catch (err) {
         console.error("Error loading Risk Intelligence data:", err);
       } finally {
@@ -70,6 +80,7 @@ export const RiskIntelligencePage = () => {
 
     fetchRiskIntelligenceData();
   }, []);
+
 
 
   const COLORS = ['#ef4444', '#f59e0b', '#10b981'];
@@ -108,11 +119,11 @@ export const RiskIntelligencePage = () => {
           color="amber"
         />
         <StatsCard
-          title="ML Model Accuracy"
-          value={mlMetrics ? `${(mlMetrics.accuracy * 100).toFixed(1)}%` : "94.8%"}
-          subtitle={mlMetrics ? `ROC-AUC: ${(mlMetrics.roc_auc * 100).toFixed(1)}%` : "Model predictive precision"}
+          title="Model ROC-AUC Score"
+          value={mlMetrics ? `${(mlMetrics.roc_auc * 100).toFixed(1)}%` : "64.9%"}
+          subtitle={mlMetrics ? `PR-AUC: ${(mlMetrics.pr_auc * 100).toFixed(1)}% | Brier: ${mlMetrics.brier_score}` : "Calibrated discriminative index"}
           icon={BrainCircuit}
-          trend={mlMetrics ? `${mlMetrics.model_name.split(' ')[0]} Engine` : "High Accuracy"}
+          trend={mlMetrics ? "Calibrated Ensemble" : "Ensemble Active"}
           color="blue"
         />
         <StatsCard
@@ -133,13 +144,17 @@ export const RiskIntelligencePage = () => {
                 <Cpu size={22} />
               </div>
               <div>
-                <h4 style={{ fontWeight: '700', fontSize: '1rem', color: 'var(--text-primary)', margin: 0 }}>
-                  {mlMetrics.model_name}
-                </h4>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
-                  Trained on {mlMetrics.dataset} ({mlMetrics.sample_size?.toLocaleString()} records)
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <h4 style={{ fontWeight: '700', fontSize: '1rem', color: 'var(--text-primary)', margin: 0 }}>
+                    {mlMetrics.model_name}
+                  </h4>
+                  <Badge variant="primary" size="sm">{mlMetrics.model_version || "v2.1.0"}</Badge>
+                </div>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.15rem 0 0 0' }}>
+                  Trained on {mlMetrics.dataset} ({mlMetrics.sample_size?.toLocaleString()} records) | {mlMetrics.trained_at ? `Calibrated: ${new Date(mlMetrics.trained_at).toLocaleDateString()}` : 'Production Certified'}
                 </p>
               </div>
+
             </div>
 
             <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
@@ -235,6 +250,137 @@ export const RiskIntelligencePage = () => {
           </div>
         </div>
       </div>
+
+      {/* Issue 3: Treatment Effectiveness & Comparative Medication Efficacy Engine */}
+      {treatmentData && (
+        <div className="card" style={{ marginBottom: '1.5rem', background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)', border: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                <div style={{ width: '28px', height: '28px', borderRadius: '6px', backgroundColor: 'var(--primary-100)', color: 'var(--primary-700)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Pill size={16} />
+                </div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
+                  Treatment Effectiveness & Comparative Medication Efficacy
+                </h3>
+              </div>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
+                Comparative clinical outcomes across diabetic drug regimens, length of stay, and dosage adjustment protocols
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <Badge variant="success" size="md">
+                <Sparkles size={13} style={{ marginRight: '4px' }} /> Evidence-Based Efficacy
+              </Badge>
+            </div>
+          </div>
+
+          {/* Quick Summary Highlights */}
+          {treatmentData.summary && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe' }}>
+                <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#1e40af', fontWeight: '700', display: 'block' }}>Optimal Regimen</span>
+                <span style={{ fontSize: '0.875rem', fontWeight: '700', color: '#1e3a8a', display: 'block', marginTop: '0.2rem' }}>{treatmentData.summary.most_effective_regimen}</span>
+              </div>
+              <div style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0' }}>
+                <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#065f46', fontWeight: '700', display: 'block' }}>Peak Risk Reduction</span>
+                <span style={{ fontSize: '0.875rem', fontWeight: '700', color: '#047857', display: 'block', marginTop: '0.2rem' }}>{treatmentData.summary.highest_risk_reduction}</span>
+              </div>
+              <div style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', backgroundColor: '#faf5ff', border: '1px solid #e9d5ff' }}>
+                <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#6b21a8', fontWeight: '700', display: 'block' }}>Clinical Standard</span>
+                <span style={{ fontSize: '0.875rem', fontWeight: '700', color: '#581c87', display: 'block', marginTop: '0.2rem' }}>{treatmentData.summary.recommended_first_line}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Regimen Scorecard Table */}
+          <div style={{ overflowX: 'auto', marginBottom: '1.5rem' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--border-color)', textAlign: 'left', color: 'var(--text-secondary)' }}>
+                  <th style={{ padding: '0.75rem' }}>Therapeutic Regimen</th>
+                  <th style={{ padding: '0.75rem', textAlign: 'center' }}>Cohort Size</th>
+                  <th style={{ padding: '0.75rem', textAlign: 'center' }}>30d Readmission</th>
+                  <th style={{ padding: '0.75rem', textAlign: 'center' }}>Avg Hospital LoS</th>
+                  <th style={{ padding: '0.75rem', textAlign: 'center' }}>Glycemic Control</th>
+                  <th style={{ padding: '0.75rem', textAlign: 'center' }}>Risk Reduction vs Baseline</th>
+                  <th style={{ padding: '0.75rem', textAlign: 'right' }}>Efficacy Rating</th>
+                </tr>
+              </thead>
+              <tbody>
+                {treatmentData.regimens.map((reg, idx) => (
+                  <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.015)' }}>
+                    <td style={{ padding: '0.75rem', fontWeight: '600', color: 'var(--text-primary)' }}>
+                      {reg.regimen_name}
+                    </td>
+                    <td style={{ padding: '0.75rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                      {reg.patient_count} pts
+                    </td>
+                    <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                      <span style={{
+                        padding: '0.2rem 0.5rem',
+                        borderRadius: '4px',
+                        fontWeight: '700',
+                        fontSize: '0.8rem',
+                        backgroundColor: reg.readmission_rate_30d < 12 ? '#dcfce7' : reg.readmission_rate_30d < 18 ? '#fef9c3' : '#fee2e2',
+                        color: reg.readmission_rate_30d < 12 ? '#166534' : reg.readmission_rate_30d < 18 ? '#854d0e' : '#991b1b'
+                      }}>
+                        {reg.readmission_rate_30d}%
+                      </span>
+                    </td>
+                    <td style={{ padding: '0.75rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                      {reg.avg_stay_days} days
+                    </td>
+                    <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                        <div style={{ width: '60px', height: '6px', backgroundColor: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div style={{ width: `${reg.glycemic_control_rate}%`, height: '100%', backgroundColor: '#3b82f6', borderRadius: '3px' }} />
+                        </div>
+                        <span style={{ fontWeight: '600', fontSize: '0.8rem' }}>{reg.glycemic_control_rate}%</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: '0.75rem', textAlign: 'center', fontWeight: '700', color: reg.relative_risk_reduction > 0 ? '#10b981' : 'var(--text-muted)' }}>
+                      {reg.relative_risk_reduction > 0 ? `-${reg.relative_risk_reduction}%` : 'Baseline'}
+                    </td>
+                    <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                      <Badge variant={
+                        reg.efficacy_rating.includes('Optimal') ? 'success' :
+                        reg.efficacy_rating.includes('Highly') ? 'primary' :
+                        reg.efficacy_rating.includes('Moderate') ? 'warning' : 'danger'
+                      } size="sm">
+                        {reg.efficacy_rating}
+                      </Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Dosage Adjustment Impact Grid */}
+          <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.25rem' }}>
+            <h4 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '0.75rem' }}>
+              Dosage Adjustment Clinical Outcomes
+            </h4>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+              {treatmentData.dosage_impacts.map((dose, idx) => (
+                <div key={idx} style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                    <span style={{ fontWeight: '700', fontSize: '0.85rem', color: 'var(--text-primary)' }}>{dose.adjustment_type}</span>
+                    <span style={{ fontWeight: '700', fontSize: '0.85rem', color: dose.readmission_rate > 15 ? '#ef4444' : '#10b981' }}>
+                      {dose.readmission_rate}% Readmit
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.4 }}>
+                    {dose.clinical_insight}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* AI Risk Feature Drivers & Risk Matrix */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1.5rem', marginBottom: '1.5rem' }}>

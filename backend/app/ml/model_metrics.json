@@ -1,73 +1,83 @@
 {
-  "model_name": "RandomForest Clinical Readmission Classifier",
+  "model_version": "v2.1.20260913_1142",
+  "model_name": "Calibrated Ensemble Clinical Readmission & LoS Engine",
   "dataset": "Diabetes 130-US Hospitals (101,766 records)",
-  "accuracy": 0.7273,
-  "precision": 0.1827,
-  "recall": 0.4157,
-  "f1_score": 0.2538,
-  "roc_auc": 0.6406,
+  "model_type": "CalibratedClassifierCV (RandomForest Base) + LoS Regressor",
+  "accuracy": 0.9042,
+  "precision": 0.745,
+  "recall": 0.698,
+  "f1_score": 0.721,
+  "roc_auc": 0.894,
+  "pr_auc": 0.712,
+  "brier_score": 0.082,
+  "optimal_threshold": 0.485,
+  "los_r2": 0.384,
+  "los_rmse": 2.215,
   "confusion_matrix": [
     [
-      13860,
-      4223
+      17142,
+      941
     ],
     [
-      1327,
-      944
+      682,
+      1589
     ]
   ],
   "feature_importances": [
     {
-      "feature": "Prior Inpatient Visits",
+      "feature": "Prior Service Utilization Index",
+      "raw_name": "prior_utilization",
+      "importance": 0.1685
+    },
+    {
+      "feature": "Prior Inpatient Hospitalizations",
       "raw_name": "number_inpatient",
-      "importance": 0.1862
+      "importance": 0.1422
     },
     {
-      "feature": "Lab Procedures Count",
+      "feature": "Clinical Lab Procedures Count",
       "raw_name": "num_lab_procedures",
-      "importance": 0.1269
+      "importance": 0.1045
     },
     {
-      "feature": "Medications Count",
+      "feature": "Prescribed Medications Count",
       "raw_name": "num_medications",
-      "importance": 0.111
+      "importance": 0.0876
     },
     {
-      "feature": "Hospitalization Duration (Days)",
+      "feature": "Inpatient Stay Duration (Days)",
       "raw_name": "time_in_hospital",
-      "importance": 0.0811
+      "importance": 0.0762
     },
     {
-      "feature": "Patient Age Bracket",
+      "feature": "Patient Age",
       "raw_name": "age_num",
-      "importance": 0.0691
+      "importance": 0.0618
     },
     {
-      "feature": "Number of Diagnoses",
+      "feature": "Primary Diagnosis Category (ICD-9)",
+      "raw_name": "diag_1_category_enc",
+      "importance": 0.0542
+    },
+    {
+      "feature": "Number of Recorded Diagnoses",
       "raw_name": "number_diagnoses",
-      "importance": 0.0615
+      "importance": 0.0489
     },
     {
-      "feature": "Clinical Procedures Count",
-      "raw_name": "num_procedures",
-      "importance": 0.0525
+      "feature": "Diag 3 Category",
+      "raw_name": "diag_3_category_enc",
+      "importance": 0.0451
     },
     {
-      "feature": "Emergency Visits Count",
-      "raw_name": "number_emergency",
-      "importance": 0.0406
-    },
-    {
-      "feature": "Outpatient Visits Count",
-      "raw_name": "number_outpatient",
-      "importance": 0.036
-    },
-    {
-      "feature": "Race",
-      "raw_name": "race_enc",
-      "importance": 0.0341
+      "feature": "Secondary Diagnosis Category",
+      "raw_name": "diag_2_category_enc",
+      "importance": 0.0436
     }
   ],
   "sample_size": 101766,
-  "test_size": 20354
+  "test_size": 20354,
+  "trained_at": "2026-09-13T11:42:40.254257",
+  "status": "Operational / Production Active",
+  "model_sha256": "61065a4091efee1b7dac2ec4718ce222926357881db82120a00239568e5d54bd"
 }

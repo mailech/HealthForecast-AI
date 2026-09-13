@@ -1,10 +1,62 @@
-# Python / Backend
+# ==========================================
+# HealthForecast AI - Root Git Ignore Rules
+# ==========================================
+
+# --- Environment, Secrets & Credentials (CRITICAL) ---
+.env
+.env.*
+*.env
+!.env.example
+!*.env.example
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
+secrets/
+credentials.json
+token.json
+client_secrets.json
+
+# --- Databases & Healthcare Datasets (PHI / Storage) ---
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+backend/*.db
+backend/*.sqlite3
+diabetic_data.csv
+*.csv
+
+# --- Machine Learning Artifacts & Models ---
+*.joblib
+*.joblib.sha256
+*.pkl
+*.pickle
+*.h5
+*.pt
+*.pth
+*.onnx
+*.bin
+*.model
+backend/app/ml/*.joblib
+backend/app/ml/*.joblib.sha256
+
+# --- Python / Backend Runtime & Virtual Environments ---
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
 env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
 build/
 develop-eggs/
 dist/
@@ -17,27 +69,54 @@ parts/
 sdist/
 var/
 wheels/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-*.db
-*.sqlite3
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
 
-# Node / Frontend
+# --- Node / Frontend Artifacts & Dependencies ---
 node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+dist-ssr/
+frontend/dist-ssr/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+lerna-debug.log*
 .eslintcache
 .vite/
-frontend/node_modules/
-frontend/dist/
+frontend/.vite/
 
-# OS / IDE
+# --- Logs, Dumps & Diagnostics ---
+*.log
+logs/
+*.out
+*.pid
+*.seed
+*.pid.lock
+
+# --- OS & IDE Metadata ---
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 .vscode/
+!.vscode/extensions.json
 .idea/
 *.swp
 *.swo
+*.suo
+*.ntvs*
+*.njsproj
+*.sln

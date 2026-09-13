@@ -11,11 +11,10 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
 )
 
-# Set up CORS middleware for frontend communication
+# Set up CORS middleware with strict allowed origins
 app.add_middleware(
     CORSMiddleware,
-    # for local development we use * and when we deploy it then we change with frontend url
-    allow_origins=["*"],  # Allows all origins in development
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -32,9 +31,10 @@ app.include_router(ml.router, prefix=settings.API_V1_STR)
 
 @app.on_event("startup")
 def startup_event():
-    # Ensure database schema is created and seeded on startup
+    # Ensure database schema is created and conditionally seeded on startup
     Base.metadata.create_all(bind=engine)
-    seed_database()
+    if settings.SEED_DEMO_DATA:
+        seed_database()
 
 
 @app.get("/")

@@ -8,15 +8,24 @@ from app.models.admission import Admission
 from app.models.medication import Medication
 from app.utils.security import get_password_hash
 
-def seed_database():
+def seed_database(force: bool = False):
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     
     try:
         # Check if users already exist
-        if db.query(User).count() > 0:
+        if not force and db.query(User).count() > 0:
             print("Database already seeded.")
             return
+
+        if force:
+            print("Clearing existing records for fresh reseed...")
+            db.query(Medication).delete()
+            db.query(Admission).delete()
+            db.query(Patient).delete()
+            db.query(User).delete()
+            db.commit()
+
 
         print("Seeding demo users (2 per role)...")
         demo_users_data = [
@@ -147,10 +156,98 @@ def seed_database():
             ("272.40", "Other and unspecified hyperlipidemia")
         ]
 
-        medications_pool = ["Metformin", "Insulin", "Glipizide", "Glyburide", "Pioglitazone", "Rosiglitazone", "Glimepiride"]
+        # Clinically realistic archetypes for diabetic patient diversity
+        regimen_archetypes = [
+            # 0: Metformin Monotherapy (Optimal first line, well-controlled)
+            {
+                "meds": [{"medication_name": "Metformin", "dosage_status": "Steady"}],
+                "a1c": "Norm",
+                "glu": "Norm",
+                "num_inpatient": 0,
+                "num_emergency": 0,
+                "num_meds": 8,
+                "diag_1": "250.00",
+                "diag_2": "401.90",
+                "diag_3": "272.40",
+                "change": "No"
+            },
+            # 1: Dual Oral Therapy (Suboptimal control, oral intensification)
+            {
+                "meds": [
+                    {"medication_name": "Metformin", "dosage_status": "Up"},
+                    {"medication_name": "Glipizide", "dosage_status": "Steady"}
+                ],
+                "a1c": ">7",
+                "glu": ">200",
+                "num_inpatient": 0,
+                "num_emergency": 1,
+                "num_meds": 11,
+                "diag_1": "414.01",
+                "diag_2": "250.00",
+                "diag_3": "401.90",
+                "change": "Ch"
+            },
+            # 2: High Complexity Insulin + Oral Combo + Polypharmacy (Critical risk)
+            {
+                "meds": [
+                    {"medication_name": "Insulin", "dosage_status": "Up"},
+                    {"medication_name": "Metformin", "dosage_status": "Steady"},
+                    {"medication_name": "Pioglitazone", "dosage_status": "Steady"}
+                ],
+                "a1c": ">8",
+                "glu": ">300",
+                "num_inpatient": 2,
+                "num_emergency": 2,
+                "num_meds": 17,
+                "diag_1": "428.00",
+                "diag_2": "250.00",
+                "diag_3": "496.00",
+                "change": "Ch"
+            },
+            # 3: Insulin Monotherapy + Renal Complication
+            {
+                "meds": [{"medication_name": "Insulin", "dosage_status": "Steady"}],
+                "a1c": ">8",
+                "glu": ">200",
+                "num_inpatient": 1,
+                "num_emergency": 0,
+                "num_meds": 13,
+                "diag_1": "585.90",
+                "diag_2": "250.00",
+                "diag_3": "401.90",
+                "change": "No"
+            },
+            # 4: Dietary Management / Guideline Missing Lab Check
+            {
+                "meds": [],
+                "a1c": "None",
+                "glu": "None",
+                "num_inpatient": 0,
+                "num_emergency": 0,
+                "num_meds": 6,
+                "diag_1": "250.00",
+                "diag_2": "272.40",
+                "diag_3": "401.90",
+                "change": "No"
+            },
+            # 5: Dosage Reduction / Taper Rebound Risk
+            {
+                "meds": [{"medication_name": "Glimepiride", "dosage_status": "Down"}],
+                "a1c": ">7",
+                "glu": "Norm",
+                "num_inpatient": 1,
+                "num_emergency": 1,
+                "num_meds": 10,
+                "diag_1": "414.01",
+                "diag_2": "250.00",
+                "diag_3": "272.40",
+                "change": "Ch"
+            }
+        ]
 
         for idx, (fname, lname, age, gender, race, pnbr) in enumerate(sample_patients_data):
             assigned_doc = created_doctors[idx % len(created_doctors)]
+            archetype = regimen_archetypes[idx % len(regimen_archetypes)]
             
             patient = Patient(
                 patient_nbr=pnbr,
@@ -167,35 +264,47 @@ def seed_database():
             db.flush()
 
             # Create 1-2 admissions per patient
-            num_adm = 2 if idx % 3 == 0 else 1
+            num_adm = 2 if (idx % 3 == 0 or archetype["num_inpatient"] > 1) else 1
             for adm_idx in range(num_adm):
                 encounter_id = pnbr + 1000 + adm_idx
                 days_ago = (idx * 5) + (adm_idx * 20) + 2
                 adm_date = datetime.utcnow() - timedelta(days=days_ago)
-                time_in_hosp = random.randint(2, 9)
+                time_in_hosp = random.randint(2, 4) if archetype["num_inpatient"] == 0 else random.randint(5, 9)
                 disch_date = adm_date + timedelta(days=time_in_hosp)
+                num_lab = random.randint(30, 50) if archetype["a1c"] == "Norm" else random.randint(55, 88)
+                num_meds = archetype["num_meds"] + random.randint(-1, 2)
+                num_inpatient = archetype["num_inpatient"]
+                num_emergency = archetype["num_emergency"]
+                d1 = archetype["diag_1"]
+                d2 = archetype["diag_2"]
+                d3 = archetype["diag_3"]
 
-                # Determine realistic risk score & readmission flag
-                num_lab = random.randint(30, 85)
-                num_meds = random.randint(8, 26)
-                num_inpatient = random.randint(0, 3)
+                # Use live ML Predictor with calibrated clinical inference
+                encounter_payload = {
+                    "age": age,
+                    "race": race,
+                    "gender": gender,
+                    "time_in_hospital": time_in_hosp,
+                    "num_lab_procedures": num_lab,
+                    "num_procedures": random.randint(0, 3),
+                    "num_medications": num_meds,
+                    "number_outpatient": random.randint(0, 2),
+                    "number_emergency": num_emergency,
+                    "number_inpatient": num_inpatient,
+                    "diag_1": d1,
+                    "diag_2": d2,
+                    "diag_3": d3,
+                    "number_diagnoses": 3,
+                    "max_glu_serum": archetype["glu"],
+                    "A1Cresult": archetype["a1c"],
+                    "change": archetype["change"],
+                    "diabetesMed": "Yes" if len(archetype["meds"]) > 0 else "No",
+                    "medications": archetype["meds"]
+                }
                 
-                # Formula to generate synthetic realistic risk score based on features
-                risk_score = round(min(98.5, max(12.0, (num_inpatient * 18.0) + (num_lab * 0.4) + (num_meds * 1.5) + random.uniform(-5, 10))), 1)
-                
-                if risk_score >= 65:
-                    risk_category = "High"
-                    readmitted = "<30" if random.random() < 0.7 else ">30"
-                elif risk_score >= 40:
-                    risk_category = "Medium"
-                    readmitted = ">30" if random.random() < 0.6 else "NO"
-                else:
-                    risk_category = "Low"
-                    readmitted = "NO"
+                from app.ml.predictor import predictor
+                risk_score, risk_category, readmitted, _ = predictor.predict(encounter_payload)
 
-                d1 = random.choice(diagnoses_list)[0]
-                d2 = random.choice(diagnoses_list)[0]
-                d3 = random.choice(diagnoses_list)[0]
 
                 admission = Admission(
                     encounter_id=encounter_id,
@@ -206,18 +315,18 @@ def seed_database():
                     time_in_hospital=time_in_hosp,
                     medical_specialty=random.choice(specialties),
                     num_lab_procedures=num_lab,
-                    num_procedures=random.randint(0, 4),
+                    num_procedures=encounter_payload["num_procedures"],
                     num_medications=num_meds,
-                    number_outpatient=random.randint(0, 2),
-                    number_emergency=random.randint(0, 2),
+                    number_outpatient=encounter_payload["number_outpatient"],
+                    number_emergency=encounter_payload["number_emergency"],
                     number_inpatient=num_inpatient,
                     diag_1=d1,
                     diag_2=d2,
                     diag_3=d3,
-                    number_diagnoses=random.randint(3, 9),
-                    max_glu_serum=">200" if risk_score > 60 else "Norm",
-                    A1Cresult=">8" if risk_score > 55 else "Norm",
-                    change="Ch" if idx % 2 == 0 else "No",
+                    number_diagnoses=encounter_payload["number_diagnoses"],
+                    max_glu_serum=encounter_payload["max_glu_serum"],
+                    A1Cresult=encounter_payload["A1Cresult"],
+                    change=encounter_payload["change"],
                     diabetesMed="Yes",
                     risk_score=risk_score,
                     risk_category=risk_category,
@@ -229,12 +338,11 @@ def seed_database():
                 db.flush()
 
                 # Add sample medications
-                for med_name in random.sample(medications_pool, random.randint(2, 4)):
-                    status = random.choice(["Up", "Down", "Steady"])
+                for med_item in encounter_payload["medications"]:
                     med = Medication(
                         admission_id=admission.id,
-                        medication_name=med_name,
-                        dosage_status=status
+                        medication_name=med_item["medication_name"],
+                        dosage_status=med_item["dosage_status"]
                     )
                     db.add(med)
 

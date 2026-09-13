@@ -7,9 +7,11 @@ from app.schemas.user import UserCreate, UserResponse, Token
 from app.utils.security import verify_password, get_password_hash, create_access_token
 from app.middleware.auth import get_current_user
 
+from app.middleware.rate_limiter import auth_rate_limiter
+
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=Token, dependencies=[Depends(auth_rate_limiter)])
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == form_data.username).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
@@ -29,31 +31,15 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     }
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def register(user_in: UserCreate, db: Session = Depends(get_db)):
-    existing = db.query(User).filter(User.email == user_in.email).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Email is already registered")
-    
-    # Ensure role is valid and forbid system_admin from public registration
-    valid_roles = [r.value for r in UserRole]
-    if user_in.role not in valid_roles:
-        raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of {valid_roles}")
-    if user_in.role == UserRole.SYSTEM_ADMIN.value:
-        raise HTTPException(status_code=403, detail="System Administrator accounts cannot be created via public registration")
-
-    new_user = User(
-        email=user_in.email,
-        full_name=user_in.full_name,
-        hashed_password=get_password_hash(user_in.password),
-        role=user_in.role,
-        department=user_in.department,
-        hospital_name=user_in.hospital_name,
-        is_active=True
+def register():
+    """
+    Public self-registration is disabled for healthcare security compliance.
+    All accounts must be provisioned by System Administrators via /api/users.
+    """
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Public self-registration has been disabled. All user accounts must be provisioned by a System Administrator via User Management."
     )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
 
 @router.get("/me", response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_user)):

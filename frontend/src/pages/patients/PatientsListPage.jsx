@@ -297,12 +297,16 @@ export const PatientsListPage = () => {
                 <div>
                   <label className="form-label">Age Bracket</label>
                   <select name="age" value={formData.age} onChange={handleInputChange} className="form-control">
-                    <option value="[30-40)">[30-40)</option>
-                    <option value="[40-50)">[40-50)</option>
-                    <option value="[50-60)">[50-60)</option>
-                    <option value="[60-70)">[60-70)</option>
-                    <option value="[70-80)">[70-80)</option>
-                    <option value="[80-90)">[80-90)</option>
+                    <option value="[0-10)">[0-10) Years</option>
+                    <option value="[10-20)">[10-20) Years</option>
+                    <option value="[20-30)">[20-30) Years</option>
+                    <option value="[30-40)">[30-40) Years</option>
+                    <option value="[40-50)">[40-50) Years</option>
+                    <option value="[50-60)">[50-60) Years</option>
+                    <option value="[60-70)">[60-70) Years</option>
+                    <option value="[70-80)">[70-80) Years</option>
+                    <option value="[80-90)">[80-90) Years</option>
+                    <option value="[90-100)">[90-100) Years</option>
                   </select>
                 </div>
                 <div>
@@ -334,7 +338,7 @@ export const PatientsListPage = () => {
               <div className="modal-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
                 <div>
                   <label className="form-label">Primary Diagnosis (ICD-9)</label>
-                  <input type="text" name="diag_1" value={formData.diag_1} onChange={handleInputChange} className="form-control" />
+                  <input type="text" name="diag_1" value={formData.diag_1} onChange={handleInputChange} placeholder="e.g. 250.00 Diabetes" className="form-control" />
                 </div>
                 <div>
                   <label className="form-label">HbA1c Test Result</label>
@@ -356,16 +360,57 @@ export const PatientsListPage = () => {
                 </div>
                 <div>
                   <label className="form-label">Time in Hospital (Days)</label>
-                  <input type="number" name="time_in_hospital" value={formData.time_in_hospital} onChange={handleInputChange} className="form-control" />
+                  <input type="number" name="time_in_hospital" min="1" max="30" value={formData.time_in_hospital} onChange={handleInputChange} className="form-control" />
                 </div>
                 <div>
                   <label className="form-label">Number of Lab Procedures</label>
-                  <input type="number" name="num_lab_procedures" value={formData.num_lab_procedures} onChange={handleInputChange} className="form-control" />
+                  <input type="number" name="num_lab_procedures" min="0" value={formData.num_lab_procedures} onChange={handleInputChange} className="form-control" />
                 </div>
                 <div>
                   <label className="form-label">Prior Inpatient Admissions</label>
-                  <input type="number" name="number_inpatient" value={formData.number_inpatient} onChange={handleInputChange} className="form-control" />
+                  <input type="number" name="number_inpatient" min="0" value={formData.number_inpatient} onChange={handleInputChange} className="form-control" />
                 </div>
+              </div>
+
+              <div style={{ fontSize: '0.8125rem', fontWeight: '700', color: 'var(--primary-700)', textTransform: 'uppercase', marginBottom: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-color)' }}>
+                3. Prescribed Diabetic Medication Regimen
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginBottom: '1.25rem', backgroundColor: 'var(--bg-primary)', padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                {['Metformin', 'Insulin', 'Glipizide', 'Glyburide', 'Pioglitazone', 'Rosiglitazone'].map((medName) => {
+                  const currentMed = formData.medications.find(m => m.medication_name === medName);
+                  const currentStatus = currentMed ? currentMed.dosage_status : 'No';
+                  
+                  return (
+                    <div key={medName} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <label style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-primary)' }}>{medName}</label>
+                      <select
+                        value={currentStatus}
+                        onChange={(e) => {
+                          const newStatus = e.target.value;
+                          const filtered = formData.medications.filter(m => m.medication_name !== medName);
+                          if (newStatus !== 'No') {
+                            setFormData({
+                              ...formData,
+                              medications: [...filtered, { medication_name: medName, dosage_status: newStatus }]
+                            });
+                          } else {
+                            setFormData({
+                              ...formData,
+                              medications: filtered
+                            });
+                          }
+                        }}
+                        className="form-control"
+                        style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                      >
+                        <option value="No">Not Prescribed (No)</option>
+                        <option value="Steady">Steady Dosage</option>
+                        <option value="Up">Increased (Up)</option>
+                        <option value="Down">Decreased (Down)</option>
+                      </select>
+                    </div>
+                  );
+                })}
               </div>
 
               <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>

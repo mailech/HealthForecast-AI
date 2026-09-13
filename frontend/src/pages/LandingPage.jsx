@@ -463,7 +463,6 @@ export const LandingPage = () => {
             <div style={{ color: '#ffffff', fontWeight: '700', marginBottom: '0.75rem' }}>Platform Navigation</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.8125rem' }}>
               <Link to="/login" style={{ color: 'inherit' }}>Sign In</Link>
-              <Link to="/register" style={{ color: 'inherit' }}>Register Profile</Link>
               <a href="#features" style={{ color: 'inherit' }}>Features</a>
             </div>
           </div>

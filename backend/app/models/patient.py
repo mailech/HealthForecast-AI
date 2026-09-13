@@ -19,4 +19,4 @@ class Patient(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     assigned_doctor = relationship("User", back_populates="patients")
-    admissions = relationship("Admission", back_populates="patient", cascade="all, delete-orphan")
+    admissions = relationship("Admission", back_populates="patient", cascade="all, delete-orphan", order_by="desc(Admission.admission_date)")

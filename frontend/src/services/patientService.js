@@ -20,4 +20,10 @@ export const patientService = {
     const response = await api.post('/patients/with-admission', data);
     return response.data;
   },
+
+  getPatientCDS: async (id) => {
+    const response = await api.get(`/patients/${id}/cds`);
+    return response.data;
+  },
 };
+

@@ -20,4 +20,16 @@ export const dashboardService = {
     const response = await api.get('/dashboard/hospital-performance');
     return response.data;
   },
+
+  getTreatmentEffectiveness: async () => {
+    const response = await api.get('/dashboard/treatment-effectiveness');
+    return response.data;
+  },
+
+  getAdvancedAnalytics: async () => {
+    const response = await api.get('/dashboard/advanced-analytics');
+    return response.data;
+  },
 };
+
+

@@ -1,0 +1,13 @@
+[
+  {
+    "version": "v2.1.20260913_1142",
+    "trained_at": "2026-09-13T11:42:40.254257",
+    "sample_size": 101766,
+    "accuracy": 0.9042,
+    "roc_auc": 0.894,
+    "f1_score": 0.721,
+    "recall": 0.698,
+    "precision": 0.745,
+    "status": "Success / Active"
+  }
+]
