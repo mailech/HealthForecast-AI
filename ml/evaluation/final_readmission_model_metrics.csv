@@ -1,0 +1,2 @@
+model,accuracy,macro_f1,weighted_f1,roc_auc,selection_metric
+HistGradientBoosting,0.647101211922699,0.6392497635466005,0.6434160516502584,0.7074902522623819,validation_macro_f1

@@ -30,3 +30,9 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+
+# Local development databases
+*.db
+*.sqlite
+*.sqlite3
