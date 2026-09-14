@@ -153,7 +153,7 @@ class HealthResponse(BaseModel):
 
 class ModelInfoResponse(BaseModel):
 
-    status: str
+    
     status: Optional[str] = None
     model_name: Optional[str] = None
 
