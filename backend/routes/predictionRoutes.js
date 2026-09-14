@@ -27,7 +27,7 @@ router.post("/", (req, res) => {
         });
     }
 
-    const predictionType = "Health Risk Prediction";
+    const predictionType = "risk";
 
     const factors =
         contributing_factors ||
@@ -76,6 +76,62 @@ router.post("/", (req, res) => {
             });
         }
     );
+});
+
+// ==========================================
+// DASHBOARD PREDICTION STATISTICS
+// ==========================================
+
+router.get("/stats", (req, res) => {
+    const sql = `
+        SELECT
+            COUNT(
+                CASE
+                    WHEN prediction_type = 'risk'
+                    THEN 1
+                END
+            ) AS aiPredictions,
+
+            COUNT(
+                CASE
+                    WHEN prediction_type = 'readmission'
+                    THEN 1
+                END
+            ) AS readmissions,
+
+            COUNT(
+                CASE
+                    WHEN prediction_type = 'risk'
+                    AND LOWER(risk_level) = 'high'
+                    THEN 1
+                END
+            ) AS highRisk
+
+        FROM predictions
+    `;
+
+    db.query(sql, (err, results) => {
+        if (err) {
+            console.error(
+                "Prediction statistics error:",
+                err
+            );
+
+            return res.status(500).json({
+                success: false,
+                message: "Failed to fetch prediction statistics"
+            });
+        }
+
+        const stats = results[0];
+
+        res.json({
+            success: true,
+            highRisk: Number(stats.highRisk) || 0,
+            aiPredictions: Number(stats.aiPredictions) || 0,
+            readmissions: Number(stats.readmissions) || 0
+        });
+    });
 });
 
 // ==========================================

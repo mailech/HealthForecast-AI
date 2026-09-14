@@ -1,9 +1,12 @@
 node_modules/
+
 .env
 .env.*
+
 !.env.example
 
 dist/
+
 build/
 
 .vite/
@@ -11,4 +14,9 @@ build/
 *.log
 
 .DS_Store
+
 Thumbs.db
+
+# Python cache
+__pycache__/
+*.pyc

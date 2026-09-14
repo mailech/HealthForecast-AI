@@ -31,6 +31,14 @@ services:
     ports:
       - "5000:5000"
 
+  ai-service:
+    build:
+      context: ./ai-service
+    container_name: healthcare-ai
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+
   frontend:
     build:
       context: ./frontend
@@ -38,6 +46,7 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
+      - ai-service
     ports:
       - "5173:5173"
 

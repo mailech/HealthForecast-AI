@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
-
     const navigate = useNavigate();
     const { login } = useAuth();
 
@@ -463,117 +462,6 @@ const Login = () => {
 
 
                     </form>
-
-
-                    {/* ==========================================
-                        DEMO ACCOUNTS
-                    ========================================== */}
-
-                    <div className="demo-account">
-
-                        <div className="demo-title">
-
-                            <span>
-                                Demo Accounts
-                            </span>
-
-                        </div>
-
-
-                        {/* DOCTOR */}
-
-                        <div className="demo-role">
-                            DOCTOR
-                        </div>
-
-                        <div className="demo-row">
-
-                            <span>
-                                Email
-                            </span>
-
-                            <strong>
-                                doctor@gmail.com
-                            </strong>
-
-                        </div>
-
-                        <div className="demo-row">
-
-                            <span>
-                                Password
-                            </span>
-
-                            <strong>
-                                doctor123
-                            </strong>
-
-                        </div>
-
-
-                        {/* ADMIN */}
-
-                        <div className="demo-role admin-demo">
-                            ADMIN
-                        </div>
-
-                        <div className="demo-row">
-
-                            <span>
-                                Email
-                            </span>
-
-                            <strong>
-                                admin@gmail.com
-                            </strong>
-
-                        </div>
-
-                        <div className="demo-row">
-
-                            <span>
-                                Password
-                            </span>
-
-                            <strong>
-                                admin123
-                            </strong>
-
-                        </div>
-
-
-                        {/* RESEARCHER */}
-
-                        <div className="demo-role">
-                            RESEARCHER
-                        </div>
-
-                        <div className="demo-row">
-
-                            <span>
-                                Email
-                            </span>
-
-                            <strong>
-                                researcher@gmail.com
-                            </strong>
-
-                        </div>
-
-                        <div className="demo-row">
-
-                            <span>
-                                Password
-                            </span>
-
-                            <strong>
-                                researcher123
-                            </strong>
-
-                        </div>
-
-
-                    </div>
 
 
                     <p className="security-note">

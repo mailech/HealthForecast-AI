@@ -10,22 +10,40 @@ const Dashboard = () => {
     const [patients, setPatients] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const loadPatients = async () => {
-            try {
-                const response = await api.get("/patients");
+    // Added only for dashboard prediction statistics
+    const [predictionStats, setPredictionStats] = useState({
+        highRisk: 0,
+        aiPredictions: 0,
+        readmissions: 0
+    });
 
-                if (response.data.success) {
-                    setPatients(response.data.patients || []);
+    useEffect(() => {
+        const loadDashboardData = async () => {
+            try {
+                const patientsResponse = await api.get("/patients");
+
+                if (patientsResponse.data.success) {
+                    setPatients(patientsResponse.data.patients || []);
+                }
+
+                // Fetch prediction statistics for dashboard cards
+                const statsResponse = await api.get("/predictions/stats");
+
+                if (statsResponse.data.success) {
+                    setPredictionStats({
+                        highRisk: statsResponse.data.highRisk || 0,
+                        aiPredictions: statsResponse.data.aiPredictions || 0,
+                        readmissions: statsResponse.data.readmissions || 0
+                    });
                 }
             } catch (error) {
-                console.error("Failed to load patients:", error);
+                console.error("Failed to load dashboard data:", error);
             } finally {
                 setLoading(false);
             }
         };
 
-        loadPatients();
+        loadDashboardData();
     }, []);
 
     const handleLogout = () => {
@@ -143,7 +161,10 @@ const Dashboard = () => {
                             OVERVIEW
                         </p>
 
-                        <h1>Good evening, Dr. {user?.name?.replace(/^Dr\.\s*/i, "") || "Doctor"}</h1>
+                        <h1>
+                            Good evening, Dr.{" "}
+                            {user?.name?.replace(/^Dr\.\s*/i, "") || "Doctor"}
+                        </h1>
 
                         <p className="dashboard-subtitle">
                             Here's what's happening with your patients today.
@@ -212,7 +233,9 @@ const Dashboard = () => {
 
                         <p>High-Risk Patients</p>
 
-                        <h2>0</h2>
+                        <h2>
+                            {loading ? "..." : predictionStats.highRisk}
+                        </h2>
 
                         <span className="stat-description">
                             Require closer monitoring
@@ -233,7 +256,9 @@ const Dashboard = () => {
 
                         <p>AI Predictions</p>
 
-                        <h2>0</h2>
+                        <h2>
+                            {loading ? "..." : predictionStats.aiPredictions}
+                        </h2>
 
                         <span className="stat-description">
                             Risk assessments
@@ -254,7 +279,9 @@ const Dashboard = () => {
 
                         <p>Readmissions</p>
 
-                        <h2>0</h2>
+                        <h2>
+                            {loading ? "..." : predictionStats.readmissions}
+                        </h2>
 
                         <span className="stat-description">
                             Readmission cases

@@ -33,17 +33,21 @@ const RiskPrediction = () => {
             try {
                 const response = await api.get("/patients");
 
-                const patientList = response.data.patients || [];
+                const patientList =
+                    response.data.patients || [];
 
                 setPatients(patientList);
 
-                const patientId = searchParams.get("patient");
+                const patientId =
+                    searchParams.get("patient");
 
                 if (patientId) {
-                    const foundPatient = patientList.find(
-                        (patient) =>
-                            String(patient.id) === String(patientId)
-                    );
+                    const foundPatient =
+                        patientList.find(
+                            (patient) =>
+                                String(patient.id) ===
+                                String(patientId)
+                        );
 
                     if (foundPatient) {
                         setSelectedPatient(foundPatient);
@@ -55,8 +59,14 @@ const RiskPrediction = () => {
                     }
                 }
             } catch (err) {
-                console.error("Patient loading error:", err);
-                setError("Unable to load patients.");
+                console.error(
+                    "Patient loading error:",
+                    err
+                );
+
+                setError(
+                    "Unable to load patients."
+                );
             } finally {
                 setLoading(false);
             }
@@ -86,7 +96,9 @@ const RiskPrediction = () => {
         const patientId = e.target.value;
 
         const patient = patients.find(
-            (p) => String(p.id) === String(patientId)
+            (p) =>
+                String(p.id) ===
+                String(patientId)
         );
 
         setSelectedPatient(patient || null);
@@ -100,74 +112,7 @@ const RiskPrediction = () => {
     };
 
     // ==========================================
-    // CALCULATE RISK
-    // ==========================================
-
-    const calculateRisk = () => {
-        let score = 0;
-
-        const age = Number(form.age);
-        const bloodPressure = Number(form.blood_pressure);
-        const glucose = Number(form.glucose);
-        const bmi = Number(form.bmi);
-        const heartRate = Number(form.heart_rate);
-
-        // Age
-        if (age >= 60) {
-            score += 20;
-        } else if (age >= 45) {
-            score += 10;
-        }
-
-        // Blood Pressure
-        if (bloodPressure >= 160) {
-            score += 25;
-        } else if (bloodPressure >= 140) {
-            score += 15;
-        }
-
-        // Glucose
-        if (glucose >= 180) {
-            score += 20;
-        } else if (glucose >= 140) {
-            score += 10;
-        }
-
-        // BMI
-        if (bmi >= 30) {
-            score += 15;
-        } else if (bmi >= 25) {
-            score += 8;
-        }
-
-        // Heart Rate
-        if (heartRate >= 100) {
-            score += 10;
-        }
-
-        // Previous Hospitalization
-        if (form.previous_hospitalization === "Yes") {
-            score += 10;
-        }
-
-        score = Math.min(score, 100);
-
-        let riskLevel = "LOW";
-
-        if (score >= 60) {
-            riskLevel = "HIGH";
-        } else if (score >= 30) {
-            riskLevel = "MEDIUM";
-        }
-
-        return {
-            score,
-            riskLevel
-        };
-    };
-
-    // ==========================================
-    // RUN PREDICTION
+    // RUN AI PREDICTION
     // ==========================================
 
     const handlePredict = async (e) => {
@@ -177,90 +122,205 @@ const RiskPrediction = () => {
         setSaveMessage("");
         setResult(null);
 
-        // Check patient
+        // Validate patient
         if (!selectedPatient) {
             setError("Please select a patient.");
             return;
         }
 
-        // Check inputs
+        // Validate fields
         if (
-            !form.age ||
-            !form.blood_pressure ||
-            !form.glucose ||
-            !form.bmi ||
-            !form.heart_rate
+            form.age === "" ||
+            form.blood_pressure === "" ||
+            form.glucose === "" ||
+            form.bmi === "" ||
+            form.heart_rate === ""
         ) {
-            setError("Please fill all health parameters.");
+            setError(
+                "Please fill all health parameters."
+            );
             return;
         }
 
         setPredicting(true);
 
         try {
-            // ------------------------------------------
-            // 1. CALCULATE PREDICTION
-            // ------------------------------------------
+            // ======================================
+            // 1. CALL AI SERVICE DIRECTLY
+            // ======================================
 
-            const prediction = calculateRisk();
-
-            // ------------------------------------------
-            // 2. SHOW RESULT IMMEDIATELY
-            // ------------------------------------------
-
-            setResult(prediction);
-
-            // ------------------------------------------
-            // 3. SAVE PREDICTION TO DATABASE
-            // ------------------------------------------
-
-            try {
-                const response = await api.post(
-                    "/predictions",
-                    {
-                        patient_id: selectedPatient.id,
+            const aiResponse = await fetch(
+                "http://127.0.0.1:8001/predict-risk",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
                         age: Number(form.age),
+
                         blood_pressure: Number(
                             form.blood_pressure
                         ),
-                        glucose: Number(form.glucose),
-                        bmi: Number(form.bmi),
+
+                        blood_sugar: Number(
+                            form.glucose
+                        ),
+
                         heart_rate: Number(
                             form.heart_rate
                         ),
+
+                        previous_hospitalizations:
+                            form.previous_hospitalization ===
+                            "Yes"
+                                ? 1
+                                : 0,
+
+                        // Current UI does not contain
+                        // chronic disease count.
+                        chronic_disease_count: 0
+                    })
+                }
+            );
+
+            if (!aiResponse.ok) {
+                let errorMessage =
+                    "AI prediction failed.";
+
+                try {
+                    const errorData =
+                        await aiResponse.json();
+
+                    errorMessage =
+                        errorData.detail ||
+                        errorData.message ||
+                        errorMessage;
+                } catch {
+                    // Keep default error message
+                }
+
+                throw new Error(errorMessage);
+            }
+
+            const aiData =
+                await aiResponse.json();
+
+            console.log(
+                "AI Risk Prediction Response:",
+                aiData
+            );
+
+            // ======================================
+            // 2. EXTRACT AI RESULT
+            // ======================================
+
+            const aiResult =
+                aiData.prediction_result || {};
+
+            const rawScore =
+                aiResult.risk_score ??
+                aiResult.score ??
+                aiResult.probability ??
+                0;
+
+            const score = Number(rawScore);
+
+            const riskLevel = String(
+                aiResult.risk_level ??
+                aiResult.riskLevel ??
+                "LOW"
+            ).toUpperCase();
+
+            const predictionResult = {
+                score: Number(score.toFixed(2)),
+                riskLevel: riskLevel,
+                contributingFactors:
+                    aiResult.contributing_factors ||
+                    aiResult.contributingFactors ||
+                    [],
+                recommendation:
+                    aiResult.recommendation ||
+                    "Continue regular healthcare monitoring."
+            };
+
+            // ======================================
+            // 3. DISPLAY AI RESULT
+            // ======================================
+
+            setResult(predictionResult);
+
+            setSaveMessage(
+                "✓ AI prediction generated successfully."
+            );
+
+            // ======================================
+            // 4. SAVE PREDICTION TO DATABASE
+            // ======================================
+
+            try {
+                const saveResponse = await api.post(
+                    "/predictions",
+                    {
+                        patient_id:
+                            selectedPatient.id,
+
+                        age: Number(form.age),
+
+                        blood_pressure: Number(
+                            form.blood_pressure
+                        ),
+
+                        glucose: Number(
+                            form.glucose
+                        ),
+
+                        bmi: Number(form.bmi),
+
+                        heart_rate: Number(
+                            form.heart_rate
+                        ),
+
                         previous_hospitalization:
                             form.previous_hospitalization,
-                        risk_score: prediction.score,
-                        risk_level: prediction.riskLevel
+
+                        risk_score:
+                            predictionResult.score,
+
+                        risk_level:
+                            predictionResult.riskLevel
                     }
                 );
 
                 console.log(
-                    "Prediction saved:",
-                    response.data
+                    "Prediction saved to database:",
+                    saveResponse.data
                 );
 
                 setSaveMessage(
-                    "✓ Prediction saved successfully."
+                    "✓ AI prediction generated and saved successfully."
                 );
             } catch (saveError) {
                 console.error(
-                    "Prediction database error:",
+                    "Database save error:",
                     saveError
                 );
 
+                // The AI result is still displayed even
+                // if database saving fails.
                 setSaveMessage(
-                    "Prediction generated, but database saving failed."
+                    "✓ AI prediction generated. Database saving was unavailable."
                 );
             }
         } catch (err) {
             console.error(
-                "Prediction error:",
+                "AI Risk Prediction error:",
                 err
             );
 
             setError(
-                "Unable to generate prediction."
+                err.message ||
+                "Unable to generate AI prediction."
             );
         } finally {
             setPredicting(false);
@@ -289,9 +349,7 @@ const RiskPrediction = () => {
             {/* HEADER */}
 
             <div className="risk-header">
-
                 <div>
-
                     <button
                         className="back-btn"
                         onClick={() =>
@@ -309,9 +367,7 @@ const RiskPrediction = () => {
                         Analyze patient health parameters
                         and estimate clinical risk.
                     </p>
-
                 </div>
-
             </div>
 
             {/* ERROR */}
@@ -333,7 +389,6 @@ const RiskPrediction = () => {
                 <div className="risk-card">
 
                     <div className="card-title">
-
                         <div className="title-icon">
                             🧠
                         </div>
@@ -348,7 +403,6 @@ const RiskPrediction = () => {
                                 health information.
                             </p>
                         </div>
-
                     </div>
 
                     <form onSubmit={handlePredict}>
@@ -356,20 +410,19 @@ const RiskPrediction = () => {
                         {/* PATIENT */}
 
                         <div className="form-group">
-
                             <label>
                                 Select Patient
                             </label>
 
                             <select
                                 value={
-                                    selectedPatient?.id || ""
+                                    selectedPatient?.id ||
+                                    ""
                                 }
                                 onChange={
                                     handlePatientChange
                                 }
                             >
-
                                 <option value="">
                                     Choose a patient
                                 </option>
@@ -392,9 +445,7 @@ const RiskPrediction = () => {
                                         </option>
                                     )
                                 )}
-
                             </select>
-
                         </div>
 
                         {/* INPUT GRID */}
@@ -404,7 +455,6 @@ const RiskPrediction = () => {
                             {/* AGE */}
 
                             <div className="form-group">
-
                                 <label>
                                     Age
                                 </label>
@@ -417,14 +467,13 @@ const RiskPrediction = () => {
                                         handleChange
                                     }
                                     placeholder="e.g. 62"
+                                    min="0"
                                 />
-
                             </div>
 
                             {/* BLOOD PRESSURE */}
 
                             <div className="form-group">
-
                                 <label>
                                     Blood Pressure
                                 </label>
@@ -439,14 +488,13 @@ const RiskPrediction = () => {
                                         handleChange
                                     }
                                     placeholder="Systolic e.g. 140"
+                                    min="0"
                                 />
-
                             </div>
 
                             {/* GLUCOSE */}
 
                             <div className="form-group">
-
                                 <label>
                                     Glucose Level
                                 </label>
@@ -459,14 +507,13 @@ const RiskPrediction = () => {
                                         handleChange
                                     }
                                     placeholder="mg/dL"
+                                    min="0"
                                 />
-
                             </div>
 
                             {/* BMI */}
 
                             <div className="form-group">
-
                                 <label>
                                     BMI
                                 </label>
@@ -480,14 +527,13 @@ const RiskPrediction = () => {
                                         handleChange
                                     }
                                     placeholder="e.g. 24.5"
+                                    min="0"
                                 />
-
                             </div>
 
                             {/* HEART RATE */}
 
                             <div className="form-group">
-
                                 <label>
                                     Heart Rate
                                 </label>
@@ -502,14 +548,13 @@ const RiskPrediction = () => {
                                         handleChange
                                     }
                                     placeholder="BPM"
+                                    min="0"
                                 />
-
                             </div>
 
                             {/* HOSPITALIZATION */}
 
                             <div className="form-group">
-
                                 <label>
                                     Previous Hospitalization
                                 </label>
@@ -523,7 +568,6 @@ const RiskPrediction = () => {
                                         handleChange
                                     }
                                 >
-
                                     <option value="No">
                                         No
                                     </option>
@@ -531,9 +575,7 @@ const RiskPrediction = () => {
                                     <option value="Yes">
                                         Yes
                                     </option>
-
                                 </select>
-
                             </div>
 
                         </div>
@@ -551,7 +593,6 @@ const RiskPrediction = () => {
                         </button>
 
                     </form>
-
                 </div>
 
                 {/* ==================================
@@ -563,7 +604,6 @@ const RiskPrediction = () => {
                     {!result ? (
 
                         <div className="empty-result">
-
                             <div className="empty-icon">
                                 🩺
                             </div>
@@ -577,7 +617,6 @@ const RiskPrediction = () => {
                                 to generate the patient's
                                 risk prediction.
                             </p>
-
                         </div>
 
                     ) : (
@@ -585,7 +624,6 @@ const RiskPrediction = () => {
                         <div className="prediction-result">
 
                             <div className="result-icon">
-
                                 {result.riskLevel ===
                                 "HIGH"
                                     ? "⚠️"
@@ -593,7 +631,6 @@ const RiskPrediction = () => {
                                       "MEDIUM"
                                     ? "⚡"
                                     : "✓"}
-
                             </div>
 
                             <p className="result-label">
@@ -609,15 +646,15 @@ const RiskPrediction = () => {
                             {/* SCORE */}
 
                             <div className="score-circle">
-
                                 <strong>
-                                    {result.score}
+                                    {Number(
+                                        result.score
+                                    ).toFixed(2)}
                                 </strong>
 
                                 <span>
                                     / 100
                                 </span>
-
                             </div>
 
                             {/* PATIENT */}
@@ -667,6 +704,51 @@ const RiskPrediction = () => {
 
                             </div>
 
+                            {/* CONTRIBUTING FACTORS */}
+
+                            {result.contributingFactors &&
+                                result.contributingFactors.length >
+                                    0 && (
+                                    <div className="ai-explanation">
+                                        <h3>
+                                            Contributing Factors
+                                        </h3>
+
+                                        <ul>
+                                            {result.contributingFactors.map(
+                                                (
+                                                    factor,
+                                                    index
+                                                ) => (
+                                                    <li
+                                                        key={
+                                                            index
+                                                        }
+                                                    >
+                                                        {factor}
+                                                    </li>
+                                                )
+                                            )}
+                                        </ul>
+                                    </div>
+                                )}
+
+                            {/* AI RECOMMENDATION */}
+
+                            {result.recommendation && (
+                                <div className="ai-recommendation">
+                                    <h3>
+                                        AI Recommendation
+                                    </h3>
+
+                                    <p>
+                                        {
+                                            result.recommendation
+                                        }
+                                    </p>
+                                </div>
+                            )}
+
                             {/* SAVE STATUS */}
 
                             {saveMessage && (
@@ -702,7 +784,6 @@ const RiskPrediction = () => {
                             </button>
 
                         </div>
-
                     )}
 
                 </div>
@@ -712,7 +793,6 @@ const RiskPrediction = () => {
             {/* DISCLAIMER */}
 
             <div className="prediction-disclaimer">
-
                 <strong>
                     Academic AI Demonstration:
                 </strong>{" "}
@@ -720,7 +800,6 @@ const RiskPrediction = () => {
                 purposes and is not a substitute for
                 professional medical diagnosis or clinical
                 decision-making.
-
             </div>
 
         </div>
