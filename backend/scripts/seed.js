@@ -2,8 +2,10 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const dotenv = require("dotenv");
 
+const path = require("path");
 // Load Environment Variables
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -16,9 +18,9 @@ const connectDB = async () => {
   }
 };
 
-// Define Models (if not imported from models/ directory)
-const User = mongoose.models.User || require("./models/User");
-const Patient = mongoose.models.Patient || require("./models/Patient");
+// Define Models
+const User = mongoose.models.User || require("../src/models/User");
+const Patient = mongoose.models.Patient || require("../src/models/Patient");
 
 const seedDatabase = async () => {
   await connectDB();

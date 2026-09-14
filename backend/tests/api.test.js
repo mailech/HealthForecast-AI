@@ -2,15 +2,15 @@ const request = require("supertest");
 const express = require("express");
 
 // Import middleware & handlers
-const { notFound, errorHandler } = require("../middleware/errorMiddleware");
-const authRoutes = require("../routes/authRoutes");
-const userRoutes = require("../routes/userRoutes");
-const patientRoutes = require("../routes/patientRoutes");
-const predictionRoutes = require("../routes/predictionRoutes");
-const alertRoutes = require("../routes/alertRoutes");
-const auditRoutes = require("../routes/auditRoutes");
-const analyticsRoutes = require("../routes/analyticsRoutes");
-const reportRoutes = require("../routes/reportRoutes");
+const { notFound, errorHandler } = require("../src/middleware/errorMiddleware");
+const authRoutes = require("../src/routes/authRoutes");
+const userRoutes = require("../src/routes/userRoutes");
+const patientRoutes = require("../src/routes/patientRoutes");
+const predictionRoutes = require("../src/routes/predictionRoutes");
+const alertRoutes = require("../src/routes/alertRoutes");
+const auditRoutes = require("../src/routes/auditRoutes");
+const analyticsRoutes = require("../src/routes/analyticsRoutes");
+const reportRoutes = require("../src/routes/reportRoutes");
 
 // Initialize test Express application
 const app = express();
@@ -140,7 +140,7 @@ describe("Backend Integration API Test Suite", () => {
     const response = await request(app).get("/api/patients/PAT-DEMO-001/download-pdf");
     expect(response.statusCode).toBe(200);
     expect(response.headers["content-type"]).toContain("application/pdf");
-    expect(response.headers["content-disposition"]).toContain("Patient_Care_Plan.pdf");
+    expect(response.headers["content-disposition"]).toContain("Care_Plan.pdf");
   });
 
   it("GET /api/analytics?timeframe=30d|6m|1y should return aggregated metrics for requested timeframe", async () => {

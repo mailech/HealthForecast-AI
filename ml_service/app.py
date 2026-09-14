@@ -9,9 +9,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(script_dir, "model.pkl")
-scaler_path = os.path.join(script_dir, "scaler.pkl")
-version_path = os.path.join(script_dir, "model_version.json")
+models_dir = os.path.join(script_dir, "models")
+model_path = os.path.join(models_dir, "model.pkl")
+scaler_path = os.path.join(models_dir, "scaler.pkl")
+version_path = os.path.join(models_dir, "model_version.json")
 
 # Load model, scaler, and metadata
 try:

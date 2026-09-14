@@ -82,9 +82,11 @@ def train_and_save_model():
     print(f"  - Precision: {precision:.4f}")
     print(f"  - Recall:    {recall:.4f}")
     
-    model_path = os.path.join(script_dir, "model.pkl")
-    scaler_path = os.path.join(script_dir, "scaler.pkl")
-    version_path = os.path.join(script_dir, "model_version.json")
+    models_dir = os.path.join(script_dir, "models")
+    os.makedirs(models_dir, exist_ok=True)
+    model_path = os.path.join(models_dir, "model.pkl")
+    scaler_path = os.path.join(models_dir, "scaler.pkl")
+    version_path = os.path.join(models_dir, "model_version.json")
     
     joblib.dump(clf, model_path)
     joblib.dump(scaler, scaler_path)

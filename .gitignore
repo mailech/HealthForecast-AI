@@ -10,6 +10,7 @@ npm-debug.log*
 # Python
 __pycache__/
 *.py[cod]
+*.pkl
 .venv/
 venv/
 

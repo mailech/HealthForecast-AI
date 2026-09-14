@@ -42,11 +42,10 @@ const getAnalyticsData = async (req, res, next) => {
         const matchStage = {
           $match: {
             isDeleted: false,
-            createdAt: { $gte: startDate },
           },
         };
 
-        // 1. Aggregation for Days in Care & Readmission Rate
+        // 1. Aggregation for total count, Days in Care & Readmission Rate
         const daysInCareAgg = await Patient.aggregate([
           matchStage,
           {
@@ -64,6 +63,7 @@ const getAnalyticsData = async (req, res, next) => {
               },
               previousAdmissions: { $ifNull: ["$vitals.previousAdmissions", "$previousAdmissions", 0] },
               risk: "$risk",
+              riskScore: "$riskScore",
             },
           },
           {
@@ -78,12 +78,10 @@ const getAnalyticsData = async (req, res, next) => {
           },
         ]);
 
-        if (daysInCareAgg && daysInCareAgg.length > 0) {
-          totalPatients = daysInCareAgg[0].count || 0;
+        if (daysInCareAgg && daysInCareAgg.length > 0 && daysInCareAgg[0].count > 0) {
+          totalPatients = daysInCareAgg[0].count;
           avgDaysInCare = Math.round((daysInCareAgg[0].avgDays || 4.2) * 10) / 10;
-          if (totalPatients > 0) {
-            readmissionRate = Math.round((daysInCareAgg[0].readmittedCount / totalPatients) * 1000) / 10;
-          }
+          readmissionRate = Math.round((daysInCareAgg[0].readmittedCount / totalPatients) * 1000) / 10;
         }
 
         // 2. Risk Distribution Aggregation
@@ -99,7 +97,7 @@ const getAnalyticsData = async (req, res, next) => {
 
         riskAgg.forEach((r) => {
           if (r._id) {
-            const normalized = r._id.toUpperCase();
+            const normalized = String(r._id).toUpperCase();
             if (normalized === "HIGH") riskDistribution.High += r.count;
             else if (normalized === "MEDIUM") riskDistribution.Medium += r.count;
             else riskDistribution.Low += r.count;

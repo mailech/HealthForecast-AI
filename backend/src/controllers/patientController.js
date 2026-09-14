@@ -30,7 +30,10 @@ const getPatients = async (req, res, next) => {
       }
 
       if (search) {
-        query.$text = { $search: search };
+        query.$or = [
+          { name: { $regex: search, $options: "i" } },
+          { disease: { $regex: search, $options: "i" } },
+        ];
       }
 
       if (risk && risk !== "All") {

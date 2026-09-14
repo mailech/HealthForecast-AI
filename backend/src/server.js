@@ -1,8 +1,9 @@
 const path = require("path");
 const dotenv = require("dotenv");
 
-// Load .env explicitly
-dotenv.config({ path: path.resolve(__dirname, ".env") });
+// Load .env explicitly from root of backend/
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 console.log("⚡ Loaded BREVO_API_KEY:", process.env.BREVO_API_KEY ? "YES" : "NO");
 
