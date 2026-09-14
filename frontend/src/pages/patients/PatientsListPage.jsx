@@ -228,8 +228,12 @@ export const PatientsListPage = () => {
                       </Badge>
                     </td>
                     <td style={{ padding: '0.75rem' }}>
-                      <Badge variant={p.latest_readmission_status === '<30' ? 'danger' : 'default'}>
-                        {p.latest_readmission_status === '<30' ? '<30 Days' : p.latest_readmission_status}
+                      <Badge variant={
+                        p.latest_readmission_status === '<30' ? 'danger' :
+                        p.latest_readmission_status === '>30' ? 'warning' : 'success'
+                      }>
+                        {p.latest_readmission_status === '<30' ? '<30 Days' :
+                         p.latest_readmission_status === '>30' ? '>30 Days' : 'No Readmit'}
                       </Badge>
                     </td>
                     {!isResearcher && (

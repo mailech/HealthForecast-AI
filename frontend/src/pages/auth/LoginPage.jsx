@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { authService } from '../../services/authService';
@@ -10,8 +10,21 @@ export const LoginPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { loginUser } = useAuth();
+  const { user, loginUser } = useAuth();
   const navigate = useNavigate();
+
+  const roleDashboards = {
+    doctor: '/dashboard/doctor',
+    hospital_admin: '/dashboard/admin',
+    researcher: '/dashboard/researcher',
+    system_admin: '/dashboard/sysadmin',
+  };
+
+  useEffect(() => {
+    if (user) {
+      navigate(roleDashboards[user.role] || '/dashboard/doctor', { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();

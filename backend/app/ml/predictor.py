@@ -275,15 +275,17 @@ class ReadmissionPredictor:
                 proba = float(clf.predict_proba(X_input)[0][1])
                 
                 # Scale calibrated probability to clinical risk percentage score
-                # 30-day readmissions base rate is ~11.2%. Calibrated probability reflects true posterior.
-                # Transform to 0-100% risk index where:
-                # 0-39% = Low Risk, 40-64% = Moderate/Medium Risk, 65-100% = High Clinical Readmission Risk.
-                if proba < 0.12:
-                    risk_score = round(proba * 280.0, 1) # 0 to 33.6%
-                elif proba < 0.35:
-                    risk_score = round(34.0 + ((proba - 0.12) / 0.23) * 30.0, 1) # 34.0% to 64.0%
+                # 30-day readmissions base rate in Diabetes 130-US Hospitals is ~11.2%.
+                # Calibrated posterior probability thresholds:
+                # - proba < 0.070: Low Risk (12.0% to 39.9%, forecast: 'NO')
+                # - 0.070 <= proba < 0.110: Moderate / Medium Risk (40.0% to 64.9%, forecast: '>30')
+                # - proba >= 0.110: High / Critical Risk (65.0% to 98.5%, forecast: '<30')
+                if proba < 0.070:
+                    risk_score = round(12.0 + (proba / 0.070) * 27.0, 1) # 12.0% to 39.0%
+                elif proba < 0.110:
+                    risk_score = round(40.0 + ((proba - 0.070) / 0.040) * 24.0, 1) # 40.0% to 64.0%
                 else:
-                    risk_score = round(65.0 + min(1.0, ((proba - 0.35) / 0.40)) * 33.5, 1) # 65.0% to 98.5%
+                    risk_score = round(65.0 + min(1.0, ((proba - 0.110) / 0.050)) * 33.5, 1) # 65.0% to 98.5%
                     
                 risk_score = max(10.0, min(98.5, risk_score))
             except Exception as ex:
@@ -292,21 +294,23 @@ class ReadmissionPredictor:
 
         # Clinical Rule-Calibrated Fallback Formula
         if risk_score is None:
-            base = (number_inpatient * 16.0) + (number_emergency * 8.0) + (number_outpatient * 3.0) + (num_lab_procedures * 0.35) + (num_medications * 1.2)
+            base = (number_inpatient * 18.0) + (number_emergency * 10.0) + (number_outpatient * 3.0) + (num_lab_procedures * 0.25) + (num_medications * 1.1)
             if A1Cresult in [">8", "8"]:
-                base += 12.0
+                base += 15.0
             elif A1Cresult in [">7", "7"]:
-                base += 6.0
-            if max_glu_serum in [">300"]:
-                base += 14.0
-            elif max_glu_serum in [">200"]:
                 base += 8.0
-            if time_in_hospital >= 7:
+            if max_glu_serum in [">300"]:
+                base += 16.0
+            elif max_glu_serum in [">200"]:
                 base += 9.0
-            if has_insulin:
-                base += 6.0
-            if diag_1_category in ["Circulatory", "Diabetes"]:
+            if time_in_hospital >= 7:
+                base += 12.0
+            elif time_in_hospital >= 4:
                 base += 5.0
+            if has_insulin:
+                base += 8.0
+            if diag_1_category in ["Circulatory", "Diabetes"]:
+                base += 7.0
             risk_score = round(float(min(98.5, max(12.0, base))), 1)
 
         # Categorize Clinical Risk Strata

@@ -1,10 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
-
-// Landing Page
-import { LandingPage } from './pages/LandingPage';
 
 // Module-based Page Imports
 import { LoginPage } from './pages/auth/LoginPage';
@@ -22,13 +19,49 @@ import { UserManagementPage } from './pages/admin/UserManagementPage';
 import { PatientsListPage } from './pages/patients/PatientsListPage';
 import { PatientDetailPage } from './pages/patients/PatientDetailPage';
 
+const roleDashboards = {
+  doctor: '/dashboard/doctor',
+  hospital_admin: '/dashboard/admin',
+  researcher: '/dashboard/researcher',
+  system_admin: '/dashboard/sysadmin',
+};
+
+// Root route component that redirects authenticated users to their dashboard, or to /login
+function RootRoute() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        backgroundColor: 'var(--bg-primary)',
+        color: 'var(--text-secondary)'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem' }}>HealthForecast AI</div>
+          <div style={{ fontSize: '0.875rem' }}>Loading application...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <Navigate to={roleDashboards[user.role] || '/dashboard/doctor'} replace />;
+}
+
 export function App() {
   return (
     <AuthProvider>
       <Router>
         <Routes>
-          {/* Public Landing Page */}
-          <Route path="/" element={<LandingPage />} />
+          {/* Root Route redirects directly to role dashboard if logged in, else to /login */}
+          <Route path="/" element={<RootRoute />} />
 
           {/* Public Auth Routes */}
           <Route path="/login" element={<LoginPage />} />
@@ -68,7 +101,7 @@ export function App() {
             <Route path="/patients/:id" element={<PatientDetailPage />} />
           </Route>
 
-          {/* Catch-all redirect to Landing Page */}
+          {/* Catch-all redirect to Root */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>

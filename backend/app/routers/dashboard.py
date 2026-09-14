@@ -25,15 +25,17 @@ def get_dashboard_stats(
     patients_query = db.query(Patient)
     if current_user.role == UserRole.DOCTOR.value:
         patients_query = patients_query.filter(Patient.assigned_doctor_id == current_user.id)
+        all_admissions = db.query(Admission).join(Patient).filter(Patient.assigned_doctor_id == current_user.id).all()
+    else:
+        all_admissions = db.query(Admission).all()
 
     total_patients = patients_query.count()
-    assigned_patients = db.query(Patient).filter(Patient.assigned_doctor_id == current_user.id).count() if current_user.role == UserRole.DOCTOR.value else total_patients
+    assigned_patients = total_patients if current_user.role == UserRole.DOCTOR.value else db.query(Patient).filter(Patient.assigned_doctor_id.isnot(None)).count()
 
-    all_admissions = db.query(Admission).all()
     if not all_admissions:
         return DashboardStats(
-            total_patients=0,
-            assigned_patients=0,
+            total_patients=total_patients,
+            assigned_patients=assigned_patients,
             high_risk_count=0,
             medium_risk_count=0,
             low_risk_count=0,
@@ -70,7 +72,11 @@ def get_readmission_overview(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    admissions = db.query(Admission).all()
+    if current_user.role == UserRole.DOCTOR.value:
+        admissions = db.query(Admission).join(Patient).filter(Patient.assigned_doctor_id == current_user.id).all()
+    else:
+        admissions = db.query(Admission).all()
+
     total = len(admissions) if admissions else 1
 
     counts = {"No Readmission": 0, "Readmitted <30 Days": 0, "Readmitted >30 Days": 0}

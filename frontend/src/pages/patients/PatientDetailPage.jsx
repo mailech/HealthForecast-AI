@@ -180,8 +180,12 @@ export const PatientDetailPage = () => {
                       <span style={{ fontWeight: '700', color: 'var(--text-primary)' }}>
                         Encounter #{adm.encounter_id} ({adm.medical_specialty})
                       </span>
-                      <Badge variant={adm.readmitted === '<30' ? 'danger' : 'default'}>
-                        Readmission Status: {adm.readmitted}
+                      <Badge variant={
+                        adm.readmitted === '<30' ? 'danger' :
+                        adm.readmitted === '>30' ? 'warning' : 'success'
+                      }>
+                        {adm.readmitted === '<30' ? 'Readmitted <30 Days' :
+                         adm.readmitted === '>30' ? 'Readmitted >30 Days' : 'No Readmission'}
                       </Badge>
                     </div>
 

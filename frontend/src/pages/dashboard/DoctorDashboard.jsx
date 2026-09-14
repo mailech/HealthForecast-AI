@@ -119,8 +119,12 @@ export const DoctorDashboard = () => {
                       </Badge>
                     </td>
                     <td style={{ padding: '0.75rem' }}>
-                      <Badge variant={patient.latest_readmission_status === '<30' ? 'danger' : 'default'}>
-                        {patient.latest_readmission_status === '<30' ? '<30 Days' : 'Low Risk'}
+                      <Badge variant={
+                        patient.latest_readmission_status === '<30' ? 'danger' :
+                        patient.latest_readmission_status === '>30' ? 'warning' : 'success'
+                      }>
+                        {patient.latest_readmission_status === '<30' ? 'Readmitted <30 Days' :
+                         patient.latest_readmission_status === '>30' ? 'Readmitted >30 Days' : 'No Readmission'}
                       </Badge>
                     </td>
                     <td style={{ padding: '0.75rem', textAlign: 'right' }}>

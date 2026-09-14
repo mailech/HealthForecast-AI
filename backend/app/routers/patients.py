@@ -64,10 +64,10 @@ def get_patients(
                 (Patient.patient_nbr.cast(str).like(search_term))
             )
 
-    patients = query.order_by(Patient.id.desc()).offset(offset).limit(limit).all()
+    all_matching_patients = query.all()
 
     results = []
-    for p in patients:
+    for p in all_matching_patients:
         latest_adm = db.query(Admission).filter(Admission.patient_id == p.id).order_by(Admission.admission_date.desc()).first()
         
         l_score = latest_adm.risk_score if latest_adm else 0.0
@@ -99,7 +99,9 @@ def get_patients(
             res.assigned_doctor_name = doc_name
             results.append(res)
 
-    return results
+    # Clinically prioritize highest risk and readmitted patients at the top of registry
+    results.sort(key=lambda x: x.latest_risk_score, reverse=True)
+    return results[offset:offset + limit]
 
 @router.get("/{patient_id}", response_model=Union[PatientResponse, AnonymizedPatientResponse])
 def get_patient_detail(

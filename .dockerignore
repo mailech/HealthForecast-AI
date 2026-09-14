@@ -1,0 +1,30 @@
+# Git & IDE metadata
+.git/
+.gitignore
+.vscode/
+.idea/
+.DS_Store
+
+# Virtual environments & Dependencies
+venv/
+.venv/
+env/
+node_modules/
+frontend/node_modules/
+backend/__pycache__/
+backend/app/__pycache__/
+
+# Build artifacts
+dist/
+frontend/dist/
+build/
+
+# Local databases & logs
+*.db
+*.sqlite
+*.sqlite3
+*.log
+backend/healthforecast.db
+
+# Documentation / Markdown
+*.md

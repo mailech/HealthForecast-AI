@@ -118,6 +118,27 @@ The application has been audited and hardened across all architectural layers:
 
 ### 1. Backend Setup
 
+### 🐳 Quick Start with Docker (Recommended)
+
+Run the full stack (FastAPI backend + React frontend + Nginx + persistent storage) in one command:
+
+```bash
+# Start all containers in the background
+docker compose up --build -d
+```
+
+* **Frontend UI**: [http://localhost:3000](http://localhost:3000)
+* **Backend API & Swagger Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+* **Health Check**: [http://localhost:8000/api/health](http://localhost:8000/api/health)
+
+> For full details, development mode with hot-reloading, volume management, and troubleshooting, see [DOCKER.md](file:///d:/Infosys%20Internship%20project/HealthForecast%20AI/DOCKER.md).
+
+---
+
+### 🛠️ Manual Local Setup
+
+#### 1. Backend Setup
+
 ```bash
 # Navigate to the backend directory
 cd backend
