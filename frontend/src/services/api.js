@@ -27,6 +27,8 @@ export const authAPI = {
     api.post('/auth/login/json', { username, password }),
   me: () => api.get('/auth/me'),
   listUsers: () => api.get('/auth/users'),
+  register: (data) => api.post('/auth/register', data),
+  updateUser: (id, data) => api.put(`/auth/users/${id}`, data),
 };
 
 export const patientsAPI = {

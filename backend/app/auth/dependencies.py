@@ -42,10 +42,6 @@ def require_roles(allowed_roles: List[UserRole]):
 
 
 def can_access_patient(user: User, patient) -> bool:
-    if user.role == UserRole.SYSTEM_ADMIN:
-        return True
-    if user.role == UserRole.HOSPITAL_ADMIN:
-        return True
     if user.role == UserRole.RESEARCHER:
         return True
     if user.role == UserRole.DOCTOR:
@@ -54,8 +50,6 @@ def can_access_patient(user: User, patient) -> bool:
 
 
 def can_modify_patient(user: User, patient=None) -> bool:
-    if user.role == UserRole.SYSTEM_ADMIN:
-        return True
     if user.role == UserRole.DOCTOR:
         if patient is not None:
             return patient.assigned_doctor_id == user.id
@@ -64,8 +58,6 @@ def can_modify_patient(user: User, patient=None) -> bool:
 
 
 def can_manage_patient_clinical_data(user: User, patient) -> bool:
-    if user.role == UserRole.SYSTEM_ADMIN:
-        return True
     if user.role == UserRole.DOCTOR:
         return patient.assigned_doctor_id == user.id
     return False

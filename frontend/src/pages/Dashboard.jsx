@@ -12,12 +12,13 @@ export default function Dashboard() {
   const [metrics, setMetrics] = useState([]);
   const [highRisk, setHighRisk] = useState([]);
   const [loading, setLoading] = useState(true);
+  const canViewPatientLists = ['doctor', 'researcher'].includes(user?.role);
 
   useEffect(() => {
     Promise.all([
       predictionsAPI.dashboardStats(),
       predictionsAPI.modelMetrics(),
-      predictionsAPI.getHighRisk(),
+      canViewPatientLists ? predictionsAPI.getHighRisk() : Promise.resolve({ data: [] }),
     ])
       .then(([statsRes, metricsRes, highRiskRes]) => {
         setStats(statsRes.data);
@@ -26,7 +27,7 @@ export default function Dashboard() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [user?.role]);
 
   if (loading) return <div className="text-gray-500">Loading dashboard...</div>;
 
@@ -109,6 +110,7 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {canViewPatientLists && (
       <div className="card">
         <div className="flex items-center gap-2 mb-4">
           <Brain className="w-5 h-5 text-red-500" />
@@ -147,6 +149,7 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

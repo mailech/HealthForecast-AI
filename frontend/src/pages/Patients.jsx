@@ -1,35 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { patientsAPI, predictionsAPI, authAPI } from '../services/api';
+import { patientsAPI, predictionsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { Search, AlertTriangle, Pill, UserCheck, Shield } from 'lucide-react';
+import { Search, AlertTriangle, Pill, UserCheck } from 'lucide-react';
 
 export default function Patients() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [patients, setPatients] = useState([]);
-  const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [predicting, setPredicting] = useState(false);
-  const [assigningPatient, setAssigningPatient] = useState(null);
-  const [selectedDoctorId, setSelectedDoctorId] = useState('');
 
-  const isAdmin = user?.role === 'system_admin' || user?.role === 'hospital_admin';
   const isDoctor = user?.role === 'doctor';
   const isResearcher = user?.role === 'researcher';
 
   useEffect(() => {
     loadPatients();
-    if (isAdmin) {
-      authAPI.listUsers()
-        .then((res) => {
-          const docList = res.data.filter((u) => u.role === 'doctor');
-          setDoctors(docList);
-          if (docList.length > 0) setSelectedDoctorId(docList[0].id.toString());
-        })
-        .catch(console.error);
-    }
   }, []);
 
   const loadPatients = () => {
@@ -57,17 +44,6 @@ export default function Patients() {
     }
   };
 
-  const handleAssignDoctor = async (e) => {
-    e.preventDefault();
-    if (!assigningPatient || !selectedDoctorId) return;
-    try {
-      await patientsAPI.assignDoctor(assigningPatient.id, parseInt(selectedDoctorId));
-      setAssigningPatient(null);
-      loadPatients();
-    } catch (err) {
-      alert(err.response?.data?.detail || 'Assignment failed');
-    }
-  };
 
   const riskBadge = (readmitted) => {
     if (readmitted === '<30') return <span className="risk-high px-2 py-1 rounded-full text-xs font-semibold">Readmitted</span>;
@@ -166,14 +142,6 @@ export default function Patients() {
                       >
                         <Pill className="w-3 h-3" /> Treatments
                       </button>
-                      {isAdmin && (
-                        <button
-                          onClick={() => setAssigningPatient(p)}
-                          className="text-xs text-primary-600 hover:text-primary-800 font-medium px-1"
-                        >
-                          Assign
-                        </button>
-                      )}
                     </div>
                   </td>
                 )}
@@ -188,46 +156,6 @@ export default function Patients() {
         )}
       </div>
 
-      {/* Assign Doctor Modal */}
-      {assigningPatient && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-xl">
-            <h3 className="text-base font-bold mb-2">Assign Doctor to Patient</h3>
-            <p className="text-xs text-gray-500 mb-4">
-              Patient: <span className="font-semibold text-gray-700">{assigningPatient.full_name} ({assigningPatient.patient_id})</span>
-            </p>
-            <form onSubmit={handleAssignDoctor} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium mb-1">Select Attending Physician</label>
-                <select
-                  value={selectedDoctorId}
-                  onChange={(e) => setSelectedDoctorId(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white"
-                  required
-                >
-                  {doctors.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.full_name} ({d.department || 'General Medicine'})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex justify-end gap-2 pt-2 border-t">
-                <button
-                  type="button"
-                  onClick={() => setAssigningPatient(null)}
-                  className="btn-secondary text-xs"
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary text-xs">
-                  Confirm Assignment
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,15 +1,15 @@
 {
-  "accuracy": 0.70075,
-  "precision": 0.17928633594429938,
-  "recall": 0.44782608695652176,
-  "f1_score": 0.2560596643878185,
-  "roc_auc": 0.6510955539179563,
+  "accuracy": 0.6765,
+  "precision": 0.1664887940234792,
+  "recall": 0.4515195369030391,
+  "f1_score": 0.2432748538011696,
+  "roc_auc": 0.626502684053156,
   "optimal_threshold": 0.44,
   "model_name": "random_forest",
-  "version": "v4.0.0",
-  "sample_size": 20000,
+  "version": "v6.0.0",
+  "sample_size": 30000,
   "hyperparameters": {},
   "class_weight_strategy": "balanced",
-  "trained_at": "2026-09-12T17:23:19.180460",
-  "model_path": "models/random_forest_v4.0.0.joblib"
+  "trained_at": "2026-09-14T14:28:50.642090",
+  "model_path": "models/random_forest_v6.0.0.joblib"
 }

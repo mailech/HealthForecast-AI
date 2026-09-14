@@ -45,7 +45,7 @@ def list_patients(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles([UserRole.DOCTOR, UserRole.RESEARCHER])),
 ):
     query = db.query(Patient)
     if current_user.role == UserRole.DOCTOR:
@@ -61,7 +61,7 @@ def list_patients(
 def get_patient(
     patient_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles([UserRole.DOCTOR, UserRole.RESEARCHER])),
 ):
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
     if not patient:
@@ -79,7 +79,7 @@ def get_patient(
 def create_patient(
     patient_data: PatientCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles([UserRole.SYSTEM_ADMIN, UserRole.DOCTOR])),
+    current_user: User = Depends(require_roles([UserRole.DOCTOR])),
 ):
     if db.query(Patient).filter(Patient.patient_id == patient_data.patient_id).first():
         raise HTTPException(status_code=400, detail="Patient ID already exists")
@@ -99,7 +99,7 @@ def update_patient(
     patient_id: int,
     patient_data: PatientUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles([UserRole.DOCTOR])),
 ):
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
     if not patient:
@@ -119,9 +119,9 @@ def assign_doctor(
     patient_id: int,
     doctor_id: int = Query(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles([UserRole.SYSTEM_ADMIN, UserRole.HOSPITAL_ADMIN])),
+    current_user: User = Depends(require_roles([UserRole.SYSTEM_ADMIN])),
 ):
-    """Assign or reassign a patient to a doctor (restricted to Administrators)."""
+    """Assign or reassign a patient to a doctor (restricted to system administration)."""
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
@@ -141,7 +141,7 @@ def add_medical_history(
     patient_id: int,
     history: MedicalHistoryCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles([UserRole.DOCTOR, UserRole.SYSTEM_ADMIN])),
+    current_user: User = Depends(require_roles([UserRole.DOCTOR])),
 ):
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
     if not patient:
@@ -161,7 +161,7 @@ def add_treatment(
     patient_id: int,
     treatment: TreatmentCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles([UserRole.DOCTOR, UserRole.SYSTEM_ADMIN])),
+    current_user: User = Depends(require_roles([UserRole.DOCTOR])),
 ):
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
     if not patient:
@@ -181,7 +181,7 @@ def add_admission(
     patient_id: int,
     admission: AdmissionCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles([UserRole.DOCTOR, UserRole.SYSTEM_ADMIN, UserRole.HOSPITAL_ADMIN])),
+    current_user: User = Depends(require_roles([UserRole.DOCTOR])),
 ):
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
     if not patient:

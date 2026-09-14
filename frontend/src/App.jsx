@@ -9,13 +9,21 @@ import Forecasting from './pages/Forecasting';
 import ClinicalInsights from './pages/ClinicalInsights';
 import ModelManagement from './pages/ModelManagement';
 import TreatmentEffectiveness from './pages/TreatmentEffectiveness';
+import UserManagement from './pages/UserManagement';
 
-function ProtectedRoute({ children, requiredRole }) {
+const ROLE_HOME = {
+  doctor: '/patients',
+  hospital_admin: '/',
+  researcher: '/',
+  system_admin: '/models',
+};
+
+function ProtectedRoute({ children, allowedRoles }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
   if (!user) return <Navigate to="/login" />;
-  if (requiredRole && user.role !== requiredRole) {
-    return <Navigate to="/" replace />;
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to={ROLE_HOME[user.role] || '/'} replace />;
   }
   return children;
 }
@@ -26,24 +34,38 @@ function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Dashboard />} />
-        <Route path="patients" element={<Patients />} />
-        <Route path="treatments" element={<TreatmentEffectiveness />} />
-        <Route path="risk-prediction" element={<RiskPrediction />} />
-        <Route path="forecasting" element={<Forecasting />} />
-        <Route path="clinical-insights" element={<ClinicalInsights />} />
+        <Route
+          path="patients"
+          element={<ProtectedRoute allowedRoles={['doctor', 'researcher']}><Patients /></ProtectedRoute>}
+        />
+        <Route
+          path="treatments"
+          element={<ProtectedRoute allowedRoles={['doctor', 'researcher']}><TreatmentEffectiveness /></ProtectedRoute>}
+        />
+        <Route
+          path="risk-prediction"
+          element={<ProtectedRoute allowedRoles={['doctor', 'researcher']}><RiskPrediction /></ProtectedRoute>}
+        />
+        <Route
+          path="forecasting"
+          element={<ProtectedRoute allowedRoles={['doctor', 'researcher']}><Forecasting /></ProtectedRoute>}
+        />
+        <Route
+          path="clinical-insights"
+          element={<ProtectedRoute allowedRoles={['doctor']}><ClinicalInsights /></ProtectedRoute>}
+        />
+        <Route
+          path="users"
+          element={<ProtectedRoute allowedRoles={['hospital_admin']}><UserManagement /></ProtectedRoute>}
+        />
         <Route
           path="models"
-          element={
-            <ProtectedRoute requiredRole="system_admin">
-              <ModelManagement />
-            </ProtectedRoute>
-          }
+          element={<ProtectedRoute allowedRoles={['system_admin']}><ModelManagement /></ProtectedRoute>}
         />
       </Route>
     </Routes>
   );
 }
-
 
 export default function App() {
   return (

@@ -50,12 +50,17 @@ def get_me(current_user: User = Depends(get_current_user)):
 def register(
     user_data: UserCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles([UserRole.SYSTEM_ADMIN])),
+    current_user: User = Depends(require_roles([UserRole.HOSPITAL_ADMIN])),
 ):
     if db.query(User).filter(User.username == user_data.username).first():
         raise HTTPException(status_code=400, detail="Username already exists")
     if db.query(User).filter(User.email == user_data.email).first():
         raise HTTPException(status_code=400, detail="Email already exists")
+    if user_data.role not in [UserRole.DOCTOR, UserRole.RESEARCHER]:
+        raise HTTPException(
+            status_code=403,
+            detail="Hospital admins can register only doctors and researchers.",
+        )
 
     user = User(
         email=user_data.email,
@@ -74,7 +79,7 @@ def register(
 @router.get("/users", response_model=list[UserResponse])
 def list_users(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles([UserRole.SYSTEM_ADMIN])),
+    current_user: User = Depends(require_roles([UserRole.HOSPITAL_ADMIN])),
 ):
     return db.query(User).all()
 
@@ -84,11 +89,21 @@ def update_user(
     user_id: int,
     user_data: UserUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles([UserRole.SYSTEM_ADMIN])),
+    current_user: User = Depends(require_roles([UserRole.HOSPITAL_ADMIN])),
 ):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    if user.role in [UserRole.HOSPITAL_ADMIN, UserRole.SYSTEM_ADMIN]:
+        raise HTTPException(
+            status_code=403,
+            detail="Hospital admins cannot modify privileged admin accounts.",
+        )
+    if user_data.role and user_data.role not in [UserRole.DOCTOR, UserRole.RESEARCHER]:
+        raise HTTPException(
+            status_code=403,
+            detail="Hospital admins can assign only doctor or researcher roles.",
+        )
     for field, value in user_data.model_dump(exclude_unset=True).items():
         setattr(user, field, value)
     db.commit()

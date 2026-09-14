@@ -1,19 +1,19 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth, ROLE_LABELS } from '../context/AuthContext';
 import {
-  Activity, Users, AlertTriangle, TrendingUp, Brain, Settings, LogOut, Pill,
+  Activity, Users, AlertTriangle, TrendingUp, Brain, Settings, LogOut, Pill, UserPlus,
 } from 'lucide-react';
 
 const navItems = [
   { to: '/', icon: Activity, label: 'Dashboard', roles: ['doctor', 'hospital_admin', 'researcher', 'system_admin'] },
-  { to: '/patients', icon: Users, label: 'Patients', roles: ['doctor', 'hospital_admin', 'researcher', 'system_admin'] },
-  { to: '/treatments', icon: Pill, label: 'Treatment Effectiveness', roles: ['doctor', 'hospital_admin', 'researcher', 'system_admin'] },
-  { to: '/risk-prediction', icon: AlertTriangle, label: 'Risk Prediction', roles: ['doctor', 'hospital_admin', 'researcher', 'system_admin'] },
-  { to: '/forecasting', icon: TrendingUp, label: 'Readmission Forecast', roles: ['doctor', 'hospital_admin', 'researcher', 'system_admin'] },
-  { to: '/clinical-insights', icon: Brain, label: 'Clinical Insights', roles: ['doctor', 'hospital_admin', 'researcher', 'system_admin'] },
+  { to: '/patients', icon: Users, label: 'Patients', roles: ['doctor', 'researcher'] },
+  { to: '/treatments', icon: Pill, label: 'Treatment Effectiveness', roles: ['doctor', 'researcher'] },
+  { to: '/risk-prediction', icon: AlertTriangle, label: 'Risk Prediction', roles: ['doctor', 'researcher'] },
+  { to: '/forecasting', icon: TrendingUp, label: 'Readmission Forecast', roles: ['doctor', 'researcher'] },
+  { to: '/clinical-insights', icon: Brain, label: 'Clinical Insights', roles: ['doctor'] },
+  { to: '/users', icon: UserPlus, label: 'User Management', roles: ['hospital_admin'] },
   { to: '/models', icon: Settings, label: 'Model Management', roles: ['system_admin'] },
 ];
-
 
 export default function Layout() {
   const { user, logout } = useAuth();

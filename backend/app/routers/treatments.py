@@ -32,7 +32,7 @@ def get_treatment_effectiveness(
 def get_patient_treatments(
     patient_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles([UserRole.DOCTOR, UserRole.RESEARCHER])),
 ):
     """Get all treatment records for a patient with role-based access validation."""
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
@@ -55,7 +55,7 @@ def add_treatment(
     patient_id: int,
     treatment: TreatmentCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles([UserRole.DOCTOR])),
 ):
     """Add a new treatment record for a patient (Doctors can only add for assigned patients)."""
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
@@ -86,7 +86,7 @@ def update_treatment(
     treatment_id: int,
     update_data: TreatmentUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles([UserRole.DOCTOR])),
 ):
     """Update a treatment record, record recovery outcome, or change status."""
     record = db.query(Treatment).filter(Treatment.id == treatment_id).first()
@@ -115,7 +115,7 @@ def update_treatment(
 def get_patient_recovery_analysis(
     patient_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles([UserRole.DOCTOR, UserRole.RESEARCHER])),
 ):
     """Analyze patient recovery trajectory, response to medication, and personalized treatment recommendations."""
     patient = db.query(Patient).filter(Patient.id == patient_id).first()

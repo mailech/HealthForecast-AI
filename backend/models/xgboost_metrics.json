@@ -6,10 +6,10 @@
   "roc_auc": 0.6307723907113469,
   "optimal_threshold": 0.5338,
   "model_name": "xgboost",
-  "version": "v3.0.0",
+  "version": "v5.0.0",
   "sample_size": 30000,
   "hyperparameters": {},
   "class_weight_strategy": "balanced",
-  "trained_at": "2026-09-12T17:19:52.460903",
-  "model_path": "models/xgboost_v3.0.0.joblib"
+  "trained_at": "2026-09-14T14:28:57.009686",
+  "model_path": "models/xgboost_v5.0.0.joblib"
 }

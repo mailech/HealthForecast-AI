@@ -162,7 +162,7 @@ export default function TreatmentEffectiveness() {
       }))
     : [];
 
-  const canEdit = user?.role === 'system_admin' || user?.role === 'doctor';
+  const canEdit = user?.role === 'doctor';
 
   return (
     <div>

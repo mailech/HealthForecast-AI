@@ -85,7 +85,7 @@ def get_dashboard_stats(
 def predict_risk(
     request: RiskPredictionRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles([UserRole.DOCTOR, UserRole.RESEARCHER])),
 ):
     patient = db.query(Patient).filter(Patient.id == request.patient_id).first()
     if not patient:
@@ -105,7 +105,7 @@ def predict_risk(
 def get_patient_risk_history(
     patient_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles([UserRole.DOCTOR, UserRole.RESEARCHER])),
 ):
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
     if not patient:
@@ -125,7 +125,7 @@ def get_patient_risk_history(
 @router.get("/risk/high-risk", response_model=List[RiskPredictionResponse])
 def get_high_risk_patients(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles([UserRole.DOCTOR, UserRole.RESEARCHER])),
 ):
     query = (
         db.query(RiskPrediction)
@@ -152,7 +152,7 @@ def get_high_risk_patients(
 def forecast_readmission(
     request: ReadmissionForecastRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles([UserRole.DOCTOR, UserRole.RESEARCHER])),
 ):
     patient = db.query(Patient).filter(Patient.id == request.patient_id).first()
     if not patient:
@@ -171,7 +171,7 @@ def forecast_readmission(
 def get_patient_forecasts(
     patient_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles([UserRole.DOCTOR, UserRole.RESEARCHER])),
 ):
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
     if not patient:
@@ -192,7 +192,7 @@ def get_patient_forecasts(
 def get_clinical_insights(
     patient_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles([UserRole.DOCTOR])),
 ):
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
     if not patient:
@@ -247,7 +247,7 @@ def get_model_metrics(current_user: User = Depends(get_current_user)):
 def get_model_versions(
     model_name: Optional[str] = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles([UserRole.SYSTEM_ADMIN])),
 ):
     """Retrieve version registry and performance tracking history across models."""
     return model_manager.get_version_history(db, model_name)

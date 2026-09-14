@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { predictionsAPI, authAPI } from '../services/api';
+import { predictionsAPI } from '../services/api';
 import {
   Settings,
   Database,
@@ -19,7 +19,6 @@ export default function ModelManagement() {
   const [metrics, setMetrics] = useState([]);
   const [versions, setVersions] = useState([]);
   const [monitoring, setMonitoring] = useState(null);
-  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -36,16 +35,15 @@ export default function ModelManagement() {
 
   const loadData = async () => {
     try {
-      const [metricsRes, versionsRes, monitoringRes, usersRes] = await Promise.all([
+      const [metricsRes, versionsRes, monitoringRes] = await Promise.all([
         predictionsAPI.modelMetrics(),
         predictionsAPI.modelVersions(),
         predictionsAPI.modelMonitoring(),
-        authAPI.listUsers(),
+
       ]);
       setMetrics(metricsRes.data);
       setVersions(versionsRes.data);
       setMonitoring(monitoringRes.data);
-      setUsers(usersRes.data);
     } catch (err) {
       console.error(err);
     }
@@ -443,47 +441,6 @@ export default function ModelManagement() {
             </table>
           </div>
         )}
-      </div>
-
-      {/* User Management Section */}
-      <div className="card">
-        <h3 className="font-semibold mb-4">User & Role Management</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-gray-500">
-                <th className="pb-3 pr-4">Name</th>
-                <th className="pb-3 pr-4">Username</th>
-                <th className="pb-3 pr-4">Email</th>
-                <th className="pb-3 pr-4">Role</th>
-                <th className="pb-3 pr-4">Department</th>
-                <th className="pb-3">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr key={u.id} className="border-b border-gray-50">
-                  <td className="py-3 pr-4 font-medium">{u.full_name}</td>
-                  <td className="py-3 pr-4 text-gray-600">{u.username}</td>
-                  <td className="py-3 pr-4 text-gray-600">{u.email}</td>
-                  <td className="py-3 pr-4 capitalize font-semibold text-primary-700">
-                    {u.role.replace('_', ' ')}
-                  </td>
-                  <td className="py-3 pr-4">{u.department}</td>
-                  <td className="py-3">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-bold ${
-                        u.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {u.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
       </div>
     </div>
   );
