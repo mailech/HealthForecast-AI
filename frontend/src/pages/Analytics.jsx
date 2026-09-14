@@ -19,6 +19,7 @@ import {
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import SpotlightCard from "../components/SpotlightCard";
+import API_BASE_URL from "../services/api";
 
 function Analytics() {
   const [timeframe, setTimeframe] = useState("30d");
@@ -31,7 +32,7 @@ function Analytics() {
     const fileName = `Healthcare_Analytics_Report.${ext}`;
     try {
       toast.info(`Exporting analytics report as .${ext}...`);
-      const response = await fetch(`http://localhost:5000/api/reports/REP-ANALYTICS/download?format=${formatType}`);
+      const response = await fetch(`${API_BASE_URL}/api/reports/REP-ANALYTICS/download?format=${formatType}`);
       if (!response.ok) {
         throw new Error(`HTTP status: ${response.status}`);
       }
@@ -55,7 +56,7 @@ function Analytics() {
   const fetchAnalytics = async (selectedTf) => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/analytics?timeframe=${selectedTf}`);
+      const res = await fetch(`${API_BASE_URL}/api/analytics?timeframe=${selectedTf}`);
       if (res.ok) {
         const resJson = await res.json();
         if (resJson.data) {

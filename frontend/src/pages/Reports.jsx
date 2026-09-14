@@ -13,6 +13,7 @@ import {
   Clock,
 } from "lucide-react";
 import { toast } from "sonner";
+import API_BASE_URL from "../services/api";
 
 const INITIAL_REPORTS = [
   {
@@ -84,7 +85,7 @@ function Reports() {
       toast.info(`Preparing ${fileName} download...`);
 
       const response = await fetch(
-        `http://localhost:5000/api/reports/${reportId}/download?format=${formatType}`
+        `${API_BASE_URL}/api/reports/${reportId}/download?format=${formatType}`
       );
 
       if (!response.ok) {

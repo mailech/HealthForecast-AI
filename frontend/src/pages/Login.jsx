@@ -22,6 +22,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useRole } from "../context/RoleContext";
+import API_BASE_URL from "../services/api";
 import SSOModal from "../components/SSOModal";
 
 const loginSchema = z.object({
@@ -139,7 +140,7 @@ function Login() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/login", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -223,7 +224,7 @@ function Login() {
     setResetLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/forgot-password", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: resetEmail }),
@@ -261,7 +262,7 @@ function Login() {
     setRequestLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/request-credentials", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/request-credentials`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestForm),

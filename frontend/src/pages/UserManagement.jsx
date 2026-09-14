@@ -17,6 +17,7 @@ import {
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useRole } from "../context/RoleContext";
+import API_BASE_URL from "../services/api";
 
 const ACCESS_MATRIX = [
   { feature: "Patient Clinical Records", doctor: "Assigned Patients", admin: "View Only", researcher: "Anonymized Only", sysAdmin: "Full Access" },
@@ -51,7 +52,7 @@ function UserManagement() {
     setLoading(true);
     try {
       // 1. Fetch Users
-      const usersRes = await fetch("http://localhost:5000/api/auth/users");
+      const usersRes = await fetch(`${API_BASE_URL}/api/auth/users`);
       if (usersRes.ok) {
         const usersData = await usersRes.json();
         if (usersData.data && usersData.data.length > 0) {
@@ -65,7 +66,7 @@ function UserManagement() {
       }
 
       // 2. Fetch Access Requests
-      const reqRes = await fetch("http://localhost:5000/api/auth/requests");
+      const reqRes = await fetch(`${API_BASE_URL}/api/auth/requests`);
       let apiRequests = [];
       if (reqRes.ok) {
         const reqData = await reqRes.json();
@@ -102,7 +103,7 @@ function UserManagement() {
     setActionId(id);
 
     try {
-      const response = await fetch(`http://localhost:5000/api/auth/requests/${id}/approve`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/requests/${id}/approve`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(reqItem),
@@ -152,7 +153,7 @@ function UserManagement() {
     setActionId(id);
 
     try {
-      const response = await fetch(`http://localhost:5000/api/auth/requests/${id}/reject`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/requests/${id}/reject`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(reqItem),

@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { SkeletonTable } from "../components/Skeletons";
 import { useRole } from "../context/RoleContext";
 import SpotlightCard from "../components/SpotlightCard";
+import API_BASE_URL from "../services/api";
 
 const patientSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -102,7 +103,7 @@ function Patients() {
   const fetchPatients = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/api/patients");
+      const res = await fetch(`${API_BASE_URL}/api/patients`);
       if (res.ok) {
         const resData = await res.json();
         if (resData && resData.data && Array.isArray(resData.data) && resData.data.length > 0) {
@@ -192,7 +193,7 @@ function Patients() {
     const fileName = `${safeName}_Care_Plan.pdf`;
     try {
       toast.info(`Generating Care Plan PDF for ${patientName}...`);
-      const response = await fetch(`http://localhost:5000/api/patients/${patientId}/download-pdf`);
+      const response = await fetch(`${API_BASE_URL}/api/patients/${patientId}/download-pdf`);
       if (!response.ok) {
         throw new Error(`HTTP status: ${response.status}`);
       }
@@ -219,7 +220,7 @@ function Patients() {
     const fileName = `Patients_Registry_Export.${ext}`;
     try {
       toast.info(`Exporting patient registry dataset as .${ext}...`);
-      const response = await fetch(`http://localhost:5000/api/reports/REP-PATIENTS/download?format=${formatType}`);
+      const response = await fetch(`${API_BASE_URL}/api/reports/REP-PATIENTS/download?format=${formatType}`);
       if (!response.ok) {
         throw new Error(`HTTP status: ${response.status}`);
       }
@@ -306,7 +307,7 @@ function Patients() {
     if (editingPatient) {
       const pId = editingPatient._id || editingPatient.id;
       try {
-        await fetch(`http://localhost:5000/api/patients/${pId}`, {
+        await fetch(`${API_BASE_URL}/api/patients/${pId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data),
@@ -323,7 +324,7 @@ function Patients() {
     } else {
       // Create Patient via POST /api/patients
       try {
-        const res = await fetch("http://localhost:5000/api/patients", {
+        const res = await fetch(`${API_BASE_URL}/api/patients`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

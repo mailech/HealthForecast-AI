@@ -15,6 +15,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useSocket } from "../context/SocketContext";
 import SpotlightCard from "../components/SpotlightCard";
+import API_BASE_URL from "../services/api";
 
 function Dashboard() {
   const { liveVitals, isConnected } = useSocket();
@@ -24,7 +25,7 @@ function Dashboard() {
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/prediction/analytics");
+        const response = await fetch(`${API_BASE_URL}/api/prediction/analytics`);
         if (response.ok) {
           const resJson = await response.json();
           if (resJson.data) {

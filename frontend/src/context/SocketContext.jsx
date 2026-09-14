@@ -2,6 +2,8 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import { toast } from "sonner";
 
+import API_BASE_URL from "../services/api";
+
 const SocketContext = createContext();
 
 export function SocketProvider({ children }) {
@@ -22,7 +24,7 @@ export function SocketProvider({ children }) {
 
   useEffect(() => {
     // Establish WebSocket connection to backend for authenticated sessions
-    const socketInstance = io("http://localhost:5000", {
+    const socketInstance = io(API_BASE_URL, {
       reconnectionAttempts: 5,
       reconnectionDelay: 2000,
     });

@@ -1,0 +1,60 @@
+services:
+  # 1. Python FastAPI Predictive ML Microservice
+  - type: web
+    name: healthforecast-ml
+    env: python
+    region: oregon
+    rootDir: ml_service
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+
+  # 2. Node.js Express Backend & Socket.io WebSockets API
+  - type: web
+    name: healthforecast-backend
+    env: node
+    region: oregon
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20.10.0
+      - key: PORT
+        value: 10000
+      - key: MONGO_URI
+        sync: false
+      - key: ML_SERVICE_URL
+        fromService:
+          type: web
+          name: healthforecast-ml
+          property: url
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: BREVO_API_KEY
+        sync: false
+      - key: SENDER_EMAIL
+        value: alerts@healthforecast.ai
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: healthforecast-frontend
+          property: url
+
+  # 3. React + Vite Frontend Web Client (Static Site)
+  - type: web
+    name: healthforecast-frontend
+    env: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        fromService:
+          type: web
+          name: healthforecast-backend
+          property: url

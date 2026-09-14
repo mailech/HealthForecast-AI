@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
+import API_BASE_URL from "../services/api";
 
 export default function ResetPassword() {
   const { token: pathToken } = useParams();
@@ -67,7 +68,7 @@ export default function ResetPassword() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/reset-password", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

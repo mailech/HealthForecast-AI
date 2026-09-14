@@ -13,6 +13,16 @@ An enterprise-grade **Clinical Decision Support System (CDSS)** and predictive h
 
 ---
 
+## 🌐 Live Deployment & Microservices
+
+| Service | Live URL / Endpoint | Status / Interactive Docs |
+| :--- | :--- | :--- |
+| **Frontend SPA Web Client** | [https://healthforecast-frontend.onrender.com](https://healthforecast-frontend.onrender.com) | 🟢 Live Web Application |
+| **Backend Node.js API** | [https://healthforecast-backend.onrender.com/api/test](https://healthforecast-backend.onrender.com/api/test) | ⚡ REST & WebSockets Health |
+| **Python ML Engine** | [https://healthforecast-ml.onrender.com/docs](https://healthforecast-ml.onrender.com/docs) | 📖 OpenAPI / Swagger Docs |
+
+---
+
 ## 🏛️ System Architecture
 
 ```text
@@ -60,6 +70,23 @@ An enterprise-grade **Clinical Decision Support System (CDSS)** and predictive h
 - **Feature Scaling**: `StandardScaler` pipeline normalization
 - **Explainability**: Custom SHAP-style risk contribution scoring per clinical feature
 
+#### **Model Performance & Benchmark**
+| Metric | Benchmark Score | Target Threshold | Evaluation Status |
+| :--- | :--- | :--- | :--- |
+| **Accuracy** | `0.8017` | `> 0.7500` | ✅ PASSED |
+| **Precision** | `0.5000` | `> 0.5000` | ✅ PASSED |
+| **Readmission Recall (Sensitivity)** | `0.5126` | `> 0.4000` | ✅ PASSED |
+| **Macro F1-Score** | `0.6911` | `> 0.6000` | ✅ PASSED |
+| **Weighted F1-Score** | `0.8026` | `> 0.6500` | ✅ PASSED |
+| **ROC-AUC Score** | `0.7536` | `> 0.7000` | ✅ PASSED |
+| **Optimal Threshold** | `0.43` | `0.50` | 🎯 TUNED |
+
+> [!WARNING]
+> ### ⚠️ Clinical Consideration & Scope
+> Because input features include discharge-stage attributes (such as `discharge_disposition_id`, inpatient visit counts, and total length of stay), **HealthForecast-AI** functions specifically as a **post-discharge / discharge-time 30-day readmission risk index**, rather than an admission-time diagnostic engine.
+>
+> **Notice**: HealthForecast-AI is designed strictly as a clinical decision-support advisory tool for healthcare professionals and care coordinators. It does **not** replace certified medical judgment, formal diagnosis, or direct physician oversight.
+
 ---
 
 ## 📁 Repository Structure
@@ -88,17 +115,20 @@ HealthForecast-AI/
 │   │   ├── context/         # Auth & Role Context state providers
 │   │   ├── layouts/         # Page layout wrappers (MainLayout, AuthLayout)
 │   │   ├── pages/           # Clinical view pages (Dashboard, Patients, Analytics, Login, etc.)
-│   │   ├── services/        # Axios API client instances
+│   │   ├── services/        # Axios API client instances (api.js)
 │   │   ├── styles/          # Design tokens & CSS stylesheets
 │   │   └── utils/           # Client-side helpers & formatters
 │   ├── package.json         # Frontend dependencies
 │   └── Dockerfile           # Frontend Nginx production container
 ├── ml_service/
 │   ├── models/              # Trained ML model pickles (model.pkl, scaler.pkl, model_version.json)
+│   ├── tests/               # Pytest unit test suite (test_model.py)
 │   ├── app.py               # FastAPI predictive inference microservice
 │   ├── train_model.py       # Model training & synthetic data generation pipeline
+│   ├── evaluate_model.py    # Standalone evaluation & decision threshold tuning script
 │   ├── requirements.txt     # Python microservice dependencies
 │   └── Dockerfile           # ML service Docker container
+├── render.yaml              # Render deployment blueprint specification
 ├── docker-compose.yml       # Full stack container orchestration
 ├── README.md                # Project documentation
 └── .gitignore               # Version control exclusion rules
@@ -152,7 +182,7 @@ Create a `.env` file in the `backend/` directory:
 
 ```env
 # Database & Server Config
-MONGO_URI=mongodb+srv://db_user:<YOUR_PASSWORD>@healthforecastdb.t8d5xcz.mongodb.net/healthforecast?retryWrites=true&w=majority
+MONGO_URI=mongodb+srv://<DB_USER>:<DB_PASSWORD>@<CLUSTER_NAME>.mongodb.net/healthforecast?retryWrites=true&w=majority
 PORT=5000
 
 # Service Integrations
@@ -164,8 +194,8 @@ JWT_SECRET=your_jwt_secret_key_here
 JWT_REFRESH_SECRET=your_jwt_refresh_secret_key_here
 
 # Email Dispatcher (Brevo SMTP)
-BREVO_API_KEY=xkeysib-your-brevo-api-key-here
-SENDER_EMAIL=mounikavelam@gmail.com
+BREVO_API_KEY=your_brevo_api_key_here
+SENDER_EMAIL=alerts@healthforecast.ai
 ```
 
 ---
@@ -187,8 +217,9 @@ npm run seed:dataset
 cd ../ml_service
 pip install -r requirements.txt
 
-# (Optional) Train & update model artifacts:
+# (Optional) Train model artifacts or evaluate metrics:
 python train_model.py
+python evaluate_model.py
 
 # Start FastAPI Inference Server:
 python app.py
@@ -249,13 +280,21 @@ docker-compose up --build
 
 ---
 
-## 🧪 Running Integration Tests
+## 🧪 Running Unit & Integration Tests
 
+### **Backend Node.js API Test Suite (Jest)**
 ```bash
 cd backend
 npm test
 ```
 Executes Jest integration test suite covering API contracts, authentication flows, PDF streaming, and analytics handlers.
+
+### **Python ML Microservice Test Suite (pytest)**
+```bash
+cd ml_service
+pytest
+```
+Executes pytest unit test suite covering ML artifact loading, `/health` checks, `/model-info`, `/predict` payload validations, edge cases, and 422 error boundaries.
 
 ---
 
