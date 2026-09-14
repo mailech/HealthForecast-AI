@@ -24,6 +24,9 @@ const PatientList = () => {
     emergency_contact_phone: ''
   })
 
+  const [submitting, setSubmitting] = useState(false)
+  const [addError, setAddError] = useState('')
+
   useEffect(() => {
     fetchPatients()
   }, [])
@@ -52,10 +55,29 @@ const PatientList = () => {
 
   const handleAddPatient = async (e) => {
     e.preventDefault()
+    setSubmitting(true)
+    setAddError('')
+
+    const payload = {
+      patient_id: newPatient.patient_id.trim(),
+      first_name: newPatient.first_name.trim(),
+      last_name: newPatient.last_name.trim(),
+      date_of_birth: newPatient.date_of_birth,
+      gender: newPatient.gender,
+      phone: newPatient.phone.trim() || null,
+      email: newPatient.email.trim() || null,
+      address: newPatient.address.trim() || null,
+      city: newPatient.city.trim() || null,
+      state: newPatient.state.trim() || null,
+      zip_code: newPatient.zip_code.trim() || null,
+      emergency_contact_name: newPatient.emergency_contact_name.trim() || null,
+      emergency_contact_phone: newPatient.emergency_contact_phone.trim() || null
+    }
+
     try {
-      await api.post('/patients', newPatient)
+      const res = await api.post('/patients', payload)
+      setPatients(prev => [res.data, ...prev])
       setShowAddModal(false)
-      fetchPatients()
       setNewPatient({
         patient_id: '',
         first_name: '',
@@ -73,16 +95,20 @@ const PatientList = () => {
       })
     } catch (error) {
       console.error('Failed to add patient:', error)
+      setAddError(error.response?.data?.detail || 'Failed to add patient record. Please check input details.')
+    } finally {
+      setSubmitting(false)
     }
   }
 
   const handleDeletePatient = async (id) => {
-    if (window.confirm('Are you sure you want to delete this patient?')) {
+    if (window.confirm('Are you sure you want to delete this patient record?')) {
       try {
         await api.delete(`/patients/${id}`)
-        fetchPatients()
+        setPatients(prev => prev.filter(p => p.id !== id))
       } catch (error) {
         console.error('Failed to delete patient:', error)
+        alert(error.response?.data?.detail || 'Failed to delete patient. Please try again.')
       }
     }
   }
@@ -190,6 +216,11 @@ const PatientList = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-semibold mb-4">Add New Patient</h2>
+            {addError && (
+              <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm border border-red-200 rounded-lg">
+                {addError}
+              </div>
+            )}
             <form onSubmit={handleAddPatient} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -354,8 +385,8 @@ const PatientList = () => {
                 >
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary">
-                  Add Patient
+                <button type="submit" disabled={submitting} className="btn-primary disabled:opacity-50">
+                  {submitting ? 'Adding Patient...' : 'Add Patient'}
                 </button>
               </div>
             </form>

@@ -51,23 +51,17 @@ const Login = () => {
     e.preventDefault()
     setError('')
 
-    if (!selectedRole) {
-      setError('Please select your role before signing in.')
-      return
-    }
-
     setLoading(true)
     const result = await login(email, password)
     setLoading(false)
 
     if (result.success) {
       const userRole = result.user?.role?.name
-      // Verify the selected role matches actual role
-      if (userRole && userRole !== selectedRole) {
-        setError(`This account is registered as "${userRole}", not "${selectedRole}". Please select the correct role.`)
+      if (selectedRole && userRole && userRole !== selectedRole) {
+        setError(`This account is registered as "${userRole}", not "${selectedRole}". Please select "${userRole}".`)
         return
       }
-      navigate(getRoleDashboard(userRole || selectedRole))
+      navigate(getRoleDashboard(userRole || selectedRole || 'Doctor'))
     } else {
       setError(result.error)
     }
@@ -178,19 +172,6 @@ const Login = () => {
               </button>
             </form>
 
-            <div className="mt-6 pt-4 border-t border-gray-100">
-              <p className="text-xs text-gray-400 text-center mb-2">Demo credentials (password: Admin@123)</p>
-              <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
-                <div className="bg-gray-50 rounded-lg p-2">
-                  <p className="font-medium text-gray-700">Admin</p>
-                  <p className="truncate">admin@healthforecast.ai</p>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-2">
-                  <p className="font-medium text-gray-700">Doctor</p>
-                  <p className="truncate">doctor@healthforecast.ai</p>
-                </div>
-              </div>
-            </div>
           </div>
 
           <p className="text-center text-sm text-gray-500 mt-4">

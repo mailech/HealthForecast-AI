@@ -129,7 +129,7 @@ const AdminDashboard = () => {
               { label: 'Patient Records', to: '/patients', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
               { label: 'Audit Logs', to: '/settings', icon: FileText, color: 'text-purple-600', bg: 'bg-purple-50' },
               { label: 'System Settings', to: '/settings', icon: Settings, color: 'text-gray-600', bg: 'bg-gray-100' },
-              { label: 'Dataset Integration', to: '/settings', icon: Database, color: 'text-green-600', bg: 'bg-green-50' },
+              { label: 'Dataset Integration', to: '/dataset', icon: Database, color: 'text-green-600', bg: 'bg-green-50' },
             ].map(({ label, to, icon: Icon, color, bg }) => (
               <Link key={label} to={to}
                 className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors group">

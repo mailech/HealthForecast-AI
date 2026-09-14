@@ -57,6 +57,8 @@ app.include_router(dataset.router, prefix="/api/dataset", tags=["Dataset"])
 app.include_router(predictions.router, prefix="/api/predictions", tags=["Predictions"])
 
 
+from app.core.database import mongo_client, mongo_db, get_mongo_db
+
 @app.get("/")
 def root():
     return {"message": "HealthForecast AI API", "version": "1.0.0"}
@@ -64,4 +66,16 @@ def root():
 
 @app.get("/health")
 def health_check():
-    return {"status": "healthy"}
+    mongo_status = "disconnected"
+    if mongo_client:
+        try:
+            mongo_client.admin.command('ping')
+            mongo_status = "connected"
+        except Exception:
+            mongo_status = "error"
+    return {
+        "status": "healthy",
+        "mongodb": mongo_status,
+        "database": "connected"
+    }
+

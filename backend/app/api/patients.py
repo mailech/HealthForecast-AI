@@ -51,7 +51,7 @@ def get_patient(
 def create_patient(
     patient_data: PatientCreate,
     db: Session = Depends(get_db),
-    current_user = Depends(require_role("Doctor", "System Administrator"))
+    current_user = Depends(require_role("Doctor", "Hospital Administrator", "System Administrator"))
 ):
     existing_patient = db.query(Patient).filter(Patient.patient_id == patient_data.patient_id).first()
     if existing_patient:
@@ -78,7 +78,7 @@ def update_patient(
     patient_id: int,
     patient_data: PatientUpdate,
     db: Session = Depends(get_db),
-    current_user = Depends(require_role("Doctor", "System Administrator"))
+    current_user = Depends(require_role("Doctor", "Hospital Administrator", "System Administrator"))
 ):
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
     if not patient:
@@ -104,18 +104,30 @@ def update_patient(
     return PatientResponse.from_orm(patient)
 
 
+from app.models.medical_history import MedicalHistory
+from app.models.admission import Admission
+from app.models.treatment import Treatment
+from app.models.risk_prediction import PatientRiskPrediction
+
+
 @router.delete("/{patient_id}")
 def delete_patient(
     patient_id: int,
     db: Session = Depends(get_db),
-    current_user = Depends(require_role("System Administrator"))
+    current_user = Depends(require_role("Doctor", "Hospital Administrator", "System Administrator"))
 ):
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
-    
+
+    # Clean up associated records to satisfy foreign key constraints
+    db.query(PatientRiskPrediction).filter(PatientRiskPrediction.patient_id == patient_id).delete()
+    db.query(Treatment).filter(Treatment.patient_id == patient_id).delete()
+    db.query(Admission).filter(Admission.patient_id == patient_id).delete()
+    db.query(MedicalHistory).filter(MedicalHistory.patient_id == patient_id).delete()
+
     db.delete(patient)
-    
+
     audit_log = AuditLog(
         user_id=current_user.id,
         action="DELETE_PATIENT",
@@ -124,6 +136,7 @@ def delete_patient(
         old_values=f"patient_id={patient.patient_id}, name={patient.first_name} {patient.last_name}"
     )
     db.add(audit_log)
-    
+
     db.commit()
     return {"message": "Patient deleted successfully"}
+

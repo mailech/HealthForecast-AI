@@ -96,8 +96,8 @@ const HospitalAdminDashboard = () => {
           <div className="space-y-2">
             {[
               { label: 'Patient Records', to: '/patients', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-              { label: 'Admission Reports', to: '/patients', icon: Activity, color: 'text-green-600', bg: 'bg-green-50' },
-              { label: 'Discharge Analytics', to: '/patients', icon: LogOut, color: 'text-purple-600', bg: 'bg-purple-50' },
+              { label: 'Admission Reports', to: '/reports', icon: Activity, color: 'text-green-600', bg: 'bg-green-50' },
+              { label: 'Discharge Analytics', to: '/reports', icon: LogOut, color: 'text-purple-600', bg: 'bg-purple-50' },
             ].map(({ label, to, icon: Icon, color, bg }) => (
               <Link key={label} to={to}
                 className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors group">

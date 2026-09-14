@@ -15,6 +15,9 @@ const UserManagement = () => {
     role_id: 1
   })
 
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingUser, setEditingUser] = useState(null)
+
   useEffect(() => {
     fetchUsers()
   }, [])
@@ -48,13 +51,38 @@ const UserManagement = () => {
     }
   }
 
+  const handleEditClick = (userObj) => {
+    setEditingUser({
+      id: userObj.id,
+      email: userObj.email || '',
+      username: userObj.username || '',
+      full_name: userObj.full_name || '',
+      role_id: userObj.role_id || userObj.role?.id || 1,
+      is_active: userObj.is_active ?? true
+    })
+    setShowEditModal(true)
+  }
+
+  const handleUpdateUser = async (e) => {
+    e.preventDefault()
+    try {
+      await api.put(`/users/${editingUser.id}`, editingUser)
+      setShowEditModal(false)
+      setEditingUser(null)
+      fetchUsers()
+    } catch (error) {
+      console.error('Failed to update user:', error)
+    }
+  }
+
   const handleDeleteUser = async (id) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       try {
         await api.delete(`/users/${id}`)
-        fetchUsers()
+        setUsers(prev => prev.filter(u => u.id !== id))
       } catch (error) {
         console.error('Failed to delete user:', error)
+        alert(error.response?.data?.detail || 'Failed to delete user. Please try again.')
       }
     }
   }
@@ -165,7 +193,7 @@ const UserManagement = () => {
                   </td>
                   <td className="table-cell">
                     <div className="flex items-center space-x-2">
-                      <button className="text-primary-600 hover:text-primary-800">
+                      <button onClick={() => handleEditClick(user)} className="text-primary-600 hover:text-primary-800">
                         <Edit className="w-5 h-5" />
                       </button>
                       <button
@@ -267,6 +295,81 @@ const UserManagement = () => {
                 </button>
                 <button type="submit" className="btn-primary">
                   Add User
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showEditModal && editingUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h2 className="text-xl font-semibold mb-4">Edit User</h2>
+            <form onSubmit={handleUpdateUser} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <input
+                  type="text"
+                  value={editingUser.full_name}
+                  onChange={(e) => setEditingUser({ ...editingUser, full_name: e.target.value })}
+                  className="input-field"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                <input
+                  type="email"
+                  required
+                  value={editingUser.email}
+                  onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                  className="input-field"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Username *</label>
+                <input
+                  type="text"
+                  required
+                  value={editingUser.username}
+                  onChange={(e) => setEditingUser({ ...editingUser, username: e.target.value })}
+                  className="input-field"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Role *</label>
+                <select
+                  required
+                  value={editingUser.role_id}
+                  onChange={(e) => setEditingUser({ ...editingUser, role_id: parseInt(e.target.value) })}
+                  className="input-field"
+                >
+                  <option value={1}>System Administrator</option>
+                  <option value={2}>Doctor</option>
+                  <option value={3}>Hospital Administrator</option>
+                  <option value={4}>Healthcare Researcher</option>
+                </select>
+              </div>
+              <div className="flex items-center space-x-2 pt-2">
+                <input
+                  type="checkbox"
+                  id="is_active"
+                  checked={editingUser.is_active}
+                  onChange={(e) => setEditingUser({ ...editingUser, is_active: e.target.checked })}
+                  className="rounded text-primary-600 focus:ring-primary-500"
+                />
+                <label htmlFor="is_active" className="text-sm font-medium text-gray-700">Account Active</label>
+              </div>
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => { setShowEditModal(false); setEditingUser(null) }}
+                  className="btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary">
+                  Save Changes
                 </button>
               </div>
             </form>

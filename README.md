@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # HealthForecast AI: Hospital Readmission Prediction & Patient Risk Intelligence System
 
 ## Project Overview
@@ -64,10 +63,6 @@ HealthForecast AI/
 │   │   └── utils/
 │   ├── package.json
 │   └── .env.example
-├── database/
-│   ├── migrations/
-│   ├── seeds/
-│   └── schema.sql
 ├── docs/
 │   ├── architecture.md
 │   ├── api-documentation.md
@@ -240,6 +235,3 @@ This project is proprietary and confidential.
 ## Support
 
 For support, contact the development team at dev@healthforecast.ai
-=======
-# HealthForecast-AI
->>>>>>> a6829ea899aa6c9751706292a0bd6ed3c9786e8d

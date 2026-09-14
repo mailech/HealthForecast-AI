@@ -10,7 +10,7 @@ class PatientBase(BaseModel):
     date_of_birth: date
     gender: str
     phone: Optional[str] = None
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     address: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None

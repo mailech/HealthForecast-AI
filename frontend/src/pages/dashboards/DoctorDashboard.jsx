@@ -17,15 +17,14 @@ const DoctorDashboard = () => {
   const [selectedPatientForModal, setSelectedPatientForModal] = useState(null)
 
   useEffect(() => {
-    Promise.all([
-      api.get('/dashboard/stats'),
-      api.get('/predictions/high-risk-list?limit=5')
-    ])
-      .then(([statsRes, riskRes]) => {
-        setStats(statsRes.data)
-        setHighRiskList(riskRes.data)
-      })
-      .catch(console.error)
+    setLoading(true)
+    api.get('/dashboard/stats')
+      .then(res => setStats(res.data))
+      .catch(err => console.error('Failed dashboard stats:', err))
+
+    api.get('/predictions/high-risk-list?limit=5')
+      .then(res => setHighRiskList(res.data || []))
+      .catch(err => console.error('Failed high risk list:', err))
       .finally(() => setLoading(false))
   }, [])
 
@@ -106,7 +105,7 @@ const DoctorDashboard = () => {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 text-gray-600 text-xs uppercase font-semibold">
+            <thead className="bg-gray-50 text-gray-600 text-xs uppercase font-semibold border-b border-gray-200">
               <tr>
                 <th className="p-3">Patient</th>
                 <th className="p-3">Patient ID</th>
@@ -118,31 +117,61 @@ const DoctorDashboard = () => {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {highRiskList.map((item) => (
-                <tr key={item.patient_id} className="hover:bg-gray-50/80 transition-colors">
+                <tr key={item.patient_id} className="hover:bg-teal-50/30 transition-colors">
                   <td className="p-3 font-semibold text-gray-900">{item.patient_name}</td>
-                  <td className="p-3 font-mono text-xs text-gray-500">{item.patient_nbr}</td>
+                  <td className="p-3 font-mono text-xs text-teal-700 font-semibold">{item.patient_nbr}</td>
                   <td className="p-3">
                     <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                      item.risk_level === 'High' ? 'bg-red-100 text-red-700' :
-                      item.risk_level === 'Medium' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
+                      item.risk_level === 'High' ? 'bg-red-100 text-red-800 border border-red-200' :
+                      item.risk_level === 'Medium' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                      'bg-green-100 text-green-800 border border-green-200'
                     }`}>
-                      {item.risk_level}
+                      {item.risk_level} Risk
                     </span>
                   </td>
-                  <td className="p-3 font-bold text-gray-900">{item.risk_score} / 100</td>
+                  <td className="p-3 font-extrabold text-gray-900">{item.risk_score} / 100</td>
                   <td className="p-3 text-xs text-gray-600">
                     {item.risk_factors[0]?.factor || 'Glycemic Spike / Length of Stay'}
                   </td>
                   <td className="p-3 text-right">
-                    <button
-                      onClick={() => openCalculator(item)}
-                      className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1.5 rounded-lg font-medium transition-colors"
-                    >
-                      Run Simulation
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => openCalculator(item)}
+                        className="text-xs bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1"
+                        title="Simulate risk parameters"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-teal-600" /> Simulate Risk
+                      </button>
+                      <Link
+                        to={`/patients/${item.patient_id}`}
+                        className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 px-2.5 py-1.5 rounded-lg font-semibold transition-all"
+                      >
+                        View Profile
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}
+
+              {highRiskList.length === 0 && !loading && (
+                <tr>
+                  <td colSpan="6" className="text-center py-8 px-4 bg-gray-50/50">
+                    <div className="flex flex-col items-center justify-center space-y-2">
+                      <AlertTriangle className="w-7 h-7 text-amber-500" />
+                      <p className="text-sm font-bold text-gray-900">No Evaluated High-Risk Patients Found</p>
+                      <p className="text-xs text-gray-500 max-w-sm">
+                        Use the AI Risk Calculator to evaluate patient risk factors or run batch predictions across the patient database.
+                      </p>
+                      <button
+                        onClick={() => openCalculator()}
+                        className="mt-2 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-xs"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" /> AI Risk Calculator
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

@@ -13,7 +13,7 @@ router = APIRouter()
 @router.get("/stats", response_model=DashboardStats)
 def get_dashboard_stats(
     db: Session = Depends(get_db),
-    current_user = Depends(require_role("Doctor", "Hospital Administrator", "System Administrator"))
+    current_user = Depends(require_role("Doctor", "Hospital Administrator", "Healthcare Researcher", "System Administrator"))
 ):
     total_patients = db.query(func.count(Patient.id)).filter(Patient.is_active == True).scalar()
     

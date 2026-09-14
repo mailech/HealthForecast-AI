@@ -22,6 +22,24 @@ const ResearcherDashboard = () => {
     { label: 'Discharged Cases', value: stats ? stats.total_discharges : '—', icon: BarChart3, color: 'text-green-600', bg: 'bg-green-50' },
   ]
 
+  const downloadDataset = (name) => {
+    const headers = ['patient_id', 'age', 'gender', 'primary_diagnosis', 'readmitted', 'hospital_stay_days']
+    const sample = [
+      ['P001', '68', 'Male', 'Diabetes Mellitus Type 2', 'YES', '7'],
+      ['P002', '62', 'Female', 'Hypertension', 'NO', '4'],
+      ['P003', '75', 'Male', 'Congestive Heart Failure', 'YES', '11'],
+      ['P004', '54', 'Female', 'Asthma Exacerbation', 'NO', '3']
+    ]
+    const csv = [headers, ...sample].map(r => r.join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${name.replace(/\s+/g, '_').toLowerCase()}_sample.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -100,7 +118,11 @@ const ResearcherDashboard = () => {
                     <Clock className="w-3 h-3 mr-1" />{records} · Updated {updated}
                   </p>
                 </div>
-                <button className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                <button
+                  onClick={() => downloadDataset(name)}
+                  className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                  title="Download CSV"
+                >
                   <Download className="w-4 h-4" />
                 </button>
               </div>

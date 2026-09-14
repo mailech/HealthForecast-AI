@@ -44,7 +44,7 @@ class PatientRiskPredictionResponse(BaseModel):
     created_at: Optional[datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class ModelMetricBenchmark(BaseModel):
     model_name: str

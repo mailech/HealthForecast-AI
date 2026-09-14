@@ -77,8 +77,8 @@ export default function RiskPredictionDashboard() {
   if (loading) {
     return (
       <div className="p-12 flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-        <div className="w-12 h-12 border-4 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-slate-400 text-sm animate-pulse">Loading Risk Intelligence & Forecasting Workflows...</p>
+        <div className="w-12 h-12 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-gray-500 text-sm font-medium animate-pulse">Loading Risk Intelligence & Forecasting Workflows...</p>
       </div>
     )
   }
@@ -86,16 +86,16 @@ export default function RiskPredictionDashboard() {
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/90 p-6 rounded-2xl border border-slate-800 backdrop-blur-md">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-200/80 shadow-sm">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-3 py-1 bg-teal-500/10 text-teal-400 border border-teal-500/30 text-xs font-semibold rounded-full flex items-center gap-1.5">
-              <ShieldAlert className="w-3.5 h-3.5" /> Readmission Forecasting Engine
+            <span className="px-3 py-1 bg-teal-50 text-teal-700 border border-teal-200 text-xs font-semibold rounded-full flex items-center gap-1.5">
+              <ShieldAlert className="w-3.5 h-3.5 text-teal-600" /> Readmission Forecasting Engine
             </span>
-            <span className="text-xs text-slate-400">ML Predictive Stratification</span>
+            <span className="text-xs text-gray-500 font-medium">ML Predictive Stratification</span>
           </div>
-          <h1 className="text-2xl font-bold text-white mt-1">Patient Risk Prediction & Readmission Forecast</h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <h1 className="text-2xl font-bold text-gray-900 mt-2">Patient Risk Prediction & Readmission Forecast</h1>
+          <p className="text-xs text-gray-500 mt-1">
             Real-time ML risk stratification, 30-day readmission trend forecasting, and clinical decision support.
           </p>
         </div>
@@ -104,7 +104,7 @@ export default function RiskPredictionDashboard() {
           <button
             onClick={handleBatchPredict}
             disabled={batchScoring}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold rounded-xl text-xs flex items-center gap-2 transition-all"
+            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 font-semibold rounded-xl text-xs flex items-center gap-2 transition-all"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${batchScoring ? 'animate-spin' : ''}`} />
             {batchScoring ? 'Scoring Database...' : 'Run Batch Risk Scoring'}
@@ -112,7 +112,7 @@ export default function RiskPredictionDashboard() {
 
           <button
             onClick={() => openCalculator()}
-            className="px-5 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-slate-950 font-bold rounded-xl shadow-lg transition-all flex items-center gap-2 text-xs"
+            className="px-5 py-2.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold rounded-xl shadow-sm transition-all flex items-center gap-2 text-xs"
           >
             <Sparkles className="w-4 h-4" /> AI Risk Calculator
           </button>
@@ -121,61 +121,61 @@ export default function RiskPredictionDashboard() {
 
       {/* Risk Stratification Pyramid Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-        <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800">
-          <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Total Active Cohort</div>
-          <div className="text-3xl font-extrabold text-white mt-2">{highRiskList.length}</div>
-          <div className="text-[11px] text-slate-400 mt-1">Evaluated across hospital wards</div>
+        <div className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-sm">
+          <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Total Active Cohort</div>
+          <div className="text-3xl font-extrabold text-gray-900 mt-2">{highRiskList.length}</div>
+          <div className="text-[11px] text-gray-500 mt-1">Evaluated across hospital wards</div>
         </div>
 
-        <div className="bg-rose-950/30 p-5 rounded-2xl border border-rose-500/30">
+        <div className="bg-rose-50/80 p-5 rounded-2xl border border-rose-200/80 shadow-sm">
           <div className="flex justify-between items-center">
-            <span className="text-xs text-rose-300 font-semibold uppercase tracking-wider">High Risk Cohort</span>
-            <span className="px-2 py-0.5 bg-rose-500 text-white text-[10px] font-bold rounded-full">Score ≥ 60</span>
+            <span className="text-xs text-rose-900 font-bold uppercase tracking-wider">High Risk Cohort</span>
+            <span className="px-2 py-0.5 bg-rose-600 text-white text-[10px] font-bold rounded-full shadow-xs">Score ≥ 60</span>
           </div>
-          <div className="text-3xl font-extrabold text-rose-400 mt-2">{highCount}</div>
-          <div className="text-[11px] text-rose-300/80 mt-1">{((highCount / totalCount) * 100).toFixed(1)}% of total cohort</div>
+          <div className="text-3xl font-extrabold text-rose-600 mt-2">{highCount}</div>
+          <div className="text-[11px] text-rose-700 font-medium mt-1">{((highCount / totalCount) * 100).toFixed(1)}% of total cohort</div>
         </div>
 
-        <div className="bg-amber-950/30 p-5 rounded-2xl border border-amber-500/30">
+        <div className="bg-amber-50/80 p-5 rounded-2xl border border-amber-200/80 shadow-sm">
           <div className="flex justify-between items-center">
-            <span className="text-xs text-amber-300 font-semibold uppercase tracking-wider">Medium Risk Cohort</span>
-            <span className="px-2 py-0.5 bg-amber-500 text-slate-950 text-[10px] font-bold rounded-full">Score 35-59</span>
+            <span className="text-xs text-amber-900 font-bold uppercase tracking-wider">Medium Risk Cohort</span>
+            <span className="px-2 py-0.5 bg-amber-500 text-white text-[10px] font-bold rounded-full shadow-xs">Score 35-59</span>
           </div>
-          <div className="text-3xl font-extrabold text-amber-400 mt-2">{medCount}</div>
-          <div className="text-[11px] text-amber-300/80 mt-1">{((medCount / totalCount) * 100).toFixed(1)}% of total cohort</div>
+          <div className="text-3xl font-extrabold text-amber-600 mt-2">{medCount}</div>
+          <div className="text-[11px] text-amber-700 font-medium mt-1">{((medCount / totalCount) * 100).toFixed(1)}% of total cohort</div>
         </div>
 
-        <div className="bg-emerald-950/30 p-5 rounded-2xl border border-emerald-500/30">
+        <div className="bg-emerald-50/80 p-5 rounded-2xl border border-emerald-200/80 shadow-sm">
           <div className="flex justify-between items-center">
-            <span className="text-xs text-emerald-300 font-semibold uppercase tracking-wider">Low Risk Cohort</span>
-            <span className="px-2 py-0.5 bg-emerald-500 text-slate-950 text-[10px] font-bold rounded-full">Score &lt; 35</span>
+            <span className="text-xs text-emerald-900 font-bold uppercase tracking-wider">Low Risk Cohort</span>
+            <span className="px-2 py-0.5 bg-emerald-600 text-white text-[10px] font-bold rounded-full shadow-xs">Score &lt; 35</span>
           </div>
-          <div className="text-3xl font-extrabold text-emerald-400 mt-2">{lowCount}</div>
-          <div className="text-[11px] text-emerald-300/80 mt-1">{((lowCount / totalCount) * 100).toFixed(1)}% of total cohort</div>
+          <div className="text-3xl font-extrabold text-emerald-600 mt-2">{lowCount}</div>
+          <div className="text-[11px] text-emerald-700 font-medium mt-1">{((lowCount / totalCount) * 100).toFixed(1)}% of total cohort</div>
         </div>
       </div>
 
       {/* 30-Day Readmission Time-Series Forecast Chart */}
       {forecast && (
-        <div className="bg-slate-900/80 p-6 rounded-2xl border border-slate-800">
+        <div className="bg-white p-6 rounded-2xl border border-gray-200/80 shadow-sm">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div>
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-teal-400" /> 30-Day Readmission Rate Forecasting
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-teal-600" /> 30-Day Readmission Rate Forecasting
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-gray-500 mt-0.5">
                 Historical readmission trends vs ML intervention projected reduction (-{forecast.expected_rate_reduction_pct}%)
               </p>
             </div>
 
             <div className="flex items-center gap-4 text-xs">
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-slate-500"></span>
-                <span className="text-slate-300">Baseline Rate ({forecast.baseline_readmission_rate}%)</span>
+                <span className="w-3 h-3 rounded-full bg-slate-400"></span>
+                <span className="text-gray-600">Baseline Rate ({forecast.baseline_readmission_rate}%)</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-teal-400"></span>
-                <span className="text-teal-300 font-semibold">Projected Post-Intervention ({forecast.projected_readmission_rate}%)</span>
+                <span className="w-3 h-3 rounded-full bg-teal-600"></span>
+                <span className="text-teal-700 font-bold">Projected Post-Intervention ({forecast.projected_readmission_rate}%)</span>
               </div>
             </div>
           </div>
@@ -185,20 +185,20 @@ export default function RiskPredictionDashboard() {
               <AreaChart data={forecast.monthly_trends} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#64748b" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#64748b" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#94a3b8" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="#94a3b8" stopOpacity={0}/>
                   </linearGradient>
                   <linearGradient id="colorForecast" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.6}/>
-                    <stop offset="95%" stopColor="#14b8a6" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#0d9488" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="#0d9488" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                <XAxis dataKey="month" stroke="#94a3b8" />
-                <YAxis stroke="#94a3b8" unit="%" />
-                <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '0.75rem', color: '#fff', fontSize: '12px' }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="month" stroke="#64748b" />
+                <YAxis stroke="#64748b" unit="%" />
+                <Tooltip contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', borderRadius: '0.75rem', color: '#0f172a', fontSize: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                 <Area type="monotone" dataKey="actual_rate" stroke="#64748b" fillOpacity={1} fill="url(#colorActual)" name="Actual Rate" />
-                <Area type="monotone" dataKey="forecasted_rate" stroke="#14b8a6" strokeWidth={3} fillOpacity={1} fill="url(#colorForecast)" name="Projected Rate" />
+                <Area type="monotone" dataKey="forecasted_rate" stroke="#0d9488" strokeWidth={3} fillOpacity={1} fill="url(#colorForecast)" name="Projected Rate" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -206,36 +206,36 @@ export default function RiskPredictionDashboard() {
       )}
 
       {/* Patient Risk Queue Table */}
-      <div className="bg-slate-900/80 p-6 rounded-2xl border border-slate-800 space-y-4">
+      <div className="bg-white p-6 rounded-2xl border border-gray-200/80 shadow-sm space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h3 className="text-lg font-bold text-white">Patient Readmission Risk Queue</h3>
-            <p className="text-xs text-slate-400">Searchable patient cohort with calculated risk scores and contributing clinical factors</p>
+            <h3 className="text-lg font-bold text-gray-900">Patient Readmission Risk Queue</h3>
+            <p className="text-xs text-gray-500">Searchable patient cohort with calculated risk scores and contributing clinical factors</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
             {/* Search Input */}
             <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
               <input
                 type="text"
                 placeholder="Search patient name or ID..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-teal-500 w-60"
+                className="bg-gray-50 border border-gray-300 rounded-xl pl-9 pr-4 py-2 text-xs text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 w-60 transition-all"
               />
             </div>
 
             {/* Filter Buttons */}
-            <div className="flex bg-slate-800 p-1 rounded-xl border border-slate-700 text-xs">
+            <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200 text-xs">
               {['ALL', 'HIGH', 'MEDIUM', 'LOW'].map(lvl => (
                 <button
                   key={lvl}
                   onClick={() => setFilterLevel(lvl)}
                   className={`px-3 py-1 rounded-lg font-semibold transition-all ${
                     filterLevel === lvl
-                      ? 'bg-teal-500 text-slate-950'
-                      : 'text-slate-400 hover:text-white'
+                      ? 'bg-white text-teal-700 shadow-xs font-bold'
+                      : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
                   {lvl}
@@ -247,7 +247,7 @@ export default function RiskPredictionDashboard() {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-800/80 text-slate-400 text-xs uppercase font-semibold border-b border-slate-700">
+            <thead className="bg-gray-50 text-gray-600 text-xs uppercase font-semibold border-b border-gray-200">
               <tr>
                 <th className="p-3">Patient</th>
                 <th className="p-3">Patient ID</th>
@@ -258,38 +258,38 @@ export default function RiskPredictionDashboard() {
                 <th className="p-3 text-right">Simulation</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-gray-100">
               {filteredPatients.map(p => (
-                <tr key={p.patient_id} className="hover:bg-slate-800/50 transition-colors">
-                  <td className="p-3 font-semibold text-white">{p.patient_name}</td>
-                  <td className="p-3 font-mono text-xs text-teal-400">{p.patient_nbr}</td>
+                <tr key={p.patient_id} className="hover:bg-teal-50/30 transition-colors">
+                  <td className="p-3 font-semibold text-gray-900">{p.patient_name}</td>
+                  <td className="p-3 font-mono text-xs text-teal-700 font-semibold">{p.patient_nbr}</td>
                   <td className="p-3">
                     <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                      p.risk_level === 'High' ? 'bg-rose-950 text-rose-300 border border-rose-800/60' :
-                      p.risk_level === 'Medium' ? 'bg-amber-950 text-amber-300 border border-amber-800/60' :
-                      'bg-emerald-950 text-emerald-300 border border-emerald-800/60'
+                      p.risk_level === 'High' ? 'bg-rose-100 text-rose-800 border border-rose-200' :
+                      p.risk_level === 'Medium' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                      'bg-emerald-100 text-emerald-800 border border-emerald-200'
                     }`}>
                       {p.risk_level} Risk
                     </span>
                   </td>
-                  <td className="p-3 font-extrabold text-white">{p.risk_score} / 100</td>
-                  <td className="p-3 text-xs text-slate-300">{(p.readmission_probability * 100).toFixed(1)}%</td>
-                  <td className="p-3 text-xs text-slate-400 max-w-xs truncate">
+                  <td className="p-3 font-extrabold text-gray-900">{p.risk_score} / 100</td>
+                  <td className="p-3 text-xs text-gray-700 font-medium">{(p.readmission_probability * 100).toFixed(1)}%</td>
+                  <td className="p-3 text-xs text-gray-500 max-w-xs truncate">
                     {p.risk_factors[0]?.factor || 'Prior Admission / Length of Stay'}
                   </td>
                   <td className="p-3 text-right">
                     <button
                       onClick={() => openCalculator(p)}
-                      className="text-xs bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/40 px-3 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1 ml-auto"
+                      className="text-xs bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1 ml-auto"
                     >
-                      <Sparkles className="w-3 h-3" /> Simulate
+                      <Sparkles className="w-3 h-3 text-teal-600" /> Simulate
                     </button>
                   </td>
                 </tr>
               ))}
               {filteredPatients.length === 0 && (
                 <tr>
-                  <td colSpan="7" className="text-center py-8 text-slate-400 text-xs">
+                  <td colSpan="7" className="text-center py-8 text-gray-500 text-xs">
                     No patients matching the specified criteria.
                   </td>
                 </tr>

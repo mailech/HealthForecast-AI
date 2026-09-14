@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import api from '../services/api'
 import {
   ArrowLeft, Edit, Calendar, Phone, Mail, MapPin,
-  Activity, X, Plus, Stethoscope, Pill, FileText, Save
+  Activity, X, Plus, Stethoscope, Pill, FileText, Save, User
 } from 'lucide-react'
 
 // ── Reusable Modal wrapper ──────────────────────────────────────
