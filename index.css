@@ -1,0 +1,95 @@
+/* =========================================================
+   HEALTHFORECAST AI - GLOBAL STYLES
+   ========================================================= */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+
+  min-width: 320px;
+  min-height: 100vh;
+
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  background: #f4f8ff;
+  color: #0f172a;
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+/* Remove browser default heading spacing */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+}
+
+/* Paragraph reset */
+
+p {
+  margin: 0;
+}
+
+/* Form elements */
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+/* Buttons */
+
+button {
+  cursor: pointer;
+}
+
+/* Links */
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Images */
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* Selection */
+
+::selection {
+  background: #dbeafe;
+  color: #0f172a;
+}
