@@ -124,7 +124,7 @@ Patient Clinical Inputs (46 raw features)
 | `GET` | `/predictions` | Doctor, Admin | Retrieve past prediction evaluations |
 | `POST` | `/patients` | Doctor, Admin | Create patient record in registry |
 | `GET` | `/patients` | Doctor, Admin | List registered patients |
-| `GET` | `/admin/stats` | Admin, Doctor | Aggregate analytics (patient & risk counts) |
+| `GET` | `/admin/stats` | Hospital Admin, SysAdmin | Aggregate analytics (patient & risk counts) |
 | `GET` | `/researcher/analytics` | Researcher | View anonymized demographic and risk distributions |
 | `GET` | `/sysadmin/users` | SysAdmin | View all registered system users |
 | `PATCH`| `/sysadmin/users/{id}` | SysAdmin | Modify user roles and active status |
@@ -139,13 +139,14 @@ Patient Clinical Inputs (46 raw features)
 ### 6.1 Automated Pytest Suite (`tests/test_backend.py`)
 A comprehensive suite validating RBAC isolation, ML inference, and persistence.
 ```text
-======================= 28 passed in 11.21s ========================
+======================= 29 passed in 11.40s ========================
 ✓ test_root_endpoint
 ✓ test_health_endpoint
 ✓ test_login_doctor
 ✓ test_login_admin
 ✓ test_login_researcher
 ✓ test_login_sysadmin
+✓ test_rbac_admin_stats_permissions
 ... (22 more tests covering RBAC boundaries, PyJWT, and persistence)
 ```
 

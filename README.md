@@ -1,128 +1,162 @@
 # HealthForecast AI
 
-## Hospital Readmission Risk Prediction System
+## Hospital Readmission Risk Prediction & Patient Risk Intelligence System
+
+---
 
 ## Project Overview
 
 **HealthForecast AI** is an AI-powered clinical decision-support web application developed as part of the **Infosys Virtual Internship** program.
 
-The system uses a trained **XGBoost** machine learning model to estimate the 30-day hospital readmission risk for diabetic patients based on clinical encounters, demographic data, laboratory counts, and medication regimens. It assists healthcare practitioners by providing transparent risk scores, clinical guidance, and aggregate analytics.
+The system uses a trained **XGBoost** machine learning model loaded directly inside a high-performance **FastAPI** backend to estimate 30-day hospital readmission risk for diabetic patients. Risk predictions are computed dynamically using `model.predict_proba()` based on clinical encounter data, demographic profiles, laboratory metrics, and medication regimens. 
+
+The application features a 4-tier Role-Based Access Control (RBAC) system, real-time clinical insight generation, persistent SQLite storage, anonymized population health analytics, system audit logging, and in-app notifications.
 
 ---
 
-## User Roles
+## User Roles & Credentials
 
-| Role | Capabilities |
-| :--- | :--- |
-| **Doctor** | Login, run patient risk predictions, view personal prediction history, access dashboard statistics |
-| **Hospital Administrator** | Login, run predictions, view all predictions across staff, manage patient registry, access hospital-wide analytics |
+The system implements strict 4-tier Role-Based Access Control (RBAC):
 
-**Default Accounts** (seeded on startup):
-- **Doctor**: `doctor@hospital.com` / `doctor123`
-- **Hospital Administrator**: `admin@hospital.com` / `admin123`
+| Role | Responsibilities & Access Scope | Seeded Demo Account |
+| :--- | :--- | :--- |
+| **Doctor** | Evaluate patient risk, run real-time predictions, view dynamic clinical insights, view personal prediction history, and view role-scoped clinical statistics. | `doctor@hospital.com` / `doctor123` |
+| **Hospital Administrator** | View hospital-wide analytics, monitor overall patient risk distributions, inspect global prediction history, and manage patient records. | `admin@hospital.com` / `admin123` |
+| **Healthcare Researcher** | Access anonymized, aggregated population health analytics, demographic risk breakdowns, and readmission rates. (Patient PII strictly hidden). | `researcher@hospital.com` / `researcher123` |
+| **System Administrator** | Monitor system health telemetry, inspect audit logs, view total user metrics, and manage user accounts and active status. | `sysadmin@hospital.com` / `sysadmin123` |
 
 ---
 
-## Main Features
+## Key Features
 
-- **Secure Authentication**: JWT Bearer token authentication with Bcrypt password hashing
-- **Role-Based Access Control (RBAC)**: Doctor and Hospital Administrator roles with route-level authorization
-- **Patient Management**: Create, list, and retrieve patient records stored in SQLite
-- **AI Readmission Prediction**: XGBoost classifier processing 46 clinical features into a readmission probability score
-- **Risk Stratification**: Automated classification into LOW / MEDIUM / HIGH / CRITICAL risk categories
-- **Prediction History**: Persistent prediction logs with doctor-scoped and admin-wide views
-- **Healthcare Analytics Dashboard**: Real-time patient counts, prediction totals, and risk distribution metrics
-- **Clinical Presets**: 1-click high-risk and low-risk demo patient profiles for rapid evaluation
-- **Clinical Disclaimer**: Academic decision-support disclaimer on every prediction result
-- **Docker Containerization**: Multi-service deployment with Docker Compose
+- **JWT Authentication & Security**: Secure user login with PyJWT Bearer tokens and bcrypt password hashing.
+- **Complete Role-Based Access Control (RBAC)**: Route-level authorization guards enforcing role boundaries across all 4 primary roles.
+- **Direct ML Inference**: Pre-trained **XGBoost** model loaded directly within the FastAPI process for low-latency `predict_proba()` evaluation.
+- **Dynamic Risk Classification**: Automated categorization into **LOW**, **MEDIUM**, **HIGH**, and **CRITICAL** readmission risk levels based on probability thresholds.
+- **Clinical Insights Engine**: Feature-derived recommendations (e.g., medication reconciliation, discharge coordination, follow-up timelines) generated dynamically from patient features.
+- **Patient Registry**: Store, retrieve, and manage patient encounter data using SQLite and SQLAlchemy ORM.
+- **Prediction History & Sequential S.No**: Persistent prediction logs with user-friendly sequential display serial numbers (`1, 2, 3...`) preserving internal database IDs.
+- **Researcher Analytics**: Anonymized, aggregated population statistics (readmission rates, risk distribution, age/gender breakdowns) protecting patient privacy.
+- **System Telemetry & Audit Logging**: Real-time health monitoring and immutable audit logging for administrative oversight.
+- **In-App Notification Center**: Alert feed for clinical warnings and system-wide notifications.
 
 ---
 
 ## Technology Stack
 
-| Layer | Technologies |
+| Layer | Technologies Used |
 | :--- | :--- |
-| **Backend** | Python 3.12, FastAPI, SQLAlchemy, SQLite, Pydantic v2 |
-| **Authentication** | JWT (python-jose), Bcrypt, OAuth2 Bearer |
+| **Backend Framework** | Python 3.12, FastAPI, Pydantic v2 |
+| **Database & ORM** | SQLite (PostgreSQL compatible), SQLAlchemy |
+| **Authentication & Security** | PyJWT, bcrypt, OAuth2 Password Bearer |
 | **Machine Learning** | XGBoost, Scikit-Learn, Pandas, NumPy, Joblib |
-| **Frontend** | React 18, Vite, JavaScript, Axios, Lucide Icons |
-| **Containerization** | Docker, Docker Compose, Nginx |
-| **Testing** | Pytest, FastAPI TestClient |
+| **Frontend Framework** | React 18, Vite, JavaScript (ES6+), Axios, Lucide Icons |
+| **Styling & Design System** | Modern Vanilla CSS (Glassmorphism, Dark/Light palettes, Responsive Layouts) |
+| **Containerization** | Docker, Docker Compose |
+| **Automated Testing** | Pytest, FastAPI TestClient |
 
 ---
 
-## Quick Start
+## System Architecture
 
-### Backend
-```bash
-cd backend
-pip install -r requirements.txt
-python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-- API: `http://localhost:8000`
-- Swagger Docs: `http://localhost:8000/docs`
-
-### Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
-- Web App: `http://localhost:5173`
-
----
-
-## Environment Variables
-
-### Backend (`backend/.env.example`)
-```
-DATABASE_URL=sqlite:///./healthforecast.db
-SECRET_KEY=healthforecast-ai-super-secret-production-key-change-in-prod-2026
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=1440
-ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000
-```
-
-### Frontend (`frontend/.env.example`)
-```
-VITE_API_URL=http://127.0.0.1:8000
+```text
+React 18 + Vite Frontend Client
+            │
+            ▼  HTTP / REST (JWT Bearer Token)
+FastAPI Backend Application
+            │
+            ├── SQLite Database (SQLAlchemy ORM)
+            │      ├── users
+            │      ├── patients
+            │      ├── predictions
+            │      ├── audit_logs
+            │      └── notifications
+            │
+            └── XGBoost ML Model Pipeline (Loaded Directly in FastAPI)
+                   │
+                   ▼
+            model.predict_proba()
+                   │
+                   ▼
+            Readmission Probability Score (%)
+                   │
+                   ▼
+            Risk Stratification (LOW / MEDIUM / HIGH / CRITICAL)
+                   │
+                   ▼
+            Dynamic Feature-Based Clinical Insights
 ```
 
 ---
 
-## API Endpoints
+## Machine Learning Pipeline & Dataset
 
-| Method | Endpoint | Access | Purpose |
+- **Dataset**: Diabetes 130-US Hospitals (1999–2008) dataset from the UCI Machine Learning Repository.
+- **Target Variable**: 30-day hospital readmission (binary classification).
+- **Features Processed (46 Total Raw Features)**:
+  - Demographics (3): `race`, `gender`, `age`
+  - Encounter & Stay (6): `admission_type_id`, `discharge_disposition_id`, `admission_source_id`, `time_in_hospital`, `payer_code`, `medical_specialty`
+  - Utilization Counts (7): `num_lab_procedures`, `num_procedures`, `num_medications`, `number_outpatient`, `number_emergency`, `number_inpatient`, `number_diagnoses`
+  - Lab Tests & Rx Changes (4): `max_glu_serum`, `A1Cresult`, `change`, `diabetesMed`
+  - Diagnosis Groups (3): `diag_1_group`, `diag_2_group`, `diag_3_group`
+  - Diabetic Medications (23): `metformin`, `insulin`, `glipizide`, `glyburide`, and 19 others
+
+### Pipeline Transformations
+- Categorical features (38) transformed via `OneHotEncoder(handle_unknown='ignore')`.
+- Numerical features (8) normalized via `StandardScaler()`.
+- Pipeline concatenated into a **196-dimensional input vector** processed by the trained XGBoost model.
+
+### Verified Model Metrics
+- **ROC-AUC**: $\approx$ **0.658**
+- **Positive-Class Recall**: $\approx$ **0.59** (30-day readmission detection)
+
+### Risk Stratification Matrix
+
+| Risk Level | Probability Range ($P$) | Clinical Guidance & Recommendation |
+| :--- | :--- | :--- |
+| **LOW** | $P < 30\%$ | Standard post-discharge follow-up care. |
+| **MEDIUM** | $30\% \le P < 50\%$ | Telehealth follow-up consultation within 14 days. |
+| **HIGH** | $50\% \le P < 70\%$ | In-person clinical review & medication reconciliation within 7 days. |
+| **CRITICAL** | $P \ge 70\%$ | Dedicated transitional care coordinator assigned before discharge. |
+
+---
+
+## API Catalog Summary
+
+| Method | Endpoint | Allowed Roles | Description |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/` | Public | System status and model performance metrics |
-| `GET` | `/health` | Public | Database connectivity and ML pipeline health |
-| `POST` | `/auth/login` | Public | Authenticate user and issue JWT bearer token |
-| `POST` | `/login` | Public | Login alias |
-| `POST` | `/auth/register` | Public | Register new staff credentials |
-| `GET` | `/auth/me` | Authenticated | Retrieve current user profile and role |
-| `POST` | `/predict` | Doctor, Admin | Run XGBoost inference and persist result to SQLite |
-| `GET` | `/predictions` | Doctor, Admin | Retrieve past prediction evaluations |
-| `POST` | `/patients` | Doctor, Admin | Create patient record in registry |
+| `GET` | `/` | Public | Root metadata & model metrics |
+| `GET` | `/health` | Public | System status, database & model readiness |
+| `POST` | `/auth/login` | Public | Authenticate user & issue JWT bearer token |
+| `POST` | `/auth/register` | Public | Register new account credentials |
+| `GET` | `/auth/me` | Any Authenticated | Retrieve authenticated user profile & role |
+| `POST` | `/predict` | Doctor, Admin | Run XGBoost inference, store result & return clinical insights |
+| `GET` | `/predictions` | Doctor, Admin | Retrieve role-scoped prediction history |
+| `POST` | `/patients` | Doctor, Admin | Register a new patient in database |
 | `GET` | `/patients` | Doctor, Admin | List registered patients |
-| `GET` | `/patients/{patient_id}` | Doctor, Admin | Retrieve individual patient details |
-| `GET` | `/admin/stats` | Admin, Doctor | Aggregate analytics (patient and risk counts) |
+| `GET` | `/admin/stats` | Admin, SysAdmin | Retrieve global hospital administrative statistics |
+| `GET` | `/researcher/analytics` | Researcher | Retrieve anonymized population health metrics |
+| `GET` | `/sysadmin/health` | SysAdmin | View detailed system telemetry |
+| `GET` | `/sysadmin/users` | SysAdmin | View registered system users |
+| `PATCH`| `/sysadmin/users/{id}` | SysAdmin | Update user role or active status |
+| `GET` | `/sysadmin/audit-logs` | SysAdmin | Retrieve system audit log events |
+| `GET` | `/notifications` | Any Authenticated | Retrieve user notification inbox |
 
 ---
 
-## Project Structure
+## Project Repository Structure
 
 ```
 HealthForecast-AI/
 ├── backend/
-│   ├── main.py              # FastAPI server & route handlers
-│   ├── auth.py              # JWT generation & Bcrypt hashing
-│   ├── database.py          # SQLAlchemy engine & session
-│   ├── dependencies.py      # Role-based authorization dependencies
-│   ├── models.py            # ORM models (User, Patient, Prediction)
-│   ├── schemas.py           # Pydantic v2 validation schemas
+│   ├── main.py              # FastAPI application & route endpoints
+│   ├── auth.py              # JWT authentication & bcrypt hashing
+│   ├── database.py          # SQLAlchemy database engine & session maker
+│   ├── dependencies.py      # OAuth2 & Role-Based Authorization guards
+│   ├── models.py            # SQLAlchemy ORM models (User, Patient, Prediction, AuditLog, Notification)
+│   ├── schemas.py           # Pydantic v2 input/output data schemas
 │   ├── requirements.txt     # Python dependencies
-│   ├── Dockerfile           # Backend container definition
-│   ├── .env.example         # Environment variable template
+│   ├── Dockerfile           # Backend container image definition
 │   └── ml_model/            # Trained XGBoost pipeline artifacts
 │       ├── xgboost_readmission_model.pkl
 │       ├── onehot_encoder.pkl
@@ -130,114 +164,90 @@ HealthForecast-AI/
 │       └── feature_columns.json
 ├── frontend/
 │   ├── package.json         # Node.js dependencies
-│   ├── vite.config.js       # Vite build configuration
-│   ├── Dockerfile           # Multi-stage frontend container
-│   ├── nginx.conf           # Nginx reverse proxy config
-│   ├── .env.example         # Frontend environment template
+│   ├── vite.config.js       # Vite bundler configuration
+│   ├── Dockerfile           # Frontend multi-stage Nginx container
+│   ├── nginx.conf           # Nginx reverse proxy configuration
 │   └── src/
-│       ├── App.jsx          # Root component with protected routing
-│       ├── main.jsx         # React entry point
-│       ├── index.css        # Design system styles
+│       ├── App.jsx          # Main application & protected route routing
+│       ├── main.jsx         # React DOM entry point
+│       ├── index.css        # Core design system & theme variables
 │       ├── context/         # AuthContext (JWT state management)
-│       ├── services/        # Axios API client with interceptors
+│       ├── services/        # Axios client instance with auth interceptors
 │       ├── components/      # Navbar, ModelBanner, ResultCard
-│       └── pages/           # Login, Dashboard, Prediction, History, Patients
-├── ml_service/
-│   ├── app.py               # Standalone ML inference microservice
-│   ├── requirements.txt     # ML service dependencies
-│   ├── Dockerfile           # ML service container
-│   └── healthforecast_model/# Pre-trained model artifacts
+│       └── pages/           # Role Dashboards, Prediction, History, Patients, Research, SysAdmin, Audit, Notifications
 ├── tests/
-│   └── test_backend.py      # Automated Pytest suite (8 tests)
-├── docker-compose.yml       # Multi-container orchestration
+│   ├── test_backend.py      # Pytest automated test suite (29 tests)
+│   └── test_healthforecast.db # Temporary isolated test database (auto-cleaned)
+├── docker-compose.yml       # Multi-service container deployment
 ├── pytest.ini               # Pytest configuration
-├── IMPLEMENTATION_PLAN.md   # Technical implementation plan
-└── INFOSYS_INTERNSHIP_PROJECT_REPORT.md  # Internship project report
+├── healthforecast.db        # SQLite database file
+├── IMPLEMENTATION_PLAN.md   # System implementation plan
+└── INFOSYS_INTERNSHIP_PROJECT_REPORT.md  # Infosys Virtual Internship Project Report
 ```
 
 ---
 
-## Dataset
+## Local Installation & Setup
 
-- **Source**: Diabetes 130-US Hospitals (1999–2008) dataset from the UCI Machine Learning Repository
-- **Volume**: Over 100,000 clinical inpatient encounters
-- **Target**: 30-day hospital readmission (binary classification)
-- **Clinical Input Features**: 46 total
-  - Demographics (3): `race`, `gender`, `age`
-  - Admission & Stay (6): `admission_type_id`, `discharge_disposition_id`, `admission_source_id`, `time_in_hospital`, `payer_code`, `medical_specialty`
-  - Encounter Counts (7): `num_lab_procedures`, `num_procedures`, `num_medications`, `number_outpatient`, `number_emergency`, `number_inpatient`, `number_diagnoses`
-  - Lab Tests (4): `max_glu_serum`, `A1Cresult`, `change`, `diabetesMed`
-  - Diagnosis Groups (3): `diag_1_group`, `diag_2_group`, `diag_3_group`
-  - Diabetic Medications (23): `metformin`, `insulin`, `glipizide`, `glyburide`, and 19 others
+### Prerequisites
+- Python 3.12+
+- Node.js 18+ and npm
 
-### Feature Engineering
-- **Categorical (38 columns)** → `OneHotEncoder` → 188 binary features
-- **Numerical (8 columns)** → `StandardScaler` → 8 normalized features
-- **Total processed vector**: 196 dimensions
+### 1. Backend Setup
+```bash
+cd backend
+python -m venv venv
+# On Windows:
+venv\Scripts\activate
+# On Linux/Mac:
+source venv/bin/activate
 
----
+pip install -r requirements.txt
+python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
+```
+- API Endpoint: `http://127.0.0.1:8000`
+- Interactive Swagger Docs: `http://127.0.0.1:8000/docs`
 
-## Model Performance
-
-| Metric | Value |
-| :--- | :--- |
-| **ROC-AUC** | ~0.658 |
-| **Positive-Class Recall** | ~0.59 |
-
-### Risk Stratification Thresholds
-
-| Risk Level | Probability Range | Clinical Recommendation |
-| :--- | :--- | :--- |
-| **LOW** | P < 30% | Standard post-discharge follow-up |
-| **MEDIUM** | 30% ≤ P < 50% | Follow-up consultation within 14 days |
-| **HIGH** | 50% ≤ P < 70% | Clinical review & med reconciliation within 7 days |
-| **CRITICAL** | P ≥ 70% | Transitional care coordinator before discharge |
+### 2. Frontend Setup
+```bash
+cd frontend
+npm install
+npm run dev
+```
+- Web Application: `http://127.0.0.1:5173`
 
 ---
 
-## Testing
+## Automated Testing
+
+Backend unit and integration tests run against an isolated temporary database (`test_healthforecast.db`) to protect production data:
 
 ```bash
-pytest
+pytest tests
 ```
 
-**Latest result**: 8 passed (100% pass rate)
-
-| Test | Purpose |
-| :--- | :--- |
-| `test_root_endpoint` | GET / status and metrics |
-| `test_health_endpoint` | GET /health database and model check |
-| `test_login_doctor_and_admin` | JWT authentication for both roles |
-| `test_register_new_user` | Staff registration |
-| `test_protected_routes_without_token` | 401 Unauthorized enforcement |
-| `test_predict_and_sqlite_persistence` | ML inference and database persistence |
-| `test_patients_endpoints` | Patient create, list, get-by-id |
-| `test_admin_stats` | Aggregate analytics |
+**Pass Rate:** **29/29 tests passed (100%)**
 
 ---
 
-## Docker / Deployment
+## Docker Deployment
+
+To deploy both frontend and backend services using Docker:
 
 ```bash
 docker-compose up --build
 ```
-
-| Service | Port | Description |
-| :--- | :--- | :--- |
-| `backend` | 8000 | FastAPI backend |
-| `frontend` | 5173 → 80 | React frontend via Nginx |
-| `ml_service` | 8001 | XGBoost inference microservice |
 
 ---
 
 ## Internship Context
 
 - **Organization**: Infosys
-- **Program**: Infosys Virtual Internship
-- **Project**: HealthForecast AI
+- **Program**: Infosys Virtual Internship Program
+- **Project**: HealthForecast AI — Hospital Readmission Risk Prediction & Patient Risk Intelligence System
 
 ---
 
-## Disclaimer
+## Clinical Decision-Support Disclaimer
 
-> **Clinical Decision-Support Disclaimer**: HealthForecast AI is developed as part of the **Infosys Virtual Internship Program** for educational, machine learning research, and decision-support demonstration purposes. It is not a certified medical device and should never replace qualified clinical judgment, diagnosis, or treatment.
+> **Clinical Decision-Support Disclaimer**: HealthForecast AI is developed as part of the **Infosys Virtual Internship Program** for educational, machine learning research, and decision-support demonstration purposes. It is an academic decision-support prototype and NOT a certified medical device. It should never replace qualified clinical judgment, medical diagnosis, or professional treatment.

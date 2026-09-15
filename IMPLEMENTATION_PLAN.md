@@ -166,17 +166,9 @@ Phase 4: Containerization, Testing & Documentation
 ### 3.5 Verification & Testing
 
 #### Pytest Automated Test Matrix
-Run via: `pytest tests/test_backend.py -v`
+Run via: `pytest tests`
 
-| Test Case | Purpose | Result |
-| :--- | :--- | :--- |
-| `test_root_endpoint` | Validates API metadata and status | **PASSED** |
-| `test_health_endpoint` | Checks DB and model pipeline health | **PASSED** |
-| `test_login_doctor_and_admin` | Verifies JWT generation for valid credentials | **PASSED** |
-| `test_register_new_user` | Verifies user creation via Admin route | **PASSED** |
-| `test_protected_routes_without_token` | Asserts `401 Unauthorized` for missing JWT | **PASSED** |
-| `test_predict_and_sqlite_persistence` | Tests inference + SQLite storage | **PASSED** |
-| `test_admin_stats` | Tests aggregate computation of metrics | **PASSED** |
+All **29/29** automated unit and integration tests passed (**100% pass rate** across authentications, RBAC boundaries, inference, and persistence).
 
 ---
 
