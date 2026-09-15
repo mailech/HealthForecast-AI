@@ -1,8 +1,9 @@
-﻿import joblib
+import joblib
 import json
 import os
 
-MODEL_DIR = "ml_model"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_DIR = os.path.join(BASE_DIR, "ml_model")
 
 model = joblib.load(os.path.join(MODEL_DIR, "xgboost_readmission_model.pkl"))
 encoder = joblib.load(os.path.join(MODEL_DIR, "onehot_encoder.pkl"))

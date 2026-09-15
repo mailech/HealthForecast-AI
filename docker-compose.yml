@@ -1,17 +1,5 @@
 services:
-  # 1. Machine Learning Inference Service (XGBoost)
-  ml_service:
-    build:
-      context: ./ml_service
-      dockerfile: Dockerfile
-    container_name: healthforecast_ml_service
-    restart: unless-stopped
-    ports:
-      - "8001:8001"
-    environment:
-      - PYTHONUNBUFFERED=1
-
-  # 2. FastAPI Backend (JWT Auth, SQLite Database, Clinical Endpoints)
+  # 1. FastAPI Backend (JWT Auth, SQLite Database, Clinical Endpoints, XGBoost ML)
   backend:
     build:
       context: ./backend
@@ -29,10 +17,7 @@ services:
     volumes:
       # Persistent SQLite storage on host machine
       - ./data:/app/data
-    depends_on:
-      - ml_service
-
-  # 3. React Frontend (Vite / Nginx)
+  # 2. React Frontend (Vite / Nginx)
   frontend:
     build:
       context: ./frontend

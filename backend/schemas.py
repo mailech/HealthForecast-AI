@@ -2,22 +2,33 @@ from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 
+# ==========================================================
+# ROLE CONSTANTS
+# ==========================================================
+VALID_ROLES = ["Doctor", "Hospital Administrator", "Healthcare Researcher", "System Administrator"]
+
+
 # ==========================================
 # AUTH SCHEMAS
 # ==========================================
 class UserCreate(BaseModel):
-    username: str
+    username: Optional[str] = None
+    email: Optional[str] = None
+    full_name: Optional[str] = ""
     password: str
-    role: str = "Doctor"  # "Doctor" or "Hospital Administrator"
+    role: str = "Doctor"
 
 class UserLogin(BaseModel):
-    username: str
+    username: Optional[str] = None
+    email: Optional[str] = None
     password: str
 
 class UserOut(BaseModel):
     id: int
     username: str
+    full_name: Optional[str] = ""
     role: str
+    is_active: Optional[bool] = True
     created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -105,6 +116,15 @@ class PredictionRequest(PatientData):
     patient_name: Optional[str] = "Anonymous Patient"
     patient_id: Optional[int] = None
 
+
+# ==========================================
+# CLINICAL INSIGHT (returned with prediction)
+# ==========================================
+class ClinicalInsight(BaseModel):
+    factor: str
+    impact: str  # "high", "moderate", "low"
+    recommendation: str
+
 class PredictionOut(BaseModel):
     id: Optional[int] = None
     patient_id: Optional[int] = None
@@ -115,10 +135,15 @@ class PredictionOut(BaseModel):
     prediction: str
     predicted_by: Optional[str] = None
     created_at: Optional[datetime] = None
+    clinical_insights: Optional[List[ClinicalInsight]] = None
     note: str = "This prediction is intended for academic decision-support demonstration and is not a medical diagnosis."
 
     model_config = ConfigDict(from_attributes=True)
 
+
+# ==========================================
+# DASHBOARD STATS
+# ==========================================
 class DashboardStats(BaseModel):
     total_patients: int
     total_predictions: int
@@ -126,3 +151,60 @@ class DashboardStats(BaseModel):
     lower_risk_predictions: int
     model_roc_auc: float = 0.658
     model_recall: float = 0.59
+
+
+# ==========================================
+# RESEARCHER ANALYTICS (anonymized/aggregated)
+# ==========================================
+class ResearcherAnalytics(BaseModel):
+    total_predictions: int
+    risk_distribution: dict  # {"LOW": n, "MEDIUM": n, ...}
+    avg_probability: float
+    age_group_distribution: dict
+    gender_distribution: dict
+    top_diagnosis_groups: dict
+    readmission_rate: float
+    model_roc_auc: float = 0.658
+    model_recall: float = 0.59
+
+
+# ==========================================
+# SYSADMIN SCHEMAS
+# ==========================================
+class SystemHealth(BaseModel):
+    status: str
+    database: str
+    model_loaded: bool
+    total_users: int
+    total_patients: int
+    total_predictions: int
+    uptime_info: str = "Available"
+
+class AuditLogOut(BaseModel):
+    id: int
+    user_id: Optional[int] = None
+    action: str
+    detail: str
+    ip_address: str
+    created_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class UserUpdate(BaseModel):
+    is_active: Optional[bool] = None
+    role: Optional[str] = None
+
+
+# ==========================================
+# NOTIFICATION SCHEMAS
+# ==========================================
+class NotificationOut(BaseModel):
+    id: int
+    user_id: Optional[int] = None
+    title: str
+    message: str
+    category: str
+    is_read: bool
+    created_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)

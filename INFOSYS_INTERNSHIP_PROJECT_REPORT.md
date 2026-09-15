@@ -1,4 +1,4 @@
-# HealthForecast AI: Hospital Readmission Risk Prediction System
+# HealthForecast AI: Hospital Readmission Prediction & Patient Risk Intelligence System
 ## Infosys Virtual Internship Project Report & Technical Documentation
 
 ---
@@ -9,7 +9,7 @@
 **Program**: Infosys Virtual Internship / AI & Full-Stack Development Track  
 **Domain**: Healthcare Informatics, Machine Learning, Clinical Decision-Support Systems  
 **Core Technologies**: Python 3.12, FastAPI, XGBoost, Scikit-Learn, SQLite, SQLAlchemy, React 18, Vite, Docker  
-**Primary Goal**: Develop a reliable, interpretable local decision-support web application that estimates 30-day hospital readmission risk for diabetic patients using clinical, encounter, demographic, and pharmacological features.
+**Primary Goal**: Develop a reliable, interpretable local decision-support web application that estimates 30-day hospital readmission risk for diabetic patients using clinical, encounter, demographic, and pharmacological features, supported by a robust 4-tier Role-Based Access Control (RBAC) architecture.
 
 ---
 
@@ -18,25 +18,27 @@
 Hospital readmission within 30 days of inpatient discharge represents a major challenge in modern healthcare systems:
 - **Financial & Resource Burden**: Unplanned readmissions increase national healthcare spending and create operational congestion in emergency departments and hospital wards.
 - **Clinical Transition Gaps**: High readmission rates frequently correlate with incomplete disease management, adverse medication changes, or insufficient post-discharge follow-up.
-- **Decision-Support Opportunity**: Healthcare practitioners require predictive tools at the point of discharge to identify patients at elevated risk, enabling targeted discharge planning and follow-up interventions.
+- **Decision-Support Opportunity**: Healthcare practitioners require predictive tools at the point of discharge to identify patients at elevated risk, enabling targeted discharge planning, real-time clinical insights, and follow-up interventions.
 
 ---
 
 ## 2. Project Objectives
 
-1. **Deploy a Machine Learning Pipeline**: Integrate a trained **XGBoost** classifier capable of processing multi-dimensional clinical data (encounter history, lab counts, medication dosages, diagnosis groups).
-2. **Implement Secure Role-Based Access (RBAC)**:
+1. **Deploy a Machine Learning Pipeline**: Integrate a trained **XGBoost** classifier capable of processing multi-dimensional clinical data (encounter history, lab counts, medication dosages, diagnosis groups) and generating dynamic clinical insights based on feature extraction.
+2. **Implement Secure 4-Tier Role-Based Access (RBAC)**:
    - **Doctor Role**: Evaluate patients, generate real-time readmission risk scores, and review personal clinical history.
    - **Hospital Administrator Role**: Monitor hospital-wide statistics, inspect overall risk distributions, and manage patient registries.
-3. **Persist Records Locally**: Provide local SQLite persistence with SQLAlchemy ORM to log patients and historical prediction scores.
-4. **Develop an Intuitive User Interface**: Build a responsive React + Vite application with 1-click clinical presets for rapid evaluation and demonstration workflows.
+   - **Healthcare Researcher Role**: Access anonymized, aggregated population health analytics (e.g., demographic risk distributions and readmission rates).
+   - **System Administrator Role**: Manage system health, monitor audit logs, and administer user accounts and roles.
+3. **Persist Records Locally**: Provide local SQLite persistence with SQLAlchemy ORM to log patients, historical prediction scores, audit logs, and user notifications.
+4. **Develop an Intuitive User Interface**: Build a responsive React + Vite application with role-specific dashboards, notification centers, and 1-click clinical presets for rapid evaluation workflows.
 5. **Containerize for Portability**: Provide Docker and Docker Compose definitions for modular deployment.
 
 ---
 
 ## 3. Machine Learning Methodology & Architecture
 
-```
+```text
 Patient Clinical Inputs (46 raw features)
                │
                ▼
@@ -51,10 +53,10 @@ Patient Clinical Inputs (46 raw features)
    XGBoost Classification Engine
                │
                ▼
-   Readmission Probability ($P \in [0.0, 1.0]$)
+   Readmission Probability (P ∈ [0.0, 1.0])
                │
                ▼
-   Clinical Risk Stratification
+   Clinical Risk Stratification & Dynamic Insights
    ├── Probability < 30%  ──► LOW RISK
    ├── 30% ≤ Probability < 50% ──► MEDIUM RISK
    ├── 50% ≤ Probability < 70% ──► HIGH RISK
@@ -65,15 +67,7 @@ Patient Clinical Inputs (46 raw features)
 - **Dataset**: Diabetes 130-US Hospitals (1999–2008) dataset from the UCI Machine Learning Repository.
 - **Volume**: Over 100,000 clinical inpatient encounters representing diverse diabetic patient demographics.
 
-### 3.2 Clinical Feature Schema (46 Inputs)
-1. **Demographics (3)**: `race`, `gender`, `age`.
-2. **Hospital & Admission Details (6)**: `admission_type_id`, `discharge_disposition_id`, `admission_source_id`, `time_in_hospital`, `payer_code`, `medical_specialty`.
-3. **Encounter Utilization & Procedures (7)**: `num_lab_procedures`, `num_procedures`, `num_medications`, `number_outpatient`, `number_emergency`, `number_inpatient`, `number_diagnoses`.
-4. **Laboratory Tests & Diabetes Prescriptions (4)**: `max_glu_serum`, `A1Cresult`, `change`, `diabetesMed`.
-5. **Primary/Secondary/Tertiary Diagnoses (3)**: `diag_1_group`, `diag_2_group`, `diag_3_group`.
-6. **Medication Dosages (23)**: `metformin`, `repaglinide`, `nateglinide`, `chlorpropamide`, `glimepiride`, `acetohexamide`, `glipizide`, `glyburide`, `tolbutamide`, `pioglitazone`, `rosiglitazone`, `acarbose`, `miglitol`, `troglitazone`, `tolazamide`, `examide`, `citoglipton`, `insulin`, `glyburide_metformin`, `glipizide_metformin`, `glimepiride_pioglitazone`, `metformin_rosiglitazone`, `metformin_pioglitazone`.
-
-### 3.3 Real Measured Performance Metrics
+### 3.2 Real Measured Performance Metrics
 - **ROC-AUC**: $\approx$ **0.658**
 - **Positive-Class Recall**: $\approx$ **0.59** (30-day readmission detection)
 
@@ -82,16 +76,16 @@ Patient Clinical Inputs (46 raw features)
 ## 4. Software Architecture & Database Design
 
 ### 4.1 System Architecture
-```
+```text
 ┌───────────────────────────────────────────────────────────┐
 │              React 18 (Vite) Frontend UI                  │
-│       (Dashboard / Prediction Form / History Tables)       │
+│       (Role Dashboards / Predictions / Audit Logs)        │
 └─────────────────────────────┬─────────────────────────────┘
                               │ HTTP / JSON (Axios + JWT)
                               ▼
 ┌───────────────────────────────────────────────────────────┐
 │                 FastAPI Backend Service                   │
-│   ├── JWT Security Layer (OAuth2 Bearer + Bcrypt)         │
+│   ├── JWT Security Layer (PyJWT + Bcrypt)                 │
 │   ├── Input Validation (Pydantic Models)                  │
 │   ├── SQLAlchemy ORM Layer                                │
 │   └── ML Inference Dispatcher                             │
@@ -103,30 +97,18 @@ Patient Clinical Inputs (46 raw features)
 │   (healthforecast.db)       ││   ├── model.pkl            │
 │   ├── users                 ││   ├── encoder.pkl          │
 │   ├── patients              ││   ├── scaler.pkl           │
-│   └── predictions           ││   └── feature_columns.json │
-└─────────────────────────────┘└────────────────────────────┘
+│   ├── predictions           ││   └── feature_columns.json │
+│   ├── audit_logs            │└────────────────────────────┘
+│   └── notifications         │
+└─────────────────────────────┘
 ```
 
 ### 4.2 Database Schema (SQLite via SQLAlchemy)
-- **`users` Table**:
-  - `id` (Integer, Primary Key)
-  - `username` (String, Unique, Index)
-  - `password_hash` (String, Bcrypt hash)
-  - `role` (String: `"Doctor"` or `"Hospital Administrator"`)
-  - `created_at` (DateTime)
-- **`patients` Table**:
-  - `id` (Integer, Primary Key)
-  - `patient_name` (String)
-  - All 46 demographic, encounter, and medication fields
-  - `created_at` (DateTime)
-- **`predictions` Table**:
-  - `id` (Integer, Primary Key)
-  - `patient_id` (Integer, Foreign Key $\rightarrow$ `patients.id`)
-  - `probability` (Float, Readmission score)
-  - `risk_class` (String: `"LOW"`, `"MEDIUM"`, `"HIGH"`, `"CRITICAL"`)
-  - `prediction` (String, Clinical descriptive label)
-  - `created_by` (Integer, Foreign Key $\rightarrow$ `users.id`)
-  - `created_at` (DateTime)
+- **`users`**: `id`, `username`, `password_hash`, `full_name`, `role` (Doctor, Hospital Administrator, Healthcare Researcher, System Administrator), `is_active`, `created_at`
+- **`patients`**: `id`, `patient_name`, 46 clinical fields, `created_at`
+- **`predictions`**: `id`, `patient_id`, `probability`, `risk_class`, `prediction`, `created_by`, `created_at`
+- **`audit_logs`**: `id`, `user_id`, `action`, `detail`, `ip_address`, `created_at`
+- **`notifications`**: `id`, `user_id`, `title`, `message`, `category`, `is_read`, `created_at`
 
 ---
 
@@ -134,45 +116,75 @@ Patient Clinical Inputs (46 raw features)
 
 | Method | Route | Access Role | Purpose |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/` | Public | System status and verified model metrics |
 | `GET` | `/health` | Public | Database connectivity and ML pipeline health |
-| `GET` | `/docs` | Public | OpenAPI / Swagger interactive documentation |
 | `POST` | `/auth/login` | Public | Authenticate user and issue JWT bearer token |
-| `POST` | `/auth/register` | Public / Admin | Register new staff credentials |
-| `GET` | `/auth/me` | Authenticated | Retrieve current user profile and role |
-| `POST` | `/predict` | Doctor, Admin | Run XGBoost inference and persist record to SQLite |
+| `POST` | `/auth/register` | Public | Register new credentials |
+| `GET` | `/auth/me` | Any Authenticated | Retrieve current user profile and role |
+| `POST` | `/predict` | Doctor, Admin | Run XGBoost inference, persist record, generate insights |
 | `GET` | `/predictions` | Doctor, Admin | Retrieve past prediction evaluations |
 | `POST` | `/patients` | Doctor, Admin | Create patient record in registry |
 | `GET` | `/patients` | Doctor, Admin | List registered patients |
 | `GET` | `/admin/stats` | Admin, Doctor | Aggregate analytics (patient & risk counts) |
+| `GET` | `/researcher/analytics` | Researcher | View anonymized demographic and risk distributions |
+| `GET` | `/sysadmin/users` | SysAdmin | View all registered system users |
+| `PATCH`| `/sysadmin/users/{id}` | SysAdmin | Modify user roles and active status |
+| `GET` | `/sysadmin/audit-logs` | SysAdmin | View immutable system audit logs |
+| `GET` | `/sysadmin/health` | SysAdmin | View detailed system telemetry |
+| `GET` | `/notifications` | Any Authenticated | View user notification inbox |
 
 ---
 
 ## 6. Verification, Testing & QA Results
 
 ### 6.1 Automated Pytest Suite (`tests/test_backend.py`)
-```
-======================== 7 passed in 5.21s ========================
-✓ test_root_endpoint                     [PASS]
-✓ test_health_endpoint                   [PASS]
-✓ test_login_doctor_and_admin            [PASS]
-✓ test_register_new_user                 [PASS]
-✓ test_protected_routes_without_token    [PASS]
-✓ test_predict_and_sqlite_persistence    [PASS]
-✓ test_admin_stats                       [PASS]
+A comprehensive suite validating RBAC isolation, ML inference, and persistence.
+```text
+======================= 28 passed in 11.21s ========================
+✓ test_root_endpoint
+✓ test_health_endpoint
+✓ test_login_doctor
+✓ test_login_admin
+✓ test_login_researcher
+✓ test_login_sysadmin
+... (22 more tests covering RBAC boundaries, PyJWT, and persistence)
 ```
 
-### 6.2 End-to-End User Verification
-- **Doctor Workflow**: Login $\rightarrow$ Dashboard $\rightarrow$ 1-Click High-Risk Preset $\rightarrow$ Predict ($\rightarrow 61.45\%$ probability) $\rightarrow$ Persist $\rightarrow$ History Log $\rightarrow$ Sign Out.
-- **Admin Workflow**: Login $\rightarrow$ Real-time Statistics ($\uparrow$ total predictions) $\rightarrow$ Registry Audit.
+### 6.2 Live API E2E Verification
+```text
+============================================================
+HealthForecast AI — Live E2E Verification
+============================================================
+[PASS] Health endpoint returns 200
+[PASS] Authentication — All 4 Roles
+[PASS] RBAC Enforcement (Researcher blocked from predict, etc.)
+[PASS] Real XGBoost ML Prediction (Probability: 0.6259, Risk: HIGH, Insights: 5)
+[PASS] Prediction History & Persistence
+[PASS] Patient Management
+[PASS] Researcher Analytics (anonymized)
+[PASS] System Administrator Features
+[PASS] Notifications
+
+RESULTS: 40 passed, 0 failed out of 40 checks
+```
+
+### 6.3 Frontend Production Build
+```text
+> vite build
+vite v6.4.3 building for production...
+✓ 1657 modules transformed.
+dist/index.html                   0.78 kB
+dist/assets/index-JVHMNStN.css    8.74 kB
+dist/assets/index-D0mHWUE2.js   260.75 kB
+✓ built in 3.05s
+```
 
 ---
 
 ## 7. Project Reflection & Internship Outcomes
 
-1. **Applied AI in Healthcare**: Successfully translated an academic machine learning model (XGBoost) into a production-style, containerized REST application.
-2. **Full-Stack Competency**: Integrated modern FastAPI backend development, SQLAlchemy relational modeling, JWT role-based security, and React/Vite responsive design.
-3. **Clinical Decision Support Alignment**: Designed user experience specifically tailored for clinical practitioners with clear disclaimers, risk categories, and 1-click evaluation presets.
+1. **Applied AI in Healthcare**: Successfully translated an academic machine learning model (XGBoost) into a production-style REST application featuring dynamic, rule-based clinical insight generation.
+2. **Full-Stack Competency**: Integrated modern FastAPI backend development, SQLAlchemy relational modeling, PyJWT role-based security, and React/Vite responsive design.
+3. **Enterprise Architecture**: Implemented an extensible, scalable RBAC system complete with audit logging, system telemetry, and a notification engine, suitable for multi-tenant clinical environments.
 
 ---
 

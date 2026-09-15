@@ -6,6 +6,10 @@ import DashboardPage from './pages/DashboardPage';
 import PredictionPage from './pages/PredictionPage';
 import HistoryPage from './pages/HistoryPage';
 import PatientsPage from './pages/PatientsPage';
+import ResearchDashboard from './pages/ResearchDashboard';
+import UserManagementPage from './pages/UserManagementPage';
+import AuditLogPage from './pages/AuditLogPage';
+import NotificationsPage from './pages/NotificationsPage';
 
 function MainApp() {
   const { user, loading } = useAuth();
@@ -32,6 +36,10 @@ function MainApp() {
         {activePage === 'predict' && <PredictionPage />}
         {activePage === 'history' && <HistoryPage />}
         {activePage === 'patients' && <PatientsPage />}
+        {activePage === 'research' && <ResearchDashboard />}
+        {activePage === 'users' && <UserManagementPage />}
+        {activePage === 'audit' && <AuditLogPage />}
+        {activePage === 'notifications' && <NotificationsPage />}
       </main>
 
       <footer style={{ borderTop: '1px solid var(--border)', padding: '1.25rem 2rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem', background: '#ffffff' }}>

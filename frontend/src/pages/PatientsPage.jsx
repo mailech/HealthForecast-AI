@@ -31,7 +31,7 @@ export default function PatientsPage() {
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Hospital Patient Records</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            Administrative registry of patients stored in local SQLite database.
+            Administrative registry of patients stored in the hospital database.
           </p>
         </div>
 
@@ -58,7 +58,7 @@ export default function PatientsPage() {
           <table>
             <thead>
               <tr>
-                <th>Patient ID</th>
+                <th>S.No</th>
                 <th>Name</th>
                 <th>Age Bracket</th>
                 <th>Gender</th>
@@ -69,9 +69,9 @@ export default function PatientsPage() {
               </tr>
             </thead>
             <tbody>
-              {patients.map((p) => (
+              {patients.map((p, idx) => (
                 <tr key={p.id}>
-                  <td>#{p.id}</td>
+                  <td>{idx + 1}</td>
                   <td style={{ fontWeight: 600 }}>{p.patient_name}</td>
                   <td>{p.age}</td>
                   <td>{p.gender}</td>

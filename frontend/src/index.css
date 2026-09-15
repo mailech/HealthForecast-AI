@@ -152,6 +152,33 @@ button, input, select, textarea {
   color: #7e22ce;
 }
 
+.user-badge.researcher {
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.user-badge.sysadmin {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #ef4444;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 800;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
 .btn-logout {
   background: transparent;
   border: 1px solid var(--border);

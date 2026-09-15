@@ -85,7 +85,7 @@ export default function HistoryPage() {
           <table>
             <thead>
               <tr>
-                <th>ID</th>
+                <th>S.No</th>
                 <th>Patient Name</th>
                 <th>Readmission Probability</th>
                 <th>Risk Classification</th>
@@ -95,9 +95,9 @@ export default function HistoryPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((p) => (
+              {filtered.map((p, idx) => (
                 <tr key={p.id}>
-                  <td>#{p.id}</td>
+                  <td>{idx + 1}</td>
                   <td style={{ fontWeight: 600 }}>{p.patient_name}</td>
                   <td>
                     <strong>{p.risk_percentage}%</strong> ({p.probability})

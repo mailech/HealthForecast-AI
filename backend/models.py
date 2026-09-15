@@ -1,15 +1,23 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from database import Base
+
+# ==========================================================
+# Valid roles: "Doctor", "Hospital Administrator",
+#              "Healthcare Researcher", "System Administrator"
+# ==========================================================
 
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(100), unique=True, index=True, nullable=False)
+    full_name = Column(String(200), default="")
+    email = Column(String(200), default="")
     password_hash = Column(String(255), nullable=False)
-    role = Column(String(50), nullable=False)  # "Doctor" or "Hospital Administrator"
+    role = Column(String(50), nullable=False)
+    is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     predictions = relationship("Prediction", back_populates="creator")
@@ -89,9 +97,34 @@ class Prediction(Base):
     patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False)
     probability = Column(Float, nullable=False)
     risk_class = Column(String(50), nullable=False)  # "LOW", "MEDIUM", "HIGH", "CRITICAL"
-    prediction = Column(String(100), nullable=False)  # e.g. "Readmission Likely" / "Readmission Unlikely"
+    prediction = Column(String(100), nullable=False)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     patient = relationship("Patient", back_populates="predictions")
     creator = relationship("User", back_populates="predictions")
+
+
+class AuditLog(Base):
+    """Tracks important system events for System Administrator review."""
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    action = Column(String(100), nullable=False)
+    detail = Column(Text, default="")
+    ip_address = Column(String(50), default="")
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class Notification(Base):
+    """In-app notifications for clinical alerts and system events."""
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # null = broadcast
+    title = Column(String(200), nullable=False)
+    message = Column(Text, nullable=False)
+    category = Column(String(50), default="info")  # "info", "warning", "critical", "system"
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
