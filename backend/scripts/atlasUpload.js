@@ -2,12 +2,20 @@ const mongoose = require('mongoose');
 const fs = require('fs');
 const readline = require('readline');
 const path = require('path');
+const dotenv = require('dotenv');
 
-const uri = "mongodb://localhost:27017/healthforecast";
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+
+const uri = process.env.MONGO_URI || process.env.MONGODB_URI;
+if (!uri) {
+  console.error("Error: MONGO_URI or MONGODB_URI environment variable is required.");
+  process.exit(1);
+}
 
 async function run() {
   try {
-    console.log("Connecting directly to MongoDB Atlas cluster...");
+    console.log("Connecting directly to MongoDB cluster...");
     await mongoose.connect(uri);
     console.log("Connected! Uploading dataset to Atlas...");
 

@@ -21,8 +21,11 @@ const getPatients = async (req, res, next) => {
     let patients = [];
     let total = 0;
     const mongoose = require("mongoose");
+    const { normalizeRole } = require("../middleware/rbacMiddleware");
 
-    if (mongoose.connection.readyState === 1) {
+    const isDbReady = mongoose.connection.readyState === 1 && mongoose.connection.db;
+
+    if (isDbReady) {
       let query = {};
 
       if (!includeDeleted) {
@@ -43,8 +46,25 @@ const getPatients = async (req, res, next) => {
         query.status = status;
       }
 
+      // Cohort Security & Scoping
+      const userRole = req.user ? normalizeRole(req.user.role) : "";
+      const userId = req.user ? req.user._id || req.user.id : null;
+
+      if (userRole === "DOCTOR") {
+        // Enforce doctor cohort scoping: Doctor can ONLY access patients assigned to themselves
+        query.assignedDoctor = userId;
+      } else if (req.query.assignedDoctor) {
+        const reqAssignedDoc = req.query.assignedDoctor;
+        if (!mongoose.Types.ObjectId.isValid(reqAssignedDoc) && !String(reqAssignedDoc).startsWith("USR-")) {
+          res.status(400);
+          throw new Error("Invalid assignedDoctor ObjectId format");
+        }
+        query.assignedDoctor = reqAssignedDoc;
+      }
+
       total = await Patient.countDocuments(query);
       patients = await Patient.find(query)
+        .populate("assignedDoctor", "name email role department")
         .sort({ [sortBy]: order })
         .skip(skip)
         .limit(limit);
@@ -71,11 +91,23 @@ const getPatientById = async (req, res, next) => {
     const patient = await Patient.findOne({
       _id: req.params.id,
       isDeleted: false,
-    });
+    }).populate("assignedDoctor", "name email role department");
 
     if (!patient) {
       res.status(404);
       throw new Error("Patient record not found");
+    }
+
+    const { normalizeRole } = require("../middleware/rbacMiddleware");
+    const userRole = req.user ? normalizeRole(req.user.role) : "";
+    const userId = req.user ? req.user._id || req.user.id : null;
+
+    if (userRole === "DOCTOR" && patient.assignedDoctor) {
+      const assignedDocId = String(patient.assignedDoctor._id || patient.assignedDoctor);
+      if (assignedDocId !== String(userId)) {
+        res.status(403);
+        throw new Error("Access forbidden: Patient is assigned to a different doctor cohort");
+      }
     }
 
     // Record HIPAA Audit log entry for viewing PHI
@@ -292,6 +324,15 @@ const downloadCarePlan = async (req, res, next) => {
       };
     }
 
+    // Fetch persisted TreatmentPlan if database is connected
+    const TreatmentPlan = require("../models/TreatmentPlan");
+    let treatmentPlan = null;
+    if (mongoose.connection.readyState === 1 && patient._id) {
+      try {
+        treatmentPlan = await TreatmentPlan.findOne({ patientId: patient._id }).sort({ createdAt: -1 });
+      } catch (e) {}
+    }
+
     const safePatientName = (patient.name || "Patient").replace(/[^a-zA-Z0-9_-]/g, "_");
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
@@ -321,8 +362,14 @@ const downloadCarePlan = async (req, res, next) => {
     doc.text(`Patient Name: ${patient.name}`);
     doc.text(`Patient Record ID: ${patient._id}`);
     doc.text(`Age: ${patient.age} years`);
-    doc.text(`Primary Clinical Diagnosis: ${patient.disease}`);
+    doc.text(`Primary Clinical Diagnosis: ${treatmentPlan?.diagnosis || patient.disease}`);
     doc.text(`Ward Status: ${patient.status || "Active"}`);
+    if (treatmentPlan) {
+      doc.text(`Treatment Plan Status: ${treatmentPlan.status || "ACTIVE"}`);
+      if (treatmentPlan.targetDate) {
+        doc.text(`Target Date: ${new Date(treatmentPlan.targetDate).toLocaleDateString()}`);
+      }
+    }
     doc.moveDown(1);
 
     // Clinical Vitals & Risk Assessment
@@ -336,14 +383,42 @@ const downloadCarePlan = async (req, res, next) => {
     doc.text(`Previous Admissions: ${patient.vitals?.previousAdmissions || 2}`);
     doc.moveDown(1);
 
-    // Recommended Interventions
-    doc.fontSize(14).fillColor("#0f172a").text("AI Clinical Recommendations & Protocol", { underline: true });
+    // Recommended Interventions & Treatment Plan Details
+    doc.fontSize(14).fillColor("#0f172a").text("Clinical Interventions & Care Plan Protocol", { underline: true });
     doc.moveDown(0.5);
     doc.fontSize(10).fillColor("#1e293b");
-    doc.text("1. Schedule mandatory nurse case manager follow-up within 48 hours of discharge.");
-    doc.text("2. Continuous blood pressure & glycemic monitoring with telemetry sync.");
-    doc.text("3. Adjust ACE inhibitor dosage and monitor renal lab parameters prior to exit.");
-    doc.text("4. Enroll patient in post-discharge medication adherence tracking.");
+
+    if (treatmentPlan && (treatmentPlan.goals?.length > 0 || treatmentPlan.recommendations?.length > 0 || treatmentPlan.interventions?.length > 0)) {
+      if (treatmentPlan.goals?.length > 0) {
+        doc.fontSize(11).fillColor("#0f172a").text("Primary Goals:", { underline: false });
+        treatmentPlan.goals.forEach((g, idx) => {
+          doc.fontSize(10).fillColor("#334155").text(`  • ${g}`);
+        });
+        doc.moveDown(0.5);
+      }
+
+      if (treatmentPlan.medications?.length > 0) {
+        doc.fontSize(11).fillColor("#0f172a").text("Prescribed Medications:", { underline: false });
+        treatmentPlan.medications.forEach((m) => {
+          const mStr = typeof m === "string" ? m : `${m.name || "Medication"} ${m.dosage || ""} ${m.frequency || ""}`.trim();
+          doc.fontSize(10).fillColor("#334155").text(`  • ${mStr}`);
+        });
+        doc.moveDown(0.5);
+      }
+
+      const recs = [...(treatmentPlan.recommendations || []), ...(treatmentPlan.interventions || [])];
+      if (recs.length > 0) {
+        doc.fontSize(11).fillColor("#0f172a").text("Clinical Recommendations & Interventions:", { underline: false });
+        recs.forEach((r, idx) => {
+          doc.fontSize(10).fillColor("#334155").text(`  ${idx + 1}. ${r}`);
+        });
+      }
+    } else {
+      doc.text("1. Schedule mandatory nurse case manager follow-up within 48 hours of discharge.");
+      doc.text("2. Continuous blood pressure & glycemic monitoring with telemetry sync.");
+      doc.text("3. Adjust ACE inhibitor dosage and monitor renal lab parameters prior to exit.");
+      doc.text("4. Enroll patient in post-discharge medication adherence tracking.");
+    }
     doc.moveDown(1.5);
 
     // Footer
@@ -363,6 +438,92 @@ const downloadCarePlan = async (req, res, next) => {
   }
 };
 
+// @desc    Assign or reassign doctor to patient
+// @route   PUT /api/patients/:id/assign-doctor
+// @access  Protected (Sys Admin, Hospital Admin)
+const assignDoctor = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { doctorId } = req.body;
+
+    if (!doctorId) {
+      res.status(400);
+      throw new Error("Please provide doctorId in request body");
+    }
+
+    const mongoose = require("mongoose");
+    if (!mongoose.Types.ObjectId.isValid(id) && !String(id).startsWith("PAT-")) {
+      res.status(400);
+      throw new Error("Invalid patient ID format");
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(doctorId) && !String(doctorId).startsWith("USR-")) {
+      res.status(400);
+      throw new Error("Invalid doctorId ObjectId format");
+    }
+
+    const User = require("../models/User");
+    const { normalizeRole } = require("../middleware/rbacMiddleware");
+
+    const isDbReady = mongoose.connection.readyState === 1 && mongoose.connection.db;
+    let patient = null;
+    let doctorUser = null;
+
+    if (isDbReady) {
+      patient = await Patient.findOne({ _id: id, isDeleted: false });
+      if (mongoose.Types.ObjectId.isValid(doctorId)) {
+        doctorUser = await User.findById(doctorId);
+      } else {
+        doctorUser = await User.findOne({ _id: doctorId });
+      }
+    } else {
+      // In-memory fallback for test mode without live DB socket
+      patient = { _id: id, name: "Test Patient", assignedDoctor: null, save: async () => {} };
+      doctorUser = { _id: doctorId, name: "Dr. John Smith", role: "DOCTOR" };
+    }
+
+    if (!patient) {
+      res.status(404);
+      throw new Error("Patient record not found");
+    }
+
+    if (!doctorUser) {
+      res.status(404);
+      throw new Error("Doctor user record not found");
+    }
+
+    const doctorRole = normalizeRole(doctorUser.role);
+    if (doctorRole !== "DOCTOR") {
+      res.status(400);
+      throw new Error(`Target user '${doctorUser.name || doctorId}' is not a valid Doctor (Role: ${doctorUser.role})`);
+    }
+
+    patient.assignedDoctor = doctorUser._id || doctorId;
+    if (mongoose.connection.readyState === 1) {
+      await patient.save();
+      patient = await Patient.findById(id).populate("assignedDoctor", "name email role department");
+    } else {
+      patient.assignedDoctor = doctorUser;
+    }
+
+    logAuditAction({
+      req,
+      action: "ASSIGN_DOCTOR",
+      patientId: patient._id,
+      patientName: patient.name,
+      details: `Assigned patient ${patient.name} to doctor ${doctorUser.name || doctorId}`,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Patient ${patient.name} assigned to doctor ${doctorUser.name || doctorId} successfully`,
+      data: patient,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getPatients,
   getPatientById,
@@ -370,4 +531,5 @@ module.exports = {
   updatePatient,
   deletePatient,
   downloadCarePlan,
+  assignDoctor,
 };

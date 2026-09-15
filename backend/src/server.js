@@ -23,6 +23,7 @@ const alertRoutes = require("./routes/alertRoutes");
 const auditRoutes = require("./routes/auditRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const reportRoutes = require("./routes/reportRoutes");
+const treatmentPlanRoutes = require("./routes/treatmentPlanRoutes");
 
 // Middleware
 const { notFound, errorHandler } = require("./middleware/errorMiddleware");
@@ -58,6 +59,7 @@ app.use("/api/alerts", alertRoutes);
 app.use("/api/audit-logs", auditRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/treatment-plans", treatmentPlanRoutes);
 
 // Error Handling & 404 Fallback
 app.use(notFound);

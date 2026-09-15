@@ -5,20 +5,29 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const { logAuditAction } = require("../utils/auditLogger");
 
-const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key_here";
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "your_jwt_refresh_secret_key_here";
+const getJwtSecret = () => {
+  if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
+  if (process.env.NODE_ENV === "test") return "test_jwt_secret_key_for_unit_testing_12345";
+  throw new Error("FATAL: JWT_SECRET environment variable is missing.");
+};
+
+const getJwtRefreshSecret = () => {
+  if (process.env.JWT_REFRESH_SECRET) return process.env.JWT_REFRESH_SECRET;
+  if (process.env.NODE_ENV === "test") return "test_jwt_refresh_secret_key_for_unit_testing_12345";
+  return getJwtSecret();
+};
 
 // In-memory token-to-email mapping store
 const resetTokenStore = new Map();
 
 // Generate Access Token (15m expiration)
 const generateAccessToken = (userId) => {
-  return jwt.sign({ id: userId }, JWT_SECRET, { expiresIn: "15m" });
+  return jwt.sign({ id: userId }, getJwtSecret(), { expiresIn: "15m" });
 };
 
 // Generate Refresh Token (7d expiration)
 const generateRefreshToken = (userId) => {
-  return jwt.sign({ id: userId }, JWT_REFRESH_SECRET, { expiresIn: "7d" });
+  return jwt.sign({ id: userId }, getJwtRefreshSecret(), { expiresIn: "7d" });
 };
 
 // @desc    Register new doctor/user account

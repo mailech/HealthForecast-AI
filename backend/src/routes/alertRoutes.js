@@ -6,10 +6,33 @@ const {
   markAllAlertsRead,
   dismissAlert,
 } = require("../controllers/alertController");
+const { protect } = require("../middleware/authMiddleware");
+const { authorizeRoles } = require("../middleware/rbacMiddleware");
 
-router.get("/", getAlerts);
-router.put("/read-all", markAllAlertsRead);
-router.put("/:id/toggle", toggleAlertStatus);
-router.delete("/:id", dismissAlert);
+router.get(
+  "/",
+  protect,
+  authorizeRoles("SYS_ADMIN", "HOSPITAL_ADMIN", "DOCTOR", "RESEARCHER"),
+  getAlerts
+);
+router.put(
+  "/read-all",
+  protect,
+  authorizeRoles("SYS_ADMIN", "HOSPITAL_ADMIN", "DOCTOR"),
+  markAllAlertsRead
+);
+router.put(
+  "/:id/toggle",
+  protect,
+  authorizeRoles("SYS_ADMIN", "HOSPITAL_ADMIN", "DOCTOR"),
+  toggleAlertStatus
+);
+router.delete(
+  "/:id",
+  protect,
+  authorizeRoles("SYS_ADMIN", "HOSPITAL_ADMIN", "DOCTOR"),
+  dismissAlert
+);
 
 module.exports = router;
+

@@ -183,8 +183,12 @@ async function seedDataset() {
   const targetCsvPath = getClinicalCsvPath();
   console.log(`Reading clinical dataset directly from: ${targetCsvPath}`);
 
-  const mongoUri = "mongodb://localhost:27017/healthforecast";
-  console.log(`Connecting to MongoDB for dataset seeding: ${mongoUri}`);
+  const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
+  if (!mongoUri) {
+    console.error("Error: MONGO_URI or MONGODB_URI environment variable is required.");
+    process.exit(1);
+  }
+  console.log("Connecting to MongoDB for dataset seeding...");
   await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 10000 });
   console.log("Connected to MongoDB successfully.");
 

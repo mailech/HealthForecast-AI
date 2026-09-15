@@ -14,60 +14,89 @@ import {
   Activity,
 } from "lucide-react";
 import SpotlightCard from "../components/SpotlightCard";
+import API_BASE_URL from "../services/api";
 
 function Prediction() {
   // Form State for Clinical Parameters
   const [patientData, setPatientData] = useState({
     name: "Rahul Verma",
-    age: 61,
-    glucose: 185,
-    bpSystolic: 140,
-    bpDiastolic: 90,
-    bmi: 28.4,
-    previousAdmissions: 3,
+    age_range: "[60-70)",
+    time_in_hospital: 4,
+    num_lab_procedures: 45,
+    num_medications: 14,
+    number_inpatient: 2,
+    number_emergency: 1,
+    number_diagnoses: 8,
+    max_glu_serum: ">200",
+    A1Cresult: ">8",
+    diabetesMed: "Yes",
   });
 
   const [loading, setLoading] = useState(false);
-  const [predictionResult, setPredictionResult] = useState({
-    score: 91,
-    category: "HIGH",
-    confidence: "96.4%",
-    factors: [
-      { factor: "High Previous Admissions (Past 12 Months)", impact: "High" },
-      { factor: "Elevated Blood Glucose Level (185 mg/dL)", impact: "Medium" },
-      { factor: "Stage 1 Hypertension (140/90 mmHg)", impact: "Medium" },
-    ],
-  });
+  const [error, setError] = useState(null);
+  const [predictionResult, setPredictionResult] = useState(null);
 
   // Modal State for Discharge Care Plan
   const [isCarePlanOpen, setIsCarePlanOpen] = useState(false);
 
   // Run AI Risk Prediction Procedure
-  const handlePredict = (e) => {
+  const handlePredict = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
-    setTimeout(() => {
-      // Calculate score based on inputs
-      let score = 30;
-      if (patientData.age > 50) score += 15;
-      if (patientData.glucose > 140) score += 20;
-      if (patientData.previousAdmissions > 2) score += 25;
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/prediction/predict`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          patientName: patientData.name,
+          age_range: patientData.age_range,
+          time_in_hospital: Number(patientData.time_in_hospital),
+          num_lab_procedures: Number(patientData.num_lab_procedures),
+          num_medications: Number(patientData.num_medications),
+          number_inpatient: Number(patientData.number_inpatient),
+          number_emergency: Number(patientData.number_emergency),
+          number_diagnoses: Number(patientData.number_diagnoses),
+          max_glu_serum: patientData.max_glu_serum,
+          A1Cresult: patientData.A1Cresult,
+          diabetesMed: patientData.diabetesMed,
+        }),
+      });
 
-      const category = score >= 75 ? "HIGH" : score >= 45 ? "MEDIUM" : "LOW";
+      const resJson = await response.json();
+
+      if (!response.ok || !resJson.success) {
+        throw new Error(resJson.error || resJson.message || "Prediction API request failed.");
+      }
+
+      const resData = resJson.data;
+
+      const factors = resData.feature_explanations
+        ? resData.feature_explanations.map((exp) => ({
+            factor: exp.risk_contribution || `${exp.feature_name}: ${exp.value}`,
+            impact: exp.importance_weight > 0.18 ? "High" : exp.importance_weight > 0.1 ? "Medium" : "Low",
+          }))
+        : [];
 
       setPredictionResult({
-        score: Math.min(score, 98),
-        category,
-        confidence: "94.8%",
-        factors: [
-          { factor: `Previous Admissions (${patientData.previousAdmissions} visits)`, impact: "High" },
-          { factor: `Blood Glucose (${patientData.glucose} mg/dL)`, impact: patientData.glucose > 140 ? "High" : "Low" },
-          { factor: `Blood Pressure (${patientData.bpSystolic}/${patientData.bpDiastolic} mmHg)`, impact: "Medium" },
-        ],
+        score: resData.score,
+        category: resData.level,
+        confidence: typeof resData.confidence === "number" ? `${resData.confidence}%` : resData.confidence,
+        factors,
+        recommendations: resData.recommendations || [],
+        algorithm: resData.algorithm,
+        model_version: resData.model_version,
       });
+    } catch (err) {
+      console.error("Prediction request failed:", err);
+      setError(err.message || "Failed to connect to ML Prediction Service.");
+      setPredictionResult(null);
+    } finally {
       setLoading(false);
-    }, 800);
+    }
   };
 
   return (
@@ -95,6 +124,13 @@ function Prediction() {
         )}
       </div>
 
+      {error && (
+        <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs text-rose-300 flex items-center gap-2">
+          <AlertTriangle size={18} className="text-rose-400 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
@@ -121,26 +157,37 @@ function Prediction() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block font-semibold text-slate-300 mb-1">
-                  Age (Years)
+                  Age Range
                 </label>
-                <input
-                  type="number"
-                  required
-                  value={patientData.age}
-                  onChange={(e) => setPatientData({ ...patientData, age: Number(e.target.value) })}
+                <select
+                  value={patientData.age_range}
+                  onChange={(e) => setPatientData({ ...patientData, age_range: e.target.value })}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:outline-none focus:border-emerald-500 text-white font-mono font-bold"
-                />
+                >
+                  <option value="[0-10)">[0-10) Years</option>
+                  <option value="[10-20)">[10-20) Years</option>
+                  <option value="[20-30)">[20-30) Years</option>
+                  <option value="[30-40)">[30-40) Years</option>
+                  <option value="[40-50)">[40-50) Years</option>
+                  <option value="[50-60)">[50-60) Years</option>
+                  <option value="[60-70)">[60-70) Years</option>
+                  <option value="[70-80)">[70-80) Years</option>
+                  <option value="[80-90)">[80-90) Years</option>
+                  <option value="[90-100)">[90-100) Years</option>
+                </select>
               </div>
 
               <div>
                 <label className="block font-semibold text-slate-300 mb-1">
-                  Glucose (mg/dL)
+                  Length of Stay (Days)
                 </label>
                 <input
                   type="number"
+                  min="1"
+                  max="14"
                   required
-                  value={patientData.glucose}
-                  onChange={(e) => setPatientData({ ...patientData, glucose: Number(e.target.value) })}
+                  value={patientData.time_in_hospital}
+                  onChange={(e) => setPatientData({ ...patientData, time_in_hospital: Number(e.target.value) })}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:outline-none focus:border-emerald-500 text-white font-mono font-bold"
                 />
               </div>
@@ -149,49 +196,130 @@ function Prediction() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block font-semibold text-slate-300 mb-1">
-                  Systolic BP / Diastolic BP
+                  Lab Procedures Count
                 </label>
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="number"
-                    value={patientData.bpSystolic}
-                    onChange={(e) => setPatientData({ ...patientData, bpSystolic: Number(e.target.value) })}
-                    className="w-1/2 px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-center text-white font-mono font-bold"
-                  />
-                  <span className="text-slate-500 font-mono">/</span>
-                  <input
-                    type="number"
-                    value={patientData.bpDiastolic}
-                    onChange={(e) => setPatientData({ ...patientData, bpDiastolic: Number(e.target.value) })}
-                    className="w-1/2 px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-center text-white font-mono font-bold"
-                  />
-                </div>
+                <input
+                  type="number"
+                  min="1"
+                  max="150"
+                  required
+                  value={patientData.num_lab_procedures}
+                  onChange={(e) => setPatientData({ ...patientData, num_lab_procedures: Number(e.target.value) })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:outline-none focus:border-emerald-500 text-white font-mono font-bold"
+                />
               </div>
 
               <div>
                 <label className="block font-semibold text-slate-300 mb-1">
-                  BMI (kg/m²)
+                  Distinct Medications Count
                 </label>
                 <input
                   type="number"
-                  step="0.1"
-                  value={patientData.bmi}
-                  onChange={(e) => setPatientData({ ...patientData, bmi: Number(e.target.value) })}
+                  min="1"
+                  max="100"
+                  required
+                  value={patientData.num_medications}
+                  onChange={(e) => setPatientData({ ...patientData, num_medications: Number(e.target.value) })}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono font-bold"
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block font-semibold text-slate-300 mb-1">
-                Previous Admissions (Past 12 Months)
-              </label>
-              <input
-                type="number"
-                value={patientData.previousAdmissions}
-                onChange={(e) => setPatientData({ ...patientData, previousAdmissions: Number(e.target.value) })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono font-bold"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">
+                  Inpatient Stays (Past 12 Mo)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="50"
+                  required
+                  value={patientData.number_inpatient}
+                  onChange={(e) => setPatientData({ ...patientData, number_inpatient: Number(e.target.value) })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">
+                  Emergency Visits (Past 12 Mo)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="50"
+                  required
+                  value={patientData.number_emergency}
+                  onChange={(e) => setPatientData({ ...patientData, number_emergency: Number(e.target.value) })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono font-bold"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">
+                  Total Diagnoses Count
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="20"
+                  required
+                  value={patientData.number_diagnoses}
+                  onChange={(e) => setPatientData({ ...patientData, number_diagnoses: Number(e.target.value) })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">
+                  Max Serum Glucose
+                </label>
+                <select
+                  value={patientData.max_glu_serum}
+                  onChange={(e) => setPatientData({ ...patientData, max_glu_serum: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono font-bold"
+                >
+                  <option value="None">None (Not Tested)</option>
+                  <option value="Norm">Norm (Normal)</option>
+                  <option value=">200">&gt;200 mg/dL</option>
+                  <option value=">300">&gt;300 mg/dL</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">
+                  HbA1c Result
+                </label>
+                <select
+                  value={patientData.A1Cresult}
+                  onChange={(e) => setPatientData({ ...patientData, A1Cresult: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono font-bold"
+                >
+                  <option value="None">None (Not Tested)</option>
+                  <option value="Norm">Norm (Normal)</option>
+                  <option value=">7">&gt;7%</option>
+                  <option value=">8">&gt;8%</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">
+                  Prescribed Diabetes Meds
+                </label>
+                <select
+                  value={patientData.diabetesMed}
+                  onChange={(e) => setPatientData({ ...patientData, diabetesMed: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono font-bold"
+                >
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
             </div>
 
             <button
@@ -236,7 +364,7 @@ function Prediction() {
                 {/* Score Number Badge */}
                 <div className="flex flex-col items-center justify-center p-6 bg-slate-950/80 rounded-2xl border border-slate-800">
                   <span className={`text-5xl font-mono font-bold ${
-                    predictionResult.score >= 70 ? "text-rose-400" : predictionResult.score >= 40 ? "text-amber-400" : "text-emerald-400"
+                    predictionResult.score >= 40 ? "text-rose-400" : predictionResult.score >= 20 ? "text-amber-400" : "text-emerald-400"
                   }`}>
                     {predictionResult.score}%
                   </span>
@@ -245,19 +373,19 @@ function Prediction() {
                   </span>
                 </div>
 
-                {/* Model Confidence */}
+                {/* Model Confidence / Probability */}
                 <div className="space-y-3 text-xs">
                   <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
                     <span className="text-[10px] text-emerald-400 font-mono font-bold uppercase block">
-                      AI Model Confidence
+                      Readmission Probability
                     </span>
                     <span className="text-lg font-mono font-bold text-white">
-                      {predictionResult.confidence} Precision
+                      {predictionResult.confidence}%
                     </span>
                   </div>
 
                   <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
-                    Clinical score exceeds 70% threshold. High probability of unplanned readmission within 30 days of discharge.
+                    Clinical risk evaluated by {predictionResult.algorithm || "RandomForestClassifier"} model trained on Diabetes 130-US Hospitals Dataset.
                   </p>
                 </div>
 
@@ -266,7 +394,7 @@ function Prediction() {
               {/* Top Risk Contributors */}
               <div className="mt-6 pt-4 border-t border-slate-800">
                 <span className="text-xs font-semibold text-slate-300 block mb-3">
-                  Key Risk Contributors (SHAP Feature Importance)
+                  Key Risk Contributors (Random Forest Feature Importance)
                 </span>
                 <div className="space-y-2 text-xs">
                   {predictionResult.factors.map((f, i) => (
@@ -286,9 +414,13 @@ function Prediction() {
                 <AlertTriangle size={16} /> Recommended Clinical Interventions
               </h4>
               <ul className="list-disc pl-5 space-y-1 font-medium text-rose-300">
-                <li>Schedule mandatory nurse follow-up consultation within 48 hours.</li>
-                <li>Initiate continuous blood pressure and blood glucose tracking.</li>
-                <li>Assign dedicated case manager for medication adherence.</li>
+                {predictionResult.recommendations && predictionResult.recommendations.length > 0 ? (
+                  predictionResult.recommendations.map((rec, idx) => (
+                    <li key={idx}>{rec}</li>
+                  ))
+                ) : (
+                  <li>No specific interventions recommended.</li>
+                )}
               </ul>
             </div>
 

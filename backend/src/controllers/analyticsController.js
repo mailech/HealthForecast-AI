@@ -1,18 +1,10 @@
 const mongoose = require("mongoose");
 const Patient = require("../models/Patient");
+const PredictionHistory = require("../models/PredictionHistory");
 
-// Box-Muller Gaussian Normal Distribution
-function randomGaussian(mean = 0, stdDev = 1) {
-  let u = 0, v = 0;
-  while (u === 0) u = Math.random();
-  while (v === 0) v = Math.random();
-  const num = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
-  return mean + stdDev * num;
-}
-
-// @desc    Get aggregated healthcare analytics by timeframe (30d, 6m, 1y)
+// @desc    Get aggregated healthcare analytics calculated from real MongoDB data
 // @route   GET /api/analytics, GET /api/prediction/analytics
-// @access  Public / Protected
+// @access  Protected
 const getAnalyticsData = async (req, res, next) => {
   try {
     const rawTf = (req.query.timeframe || "30d").toLowerCase();
@@ -30,156 +22,194 @@ const getAnalyticsData = async (req, res, next) => {
     const startDate = new Date(Date.now() - daysThreshold * 24 * 60 * 60 * 1000);
 
     let totalPatients = 0;
+    let activePatients = 0;
+    let dischargedPatients = 0;
     let avgDaysInCare = 0;
     let readmissionRate = 0;
-    let medicationCompliance = 0;
+    const medicationCompliance = null;
+    const medicationComplianceAvailable = false;
     let riskDistribution = { High: 0, Medium: 0, Low: 0 };
     let highRiskCount = 0;
 
-    // Run MongoDB Aggregations if DB is connected
-    if (mongoose.connection.readyState === 1) {
-      try {
-        const matchStage = {
-          $match: {
-            isDeleted: false,
-          },
-        };
+    let predictionStats = {
+      totalPredictions: 0,
+      readmissionPredictions: 0,
+      notReadmittedPredictions: 0,
+      readmissionPredictionRate: 0,
+      highRiskPredictions: 0,
+      mediumRiskPredictions: 0,
+      lowRiskPredictions: 0,
+      thresholdNote: "Project-Defined Threshold: score >= 20",
+    };
 
-        // 1. Aggregation for total count, Days in Care & Readmission Rate
-        const daysInCareAgg = await Patient.aggregate([
-          matchStage,
-          {
-            $project: {
-              daysInCare: {
+    let readmissionCurves = [];
+    let telemetry24h = [];
+
+    let chfAvgRisk = 0;
+    let copdAvgRisk = 0;
+    let diabetesAvgRisk = 0;
+
+    // Run real MongoDB Aggregations when database is connected
+    if (mongoose.connection.readyState === 1) {
+      // 1. Patient Collection Summary Aggregation
+      const patientSummaryAgg = await Patient.aggregate([
+        { $match: { isDeleted: false, createdAt: { $gte: startDate } } },
+        {
+          $group: {
+            _id: null,
+            count: { $sum: 1 },
+            activeCount: { $sum: { $cond: [{ $eq: ["$status", "Active"] }, 1, 0] } },
+            dischargedCount: { $sum: { $cond: [{ $eq: ["$status", "Discharged"] }, 1, 0] } },
+            avgDays: {
+              $avg: {
                 $max: [
                   1,
-                  {
-                    $divide: [
-                      { $subtract: [new Date(), "$createdAt"] },
-                      1000 * 60 * 60 * 24,
-                    ],
-                  },
+                  { $divide: [{ $subtract: [new Date(), "$createdAt"] }, 1000 * 60 * 60 * 24] },
                 ],
               },
-              previousAdmissions: { $ifNull: ["$vitals.previousAdmissions", "$previousAdmissions", 0] },
-              risk: "$risk",
-              riskScore: "$riskScore",
             },
-          },
-          {
-            $group: {
-              _id: null,
-              count: { $sum: 1 },
-              avgDays: { $avg: "$daysInCare" },
-              readmittedCount: {
-                $sum: { $cond: [{ $gt: ["$previousAdmissions", 0] }, 1, 0] },
+            readmittedCount: {
+              $sum: {
+                $cond: [
+                  { $gt: [{ $ifNull: ["$vitals.previousAdmissions", "$previousAdmissions", 0] }, 0] },
+                  1,
+                  0,
+                ],
               },
             },
           },
-        ]);
+        },
+      ]);
 
-        if (daysInCareAgg && daysInCareAgg.length > 0 && daysInCareAgg[0].count > 0) {
-          totalPatients = daysInCareAgg[0].count;
-          avgDaysInCare = Math.round((daysInCareAgg[0].avgDays || 4.2) * 10) / 10;
-          readmissionRate = Math.round((daysInCareAgg[0].readmittedCount / totalPatients) * 1000) / 10;
-        }
+      if (patientSummaryAgg && patientSummaryAgg.length > 0 && patientSummaryAgg[0].count > 0) {
+        totalPatients = patientSummaryAgg[0].count;
+        activePatients = patientSummaryAgg[0].activeCount;
+        dischargedPatients = patientSummaryAgg[0].dischargedCount;
+        avgDaysInCare = Math.round((patientSummaryAgg[0].avgDays || 0) * 10) / 10;
+        readmissionRate = Math.round((patientSummaryAgg[0].readmittedCount / totalPatients) * 1000) / 10;
+      }
 
-        // 2. Risk Distribution Aggregation
-        const riskAgg = await Patient.aggregate([
-          matchStage,
-          {
-            $group: {
-              _id: "$risk",
-              count: { $sum: 1 },
-            },
+      // 2. Patient Risk Category Breakdown Aggregation
+      const riskCategoryAgg = await Patient.aggregate([
+        { $match: { isDeleted: false, createdAt: { $gte: startDate } } },
+        {
+          $group: {
+            _id: { $toUpper: { $ifNull: ["$riskCategory", { $ifNull: ["$risk", "LOW"] }] } },
+            count: { $sum: 1 },
           },
-        ]);
+        },
+      ]);
 
-        riskAgg.forEach((r) => {
-          if (r._id) {
-            const normalized = String(r._id).toUpperCase();
-            if (normalized === "HIGH") riskDistribution.High += r.count;
-            else if (normalized === "MEDIUM") riskDistribution.Medium += r.count;
-            else riskDistribution.Low += r.count;
-          }
-        });
+      riskCategoryAgg.forEach((r) => {
+        if (r._id) {
+          const norm = String(r._id).toUpperCase();
+          if (norm === "HIGH") riskDistribution.High += r.count;
+          else if (norm === "MEDIUM") riskDistribution.Medium += r.count;
+          else riskDistribution.Low += r.count;
+        }
+      });
+      highRiskCount = riskDistribution.High;
 
-        highRiskCount = riskDistribution.High;
-      } catch (aggErr) {
-        console.warn("MongoDB Aggregation notice:", aggErr.message);
+      // 3. Disease Condition Specific Risk Aggregation (CHF, COPD, Diabetes)
+      const conditionRiskAgg = await Patient.aggregate([
+        { $match: { isDeleted: false, createdAt: { $gte: startDate } } },
+        {
+          $group: {
+            _id: { $toLower: "$disease" },
+            avgScore: { $avg: { $ifNull: ["$riskScore", 50] } },
+            count: { $sum: 1 },
+          },
+        },
+      ]);
+
+      conditionRiskAgg.forEach((item) => {
+        const condName = (item._id || "").toLowerCase();
+        if (condName.includes("heart") || condName.includes("chf")) {
+          chfAvgRisk = Math.round(item.avgScore || 0);
+        } else if (condName.includes("copd") || condName.includes("lung") || condName.includes("respiratory")) {
+          copdAvgRisk = Math.round(item.avgScore || 0);
+        } else if (condName.includes("diabet")) {
+          diabetesAvgRisk = Math.round(item.avgScore || 0);
+        }
+      });
+
+      // 4. PredictionHistory Collection Aggregations
+      const predictionSummaryAgg = await PredictionHistory.aggregate([
+        { $match: { createdAt: { $gte: startDate } } },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: 1 },
+            highCount: { $sum: { $cond: [{ $eq: ["$level", "HIGH"] }, 1, 0] } },
+            mediumCount: { $sum: { $cond: [{ $eq: ["$level", "MEDIUM"] }, 1, 0] } },
+            lowCount: { $sum: { $cond: [{ $eq: ["$level", "LOW"] }, 1, 0] } },
+            readmissionCount: { $sum: { $cond: [{ $gte: ["$score", 20] }, 1, 0] } },
+            notReadmittedCount: { $sum: { $cond: [{ $lt: ["$score", 20] }, 1, 0] } },
+          },
+        },
+      ]);
+
+      if (predictionSummaryAgg && predictionSummaryAgg.length > 0 && predictionSummaryAgg[0].total > 0) {
+        const pTotal = predictionSummaryAgg[0].total;
+        const pReadmit = predictionSummaryAgg[0].readmissionCount;
+        predictionStats = {
+          totalPredictions: pTotal,
+          readmissionPredictions: pReadmit,
+          notReadmittedPredictions: predictionSummaryAgg[0].notReadmittedCount,
+          readmissionPredictionRate: Math.round((pReadmit / pTotal) * 1000) / 10,
+          highRiskPredictions: predictionSummaryAgg[0].highCount,
+          mediumRiskPredictions: predictionSummaryAgg[0].mediumCount,
+          lowRiskPredictions: predictionSummaryAgg[0].lowCount,
+          thresholdNote: "Project-Defined Threshold: score >= 20",
+        };
+      }
+
+      // 5. Real Date-based Monthly Prediction Trends from PredictionHistory
+      const trendAgg = await PredictionHistory.aggregate([
+        { $match: { createdAt: { $gte: startDate } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+            avgScore: { $avg: "$score" },
+            count: { $sum: 1 },
+            readmissionCount: { $sum: { $cond: [{ $gte: ["$score", 20] }, 1, 0] } },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]);
+
+      if (trendAgg && trendAgg.length > 0) {
+        readmissionCurves = trendAgg.map((item) => ({
+          month: item._id,
+          predictedRisk: Math.round((item.avgScore || 0) * 10) / 10,
+          predictedReadmissionCount: item.readmissionCount,
+          count: item.count,
+        }));
+      }
+
+      // 6. Hourly Telemetry Aggregation from Patient Vitals
+      const telemetryAgg = await Patient.aggregate([
+        { $match: { isDeleted: false } },
+        {
+          $group: {
+            _id: { $hour: "$updatedAt" },
+            avgGlucose: { $avg: { $ifNull: ["$vitals.glucose", 100] } },
+            avgBmi: { $avg: { $ifNull: ["$vitals.bmi", 24.5] } },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]);
+
+      if (telemetryAgg && telemetryAgg.length > 0) {
+        telemetry24h = telemetryAgg.map((item) => ({
+          time: `${String(item._id).padStart(2, "0")}:00`,
+          glucose: Math.round(item.avgGlucose || 100),
+          bmi: Math.round((item.avgBmi || 24.5) * 10) / 10,
+          count: item.count,
+        }));
       }
     }
-
-    // Dynamic fallbacks scaled to timeframe
-    const tfScale = timeframe === "1y" ? 1.35 : timeframe === "6m" ? 1.18 : 1.0;
-
-    if (totalPatients === 0) {
-      totalPatients = timeframe === "1y" ? 1240 : timeframe === "6m" ? 680 : 290;
-    }
-
-    if (avgDaysInCare === 0) {
-      const baseDays = timeframe === "1y" ? 5.4 : timeframe === "6m" ? 4.8 : 4.2;
-      avgDaysInCare = Math.round((baseDays + randomGaussian(0, 0.2)) * 10) / 10;
-    }
-
-    if (readmissionRate === 0) {
-      const baseRate = timeframe === "1y" ? 14.8 : timeframe === "6m" ? 13.2 : 12.0;
-      readmissionRate = Math.round((baseRate + randomGaussian(0, 0.4)) * 10) / 10;
-    }
-
-    medicationCompliance = Math.round(
-      (92.4 + (timeframe === "1y" ? 2.8 : timeframe === "6m" ? 1.4 : 0) + randomGaussian(0, 0.3)) * 10
-    ) / 10;
-    medicationCompliance = Math.max(82, Math.min(98.5, medicationCompliance));
-
-    if (riskDistribution.High === 0 && riskDistribution.Medium === 0 && riskDistribution.Low === 0) {
-      riskDistribution = {
-        High: Math.round(totalPatients * 0.28),
-        Medium: Math.round(totalPatients * 0.44),
-        Low: Math.round(totalPatients * 0.28),
-      };
-      highRiskCount = riskDistribution.High;
-    }
-
-    // Generate monthly curves based on timeframe
-    const months = (!req.query.timeframe || timeframe === "1y")
-      ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-      : timeframe === "6m"
-      ? ["Mar", "Apr", "May", "Jun", "Jul", "Aug"]
-      : ["Week 1", "Week 2", "Week 3", "Week 4"];
-
-    const readmissionCurves = months.map((m, idx) => {
-      const predictedRisk = Math.round((16.8 - idx * 0.45 + randomGaussian(0, 0.4)) * 10) / 10;
-      const actualReadmissions = Math.round((predictedRisk - 1.2 + randomGaussian(0, 0.3)) * 10) / 10;
-      const chfVal = Math.round((31.4 - idx * 0.6 + randomGaussian(0, 1.0)) * 10) / 10;
-      const copdVal = Math.round((27.8 - idx * 0.5 + randomGaussian(0, 0.8)) * 10) / 10;
-      const diabetesVal = Math.round((21.5 - idx * 0.4 + randomGaussian(0, 0.6)) * 10) / 10;
-
-      return {
-        month: m,
-        predictedRisk: Math.max(6, predictedRisk),
-        actualReadmissions: Math.max(5, actualReadmissions),
-        chfRisk: Math.max(18, chfVal),
-        copdRisk: Math.max(14, copdVal),
-        diabetesRisk: Math.max(11, diabetesVal),
-      };
-    });
-
-    // 24-Hour Telemetry Generator
-    const telemetry24h = Array.from({ length: 24 }, (_, i) => {
-      const timeStr = `${String(i).padStart(2, "0")}:00`;
-      let hr = 68 + (i >= 8 && i <= 18 ? 14 : 0) + Math.round(randomGaussian(0, 2));
-      let sysBP = 118 + (i >= 8 && i <= 18 ? 12 : 0) + Math.round(randomGaussian(0, 3));
-      let diaBP = 76 + (i >= 8 && i <= 18 ? 6 : 0) + Math.round(randomGaussian(0, 2));
-
-      return {
-        time: timeStr,
-        heartRate: Math.max(60, Math.min(100, hr)),
-        systolicBP: Math.max(110, Math.min(140, sysBP)),
-        diastolicBP: Math.max(70, Math.min(90, diaBP)),
-        bp: `${sysBP}/${diaBP}`,
-      };
-    });
 
     res.status(200).json({
       success: true,
@@ -187,17 +217,22 @@ const getAnalyticsData = async (req, res, next) => {
       data: {
         timeframe,
         totalPatients,
+        activePatients,
+        dischargedPatients,
         avgDaysInCare,
         readmissionRate,
         medicationCompliance,
+        medicationComplianceAvailable,
         highRiskCount,
         riskDistribution,
+        predictionStats,
         telemetry24h,
         readmissionCurves,
         summary: {
-          chf30DayReadmissionRisk: `${readmissionCurves[0]?.chfRisk || 31.4}% Avg Risk`,
-          copd30DayReadmissionRisk: `${readmissionCurves[0]?.copdRisk || 27.8}% Avg Risk`,
-          diabetes30DayReadmissionRisk: `${readmissionCurves[0]?.diabetesRisk || 21.5}% Avg Risk`,
+          chf30DayReadmissionRisk: `${chfAvgRisk} Average Risk Index`,
+          copd30DayReadmissionRisk: `${copdAvgRisk} Average Risk Index`,
+          diabetes30DayReadmissionRisk: `${diabetesAvgRisk} Average Risk Index`,
+          riskType: "Project-Defined Model Risk Index (Score 0-100)",
         },
       },
     });
@@ -209,3 +244,5 @@ const getAnalyticsData = async (req, res, next) => {
 module.exports = {
   getAnalyticsData,
 };
+
+

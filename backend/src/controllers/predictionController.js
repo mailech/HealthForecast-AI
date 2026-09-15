@@ -6,62 +6,88 @@ const axios = require("axios");
 // @access  Public / Protected
 const predictRisk = async (req, res, next) => {
   try {
-    const { patientName, age, glucose, bp, bmi, previousAdmissions } = req.body;
+    const {
+      patientName,
+      age_range,
+      age,
+      time_in_hospital,
+      num_lab_procedures,
+      num_medications,
+      number_inpatient,
+      number_emergency,
+      number_diagnoses,
+      max_glu_serum,
+      A1Cresult,
+      diabetesMed,
+    } = req.body;
 
-    if (!patientName || age == null || glucose == null || !bp || bmi == null) {
+    const ageRangeVal = age_range || age || "[60-70)";
+
+    if (
+      !patientName ||
+      time_in_hospital == null ||
+      num_lab_procedures == null ||
+      num_medications == null ||
+      number_inpatient == null ||
+      number_emergency == null ||
+      number_diagnoses == null ||
+      !max_glu_serum ||
+      !A1Cresult ||
+      !diabetesMed
+    ) {
       res.status(400);
       throw new Error(
-        "Please provide all required clinical parameters (patientName, age, glucose, bp, bmi, previousAdmissions)"
+        "Please provide all required clinical parameters (patientName, age_range, time_in_hospital, num_lab_procedures, num_medications, number_inpatient, number_emergency, number_diagnoses, max_glu_serum, A1Cresult, diabetesMed)"
       );
     }
 
-    const glucoseNum = parseFloat(glucose);
-    const admissionsNum = parseInt(previousAdmissions, 10) || 0;
-    const ageNum = parseInt(age, 10);
-    const bmiNum = parseFloat(bmi);
+    const payload = {
+      patientName,
+      age_range: String(ageRangeVal),
+      time_in_hospital: Number(time_in_hospital),
+      num_lab_procedures: Number(num_lab_procedures),
+      num_medications: Number(num_medications),
+      number_inpatient: Number(number_inpatient),
+      number_emergency: Number(number_emergency),
+      number_diagnoses: Number(number_diagnoses),
+      max_glu_serum: String(max_glu_serum),
+      A1Cresult: String(A1Cresult),
+      diabetesMed: String(diabetesMed),
+    };
 
-    // If external ML microservice URL is configured, proxy request
-    const ML_SERVICE_URL = process.env.ML_SERVICE_URL;
-    let score, level, confidence, recommendations;
+    const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:8000";
+    let mlData = null;
 
-    if (ML_SERVICE_URL) {
-      try {
-        const mlResponse = await axios.post(`${ML_SERVICE_URL}/predict`, req.body);
-        score = mlResponse.data.score;
-        level = mlResponse.data.level;
-        confidence = mlResponse.data.confidence;
-        recommendations = mlResponse.data.recommendations;
-      } catch (mlErr) {
-        console.warn("ML Service unavailable, using internal clinical calculation engine:", mlErr.message);
+    try {
+      const mlResponse = await axios.post(`${ML_SERVICE_URL}/predict`, payload);
+      if (mlResponse.data && mlResponse.data.success && mlResponse.data.data) {
+        mlData = mlResponse.data.data;
       }
+    } catch (mlErr) {
+      console.error("ML Service call error:", mlErr.message);
+      return res.status(503).json({
+        success: false,
+        error: "ML Prediction Service is currently unavailable. Ensure the FastAPI ML service is running.",
+      });
     }
 
-    // Fallback internal clinical algorithm scoring engine
-    if (score == null) {
-      score = 30 + admissionsNum * 12 + (glucoseNum > 140 ? 25 : 5) + (ageNum > 60 ? 10 : 0);
-      score = Math.min(Math.max(Math.round(score), 10), 96);
-
-      level = score >= 70 ? "HIGH" : score >= 40 ? "MEDIUM" : "LOW";
-      confidence = 96.4;
-
-      recommendations =
-        level === "HIGH"
-          ? [
-              "Immediate follow-up required within 48 hours of discharge.",
-              "Schedule continuous blood pressure and glycemic monitoring.",
-              "Assign dedicated nurse case manager for medication adherence.",
-              "Review lab parameters prior to exit.",
-            ]
-          : level === "MEDIUM"
-          ? [
-              "Schedule standard follow-up within 7 days.",
-              "Provide dietary and lifestyle modification plan.",
-            ]
-          : [
-              "Routine checkup in 30 days.",
-              "Standard post-discharge guidance.",
-            ];
+    if (!mlData) {
+      return res.status(503).json({
+        success: false,
+        error: "ML Service did not return valid prediction data.",
+      });
     }
+
+    const {
+      score,
+      level,
+      confidence,
+      probabilities,
+      feature_explanations,
+      recommendations,
+      model_version,
+      algorithm,
+    } = mlData;
 
     // Save prediction history to MongoDB audit trail if connected
     const mongoose = require("mongoose");
@@ -70,13 +96,7 @@ const predictRisk = async (req, res, next) => {
       try {
         historyEntry = await PredictionHistory.create({
           patientName,
-          inputMetrics: {
-            age: ageNum,
-            glucose: glucoseNum,
-            bp,
-            bmi: bmiNum,
-            previousAdmissions: admissionsNum,
-          },
+          inputMetrics: payload,
           score,
           level,
           confidence,
@@ -95,12 +115,11 @@ const predictRisk = async (req, res, next) => {
         score,
         level,
         confidence,
-        probabilities: {
-          high: level === "HIGH" ? score : Math.floor(score * 0.4),
-          moderate: level === "MEDIUM" ? score : Math.max(100 - score - 10, 5),
-          low: level === "LOW" ? 100 - score : 5,
-        },
+        probabilities,
+        feature_explanations,
         recommendations,
+        model_version,
+        algorithm,
         createdAt: historyEntry.createdAt,
       },
     });

@@ -98,12 +98,43 @@ function Patients() {
   const [riskFilter, setRiskFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
   const [loading, setLoading] = useState(false);
+  const [doctorsList, setDoctorsList] = useState([]);
+  const [selectedDoctorForAssign, setSelectedDoctorForAssign] = useState("");
+
+  // Fetch Doctors list for Admin assignment dropdown
+  const fetchDoctors = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/api/users`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data && Array.isArray(json.data)) {
+          const docs = json.data.filter((u) => {
+            const r = String(u.role || "").toUpperCase();
+            return r === "DOCTOR" || r === "PHYSICIAN" || r === "STAFF";
+          });
+          setDoctorsList(docs);
+        }
+      }
+    } catch (err) {
+      console.warn("Fetch doctors notice:", err.message);
+    }
+  };
 
   // Fetch Patients from backend API
   const fetchPatients = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/patients`);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/api/patients`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
       if (res.ok) {
         const resData = await res.json();
         if (resData && resData.data && Array.isArray(resData.data) && resData.data.length > 0) {
@@ -122,8 +153,36 @@ function Patients() {
     }
   };
 
+  const handleAssignDoctor = async (patientId, selectedDoctorId) => {
+    if (!patientId || !selectedDoctorId) return;
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/api/patients/${patientId}/assign-doctor`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ doctorId: selectedDoctorId }),
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        toast.success("Doctor assigned successfully!");
+        fetchPatients();
+        if (viewingPatient) setViewingPatient(json.data);
+      } else {
+        const errJson = await res.json();
+        toast.error(errJson.error || "Failed to assign doctor");
+      }
+    } catch (err) {
+      toast.error(`Assignment error: ${err.message}`);
+    }
+  };
+
   useEffect(() => {
     fetchPatients();
+    fetchDoctors();
   }, []);
 
   // Pagination state
@@ -134,6 +193,92 @@ function Patients() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState(null);
   const [viewingPatient, setViewingPatient] = useState(null);
+  const [activeTreatmentPlan, setActiveTreatmentPlan] = useState(null);
+  const [isTreatmentFormOpen, setIsTreatmentFormOpen] = useState(false);
+  const [tpDiagnosis, setTpDiagnosis] = useState("");
+  const [tpGoals, setTpGoals] = useState("");
+  const [tpRecommendations, setTpRecommendations] = useState("");
+  const [tpStatus, setTpStatus] = useState("ACTIVE");
+  const [tpOutcomeNotes, setTpOutcomeNotes] = useState("");
+
+  const fetchTreatmentPlan = async (pId) => {
+    if (!pId) return;
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/api/treatment-plans?patientId=${pId}`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data && json.data.length > 0) {
+          const plan = json.data[0];
+          setActiveTreatmentPlan(plan);
+          setTpDiagnosis(plan.diagnosis || "");
+          setTpGoals(Array.isArray(plan.goals) ? plan.goals.join(", ") : plan.goals || "");
+          setTpRecommendations(Array.isArray(plan.recommendations) ? plan.recommendations.join(", ") : plan.recommendations || "");
+          setTpStatus(plan.status || "ACTIVE");
+          setTpOutcomeNotes(plan.outcomeNotes || "");
+          return;
+        }
+      }
+      setActiveTreatmentPlan(null);
+    } catch (err) {
+      console.warn("Treatment plan fetch notice:", err.message);
+      setActiveTreatmentPlan(null);
+    }
+  };
+
+  useEffect(() => {
+    if (viewingPatient) {
+      const pId = viewingPatient._id || viewingPatient.id;
+      setTpDiagnosis(viewingPatient.disease || "");
+      fetchTreatmentPlan(pId);
+    }
+  }, [viewingPatient]);
+
+  const handleSaveTreatmentPlan = async (e) => {
+    e.preventDefault();
+    if (!viewingPatient) return;
+    const pId = viewingPatient._id || viewingPatient.id;
+    const token = localStorage.getItem("token");
+    const payload = {
+      patientId: pId,
+      diagnosis: tpDiagnosis || viewingPatient.disease || "General Observation",
+      goals: tpGoals ? tpGoals.split(",").map((s) => s.trim()) : ["Follow discharge care protocol"],
+      recommendations: tpRecommendations ? tpRecommendations.split(",").map((s) => s.trim()) : ["Routine clinical monitoring"],
+      status: tpStatus,
+      outcomeNotes: tpOutcomeNotes,
+    };
+
+    try {
+      const url = activeTreatmentPlan?._id
+        ? `${API_BASE_URL}/api/treatment-plans/${activeTreatmentPlan._id}`
+        : `${API_BASE_URL}/api/treatment-plans`;
+      const method = activeTreatmentPlan?._id ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        toast.success(activeTreatmentPlan?._id ? "Treatment plan updated!" : "Treatment plan created!");
+        setIsTreatmentFormOpen(false);
+        fetchTreatmentPlan(pId);
+      } else {
+        const errJson = await res.json();
+        toast.error(errJson.error || "Failed to save treatment plan");
+      }
+    } catch (err) {
+      toast.error(`Error saving treatment plan: ${err.message}`);
+    }
+  };
 
   const {
     register,
@@ -687,13 +832,13 @@ function Patients() {
         </div>
       )}
 
-      {/* View Details Modal */}
+      {/* View Details & Treatment Plan Modal */}
       {viewingPatient && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-800 border-t border-white/10">
+          <div className="bg-slate-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-800 border-t border-white/10 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center pb-3 border-b border-slate-800">
-              <h3 className="font-bold text-white text-sm">Medical Summary & Care Plan</h3>
-              <button onClick={() => setViewingPatient(null)} className="text-slate-400 hover:text-white">
+              <h3 className="font-bold text-white text-sm">Medical Summary & Persistent Care Plan</h3>
+              <button onClick={() => { setViewingPatient(null); setIsTreatmentFormOpen(false); }} className="text-slate-400 hover:text-white">
                 <X size={18} />
               </button>
             </div>
@@ -704,7 +849,150 @@ function Patients() {
               <p><strong className="text-white">Condition:</strong> {viewingPatient.disease}</p>
               <p><strong className="text-white">Risk Level:</strong> <span className="font-mono font-bold text-emerald-400">{viewingPatient.risk} Risk</span></p>
               <p><strong className="text-white">Status:</strong> <span className="font-mono">{viewingPatient.status}</span></p>
+              <p><strong className="text-white">Assigned Doctor:</strong> <span className="font-semibold text-emerald-400">
+                {viewingPatient.assignedDoctor?.name || viewingPatient.assignedDoctor || "Unassigned"}
+              </span></p>
               <p><strong className="text-white">Emergency Contact:</strong> {role === "RESEARCHER" ? "XXX-XXX-XXXX [PHI MASKED]" : "+1 (555) 987-6543"}</p>
+
+              {/* Admin Doctor Assignment Selector */}
+              {(role === "SYS_ADMIN" || role === "HOSPITAL_ADMIN" || role === "ADMIN") && (
+                <div className="pt-2 border-t border-slate-800 flex items-center gap-2">
+                  <label className="text-[11px] font-semibold text-slate-400">Assign Doctor:</label>
+                  <select
+                    value={selectedDoctorForAssign}
+                    onChange={(e) => setSelectedDoctorForAssign(e.target.value)}
+                    className="bg-slate-950 border border-slate-800 text-xs text-white rounded-lg px-2 py-1 outline-none font-mono"
+                  >
+                    <option value="">Select Doctor...</option>
+                    {doctorsList.map((doc) => (
+                      <option key={doc._id || doc.id} value={doc._id || doc.id}>
+                        {doc.name} ({doc.department || "Clinical"})
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const pId = viewingPatient._id || viewingPatient.id;
+                      if (selectedDoctorForAssign) {
+                        handleAssignDoctor(pId, selectedDoctorForAssign);
+                      }
+                    }}
+                    disabled={!selectedDoctorForAssign}
+                    className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-mono font-bold rounded-lg disabled:opacity-30 cursor-pointer"
+                  >
+                    Assign
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Persistent Treatment Plan Section */}
+            <div className="pt-3 border-t border-slate-800 space-y-2">
+              <div className="flex justify-between items-center">
+                <h4 className="font-bold text-emerald-400 text-xs uppercase tracking-wider">
+                  MongoDB Persisted Care Plan
+                </h4>
+                {role !== "RESEARCHER" && (
+                  <button
+                    onClick={() => setIsTreatmentFormOpen(!isTreatmentFormOpen)}
+                    className="text-[11px] font-mono text-indigo-400 hover:text-indigo-300 underline cursor-pointer"
+                  >
+                    {isTreatmentFormOpen ? "Cancel Edit" : activeTreatmentPlan ? "Edit Treatment Plan" : "+ Create Treatment Plan"}
+                  </button>
+                )}
+              </div>
+
+              {isTreatmentFormOpen ? (
+                <form onSubmit={handleSaveTreatmentPlan} className="space-y-2 pt-2 bg-slate-950/80 p-3 rounded-xl border border-slate-800">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-0.5">Diagnosis / Condition</label>
+                    <input
+                      type="text"
+                      value={tpDiagnosis}
+                      onChange={(e) => setTpDiagnosis(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-0.5">Care Goals (comma-separated)</label>
+                    <input
+                      type="text"
+                      value={tpGoals}
+                      onChange={(e) => setTpGoals(e.target.value)}
+                      placeholder="e.g. Daily glucose check, Low sodium diet"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-0.5">Recommendations / Interventions</label>
+                    <input
+                      type="text"
+                      value={tpRecommendations}
+                      onChange={(e) => setTpRecommendations(e.target.value)}
+                      placeholder="e.g. Bi-weekly nurse checkup, Follow-up in 7 days"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-0.5">Plan Status</label>
+                      <select
+                        value={tpStatus}
+                        onChange={(e) => setTpStatus(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-white font-mono"
+                      >
+                        <option value="ACTIVE">ACTIVE</option>
+                        <option value="COMPLETED">COMPLETED</option>
+                        <option value="CANCELLED">CANCELLED</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-0.5">Outcome Notes</label>
+                      <input
+                        type="text"
+                        value={tpOutcomeNotes}
+                        onChange={(e) => setTpOutcomeNotes(e.target.value)}
+                        placeholder="Clinician notes"
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-white"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-lg text-xs font-mono font-bold transition"
+                  >
+                    Save Persistent Treatment Plan
+                  </button>
+                </form>
+              ) : activeTreatmentPlan ? (
+                <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 space-y-1.5 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-white">Status:</span>
+                    <span className={`font-mono font-bold text-[10px] px-2 py-0.5 rounded ${
+                      activeTreatmentPlan.status === "ACTIVE"
+                        ? "bg-emerald-500/20 text-emerald-400"
+                        : activeTreatmentPlan.status === "COMPLETED"
+                        ? "bg-indigo-500/20 text-indigo-400"
+                        : "bg-rose-500/20 text-rose-400"
+                    }`}>
+                      {activeTreatmentPlan.status}
+                    </span>
+                  </div>
+                  {activeTreatmentPlan.goals?.length > 0 && (
+                    <p><strong className="text-slate-300">Goals:</strong> {activeTreatmentPlan.goals.join(", ")}</p>
+                  )}
+                  {activeTreatmentPlan.recommendations?.length > 0 && (
+                    <p><strong className="text-slate-300">Recommendations:</strong> {activeTreatmentPlan.recommendations.join(", ")}</p>
+                  )}
+                  {activeTreatmentPlan.outcomeNotes && (
+                    <p><strong className="text-slate-300">Outcome Notes:</strong> {activeTreatmentPlan.outcomeNotes}</p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-[11px] text-slate-500 italic">No persistent treatment plan created yet for this patient record.</p>
+              )}
             </div>
 
             <div className="flex justify-between items-center pt-3 border-t border-slate-800">
@@ -716,7 +1004,7 @@ function Patients() {
               </button>
 
               <button
-                onClick={() => setViewingPatient(null)}
+                onClick={() => { setViewingPatient(null); setIsTreatmentFormOpen(false); }}
                 className="px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-xl font-semibold text-xs cursor-pointer"
               >
                 Close

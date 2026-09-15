@@ -8,6 +8,8 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from preprocessing import transform_single_patient, FEATURE_NAMES
+
 script_dir = os.path.dirname(os.path.abspath(__file__))
 models_dir = os.path.join(script_dir, "models")
 model_path = os.path.join(models_dir, "model.pkl")
@@ -28,7 +30,7 @@ except Exception as e:
 app = FastAPI(
     title="HealthForecast AI ML Microservice",
     description="Dedicated predictive intelligence engine for 30-day clinical readmission risk & feature importance explanations.",
-    version="2.4.0"
+    version="3.0.0"
 )
 
 # Configure CORS
@@ -41,44 +43,28 @@ app.add_middleware(
 )
 
 class PatientInput(BaseModel):
-    patientName: str = Field(..., example="Rahul Verma", description="Patient full name")
-    age: float = Field(..., ge=1, le=120, example=61, description="Patient age in years")
-    glucose: float = Field(..., ge=30, le=500, example=185, description="Fasting glucose in mg/dL")
-    bp: str = Field(..., example="140/90", description="Blood pressure string (SBP/DBP)")
-    bmi: float = Field(..., ge=10, le=70, example=28.4, description="Body Mass Index in kg/m²")
-    previousAdmissions: int = Field(0, ge=0, le=50, example=3, description="Admissions in past 12 months")
-
-class RiskSpectrum(BaseModel):
-    high: float
-    moderate: float
-    low: float
-
-class FeatureExplanation(BaseModel):
-    feature: str
-    feature_name: str
-    value: Any
-    importance_weight: float
-    risk_contribution: str
+    patientName: str = Field(..., description="Patient full name")
+    age_range: str = Field(..., description="Age bracket e.g. [60-70)")
+    time_in_hospital: int = Field(..., ge=1, le=14, description="Length of hospital stay in days")
+    num_lab_procedures: int = Field(..., ge=1, le=150, description="Lab procedures count")
+    num_medications: int = Field(..., ge=1, le=100, description="Distinct medications count")
+    number_inpatient: int = Field(..., ge=0, le=50, description="Inpatient stays in past 12 months")
+    number_emergency: int = Field(..., ge=0, le=50, description="Emergency visits in past 12 months")
+    number_diagnoses: int = Field(..., ge=1, le=20, description="Total diagnoses count")
+    max_glu_serum: str = Field(..., description="Max serum glucose result (None, Norm, >200, >300)")
+    A1Cresult: str = Field(..., description="HbA1c test result (None, Norm, >7, >8)")
+    diabetesMed: str = Field(..., description="Prescribed diabetes medication (Yes/No)")
 
 class PredictionResponse(BaseModel):
     success: bool
     data: Dict[str, Any]
-
-def parse_bp(bp_str: str):
-    try:
-        parts = bp_str.split("/")
-        sys = float(parts[0])
-        dia = float(parts[1]) if len(parts) > 1 else 80.0
-        return sys, dia
-    except Exception:
-        return 120.0, 80.0
 
 @app.get("/health")
 def health_check():
     return {
         "status": "healthy",
         "service": "HealthForecast AI ML Engine",
-        "version": model_metadata.get("version", "v2.4.0"),
+        "version": model_metadata.get("version", "v3.0.0"),
         "modelLoaded": model is not None and scaler is not None
     }
 
@@ -99,89 +85,97 @@ def predict_readmission_risk(patient: PatientInput):
             detail="ML Model engine is not loaded"
         )
     
-    bp_sys, bp_dia = parse_bp(patient.bp)
+    patient_dict = patient.model_dump() if hasattr(patient, "model_dump") else patient.dict()
     
-    # Construct feature vector
-    # Order: ["age", "glucose", "bp_systolic", "bp_diastolic", "bmi", "previous_admissions"]
-    raw_features = np.array([[
-        patient.age,
-        patient.glucose,
-        bp_sys,
-        bp_dia,
-        patient.bmi,
-        patient.previousAdmissions
-    ]])
+    # Transform single patient dict using shared preprocessing module
+    raw_vector = transform_single_patient(patient_dict)
     
-    # Scale features
-    scaled_features = scaler.transform(raw_features)
+    # Scale feature vector
+    scaled_features = scaler.transform(raw_vector)
     
-    # Inference probability
+    # Verify binary model classes [0, 1]
+    classes = list(model.classes_)
+    pos_idx = classes.index(1) if 1 in classes else 1
+    neg_idx = 1 - pos_idx
+    
+    # Inference probabilities
     probabilities = model.predict_proba(scaled_features)[0]
-    readmission_prob = float(probabilities[1])
+    readmission_prob = float(probabilities[pos_idx])
+    no_readmission_prob = float(probabilities[neg_idx])
+    
+    readmission_pct = round(readmission_prob * 100, 1)
+    no_readmission_pct = round(no_readmission_prob * 100, 1)
+    
+    # Score derived directly from positive-class readmission probability (0-100)
     score = int(round(readmission_prob * 100))
     
-    # Determine risk level
-    if score >= 70:
+    # Project-defined risk decision bands based on baseline population prevalence (11.39%)
+    # HIGH: >= 40% (nearly 4x baseline prevalence)
+    # MEDIUM: >= 20% (nearly 2x baseline prevalence)
+    # LOW: < 20%
+    if score >= 40:
         level = "HIGH"
-    elif score >= 40:
+    elif score >= 20:
         level = "MEDIUM"
     else:
         level = "LOW"
         
-    confidence = round(float(model_metadata.get("metrics", {}).get("roc_auc", 0.94)) * 100, 1)
+    display_names = {
+        "age_num": "Patient Age Bracket",
+        "time_in_hospital": "Length of Hospital Stay",
+        "num_lab_procedures": "Lab Procedures Count",
+        "num_medications": "Distinct Medications Count",
+        "number_inpatient": "Inpatient Stays (Past 12 Mo)",
+        "number_emergency": "Emergency Visits (Past 12 Mo)",
+        "number_diagnoses": "Total Diagnoses Count",
+        "max_glu_serum": "Max Serum Glucose Result",
+        "A1Cresult": "HbA1c Test Result",
+        "diabetesMed": "Prescribed Diabetes Medication"
+    }
     
-    # Calculate feature importances & SHAP-style risk contributions
-    feature_names = ["age", "glucose", "bp_systolic", "bp_diastolic", "bmi", "previous_admissions"]
-    display_names = [
-        "Patient Age",
-        "Fasting Glucose",
-        "Systolic Blood Pressure",
-        "Diastolic Blood Pressure",
-        "BMI Score",
-        "Previous Admissions (12 Mo)"
+    raw_values = [
+        patient_dict.get("age_range", "[60-70)"),
+        patient.time_in_hospital,
+        patient.num_lab_procedures,
+        patient.num_medications,
+        patient.number_inpatient,
+        patient.number_emergency,
+        patient.number_diagnoses,
+        patient.max_glu_serum,
+        patient.A1Cresult,
+        patient.diabetesMed
     ]
-    raw_values = [patient.age, patient.glucose, bp_sys, bp_dia, patient.bmi, patient.previousAdmissions]
+    
     importances = model.feature_importances_
     
-    # Compute relative risk contribution for each feature
     explanations = []
-    for f_id, f_disp, val, imp in zip(feature_names, display_names, raw_values, importances):
+    for f_id, val, imp in zip(FEATURE_NAMES, raw_values, importances):
         contrib_pct = round(float(imp * 100), 1)
-        if f_id == "glucose" and val > 140:
-            impact = f"Elevated ({val} mg/dL) — Major Risk Driver (+{contrib_pct}%)"
-        elif f_id == "previous_admissions" and val > 1:
-            impact = f"High Recurrence ({val} admissions) — Major Risk Driver (+{contrib_pct}%)"
-        elif f_id == "bp_systolic" and val > 135:
-            impact = f"Hypertensive ({val} mmHg) — Moderate Risk Driver (+{contrib_pct}%)"
-        elif f_id == "bmi" and val > 30:
-            impact = f"High BMI ({val}) — Moderate Risk Driver (+{contrib_pct}%)"
-        else:
-            impact = f"Baseline Level ({val}) — Standard Weight (+{contrib_pct}%)"
-            
+        disp_name = display_names.get(f_id, f_id)
+        impact_text = f"{disp_name}: {val} — Random Forest Feature Importance ({contrib_pct}%)"
         explanations.append({
             "feature": f_id,
-            "feature_name": f_disp,
+            "feature_name": disp_name,
             "value": val,
             "importance_weight": round(float(imp), 4),
-            "risk_contribution": impact
+            "risk_contribution": impact_text
         })
         
-    # Sort explanations by importance weight descending
     explanations.sort(key=lambda x: x["importance_weight"], reverse=True)
     
-    # Clinical Action Recommendations
+    # Project Rule-Based Care Recommendations
     if level == "HIGH":
         recommendations = [
-            "Immediate post-discharge consultation required within 48 hours.",
-            "Schedule continuous glycemic & blood pressure telemetry monitoring.",
-            "Assign dedicated nurse case manager for daily medication adherence.",
-            "Conduct comprehensive lab panel (HbA1c & renal profile) prior to exit."
+            "Immediate post-discharge telehealth consultation required within 48 hours.",
+            "Assign dedicated nurse case manager for medication adherence and follow-up.",
+            "Schedule follow-up outpatient consultation within 7 days.",
+            "Review discharge medication reconciliation and lab panel prior to exit."
         ]
     elif level == "MEDIUM":
         recommendations = [
             "Schedule follow-up outpatient consultation within 7 days.",
-            "Provide specialized dietary and blood pressure management plan.",
-            "Weekly nurse tele-checkup call scheduled."
+            "Provide specialized diabetes self-management and diet guidance.",
+            "Schedule 14-day nurse tele-checkup call."
         ]
     else:
         recommendations = [
@@ -189,10 +183,9 @@ def predict_readmission_risk(patient: PatientInput):
             "Provide routine post-discharge care guidelines."
         ]
         
-    spectrum = {
-        "high": score if level == "HIGH" else int(score * 0.4),
-        "moderate": score if level == "MEDIUM" else max(100 - score - 15, 5),
-        "low": 100 - score if level == "LOW" else 5
+    binary_probabilities = {
+        "readmitted": readmission_pct,
+        "not_readmitted": no_readmission_pct
     }
     
     return {
@@ -201,11 +194,11 @@ def predict_readmission_risk(patient: PatientInput):
             "patientName": patient.patientName,
             "score": score,
             "level": level,
-            "confidence": confidence,
-            "probabilities": spectrum,
+            "confidence": readmission_pct,
+            "probabilities": binary_probabilities,
             "feature_explanations": explanations,
             "recommendations": recommendations,
-            "model_version": model_metadata.get("version", "v2.4.0"),
+            "model_version": model_metadata.get("version", "v3.0.0"),
             "algorithm": model_metadata.get("algorithm", "RandomForestClassifier")
         }
     }

@@ -8,11 +8,8 @@ const predictionHistorySchema = new mongoose.Schema(
       trim: true,
     },
     inputMetrics: {
-      age: Number,
-      glucose: Number,
-      bp: String,
-      bmi: Number,
-      previousAdmissions: Number,
+      type: mongoose.Schema.Types.Mixed,
+      required: true,
     },
     score: {
       type: Number,

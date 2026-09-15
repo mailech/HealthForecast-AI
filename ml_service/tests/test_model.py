@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import app, model, scaler, model_metadata, model_path, scaler_path, version_path
+from preprocessing import parse_age, parse_max_glu_serum, parse_a1c_result, parse_diabetes_med
 
 client = TestClient(app)
 
@@ -21,6 +22,8 @@ def test_model_artifact_loading():
     assert "model_name" in model_metadata
     assert "version" in model_metadata
     assert "algorithm" in model_metadata
+    assert model_metadata["feature_count"] == 10
+    assert list(model.classes_) == [0, 1]
 
 def test_health_check_endpoint():
     """Test /health status endpoint returns 200 OK and healthy operational status."""
@@ -40,18 +43,35 @@ def test_model_info_endpoint():
     assert res["success"] is True
     assert "data" in res
     assert res["data"]["algorithm"] == "RandomForestClassifier"
-    assert "features" in res["data"]
+    assert len(res["data"]["features"]) == 10
     assert "feature_importances" in res["data"]
+
+def test_categorical_and_age_mappings():
+    """Test shared preprocessing transformation helpers."""
+    assert parse_age("[60-70)") == 65
+    assert parse_age("[20-30)") == 25
+    assert parse_max_glu_serum("None") == 0
+    assert parse_max_glu_serum(">200") == 2
+    assert parse_max_glu_serum(">300") == 3
+    assert parse_a1c_result("None") == 0
+    assert parse_a1c_result(">8") == 3
+    assert parse_diabetes_med("Yes") == 1
+    assert parse_diabetes_med("No") == 0
 
 def test_predict_endpoint_valid_input():
     """Test /predict endpoint with valid clinical patient input."""
     payload = {
         "patientName": "Rahul Verma",
-        "age": 61.0,
-        "glucose": 185.0,
-        "bp": "140/90",
-        "bmi": 28.4,
-        "previousAdmissions": 3
+        "age_range": "[60-70)",
+        "time_in_hospital": 4,
+        "num_lab_procedures": 45,
+        "num_medications": 14,
+        "number_inpatient": 2,
+        "number_emergency": 1,
+        "number_diagnoses": 8,
+        "max_glu_serum": ">200",
+        "A1Cresult": ">8",
+        "diabetesMed": "Yes"
     }
     response = client.post("/predict", json=payload)
     assert response.status_code == 200
@@ -62,75 +82,73 @@ def test_predict_endpoint_valid_input():
     assert 0 <= data["score"] <= 100
     assert data["level"] in ["LOW", "MEDIUM", "HIGH"]
     assert 0.0 <= data["confidence"] <= 100.0
-    assert isinstance(data["probabilities"], dict)
-    assert "high" in data["probabilities"]
-    assert "moderate" in data["probabilities"]
-    assert "low" in data["probabilities"]
-    assert len(data["feature_explanations"]) == 6
+    
+    # Binary probabilities assertion
+    probs = data["probabilities"]
+    assert isinstance(probs, dict)
+    assert "high" in probs or "readmitted" in probs
+    
+    # Assert feature explanations use Random Forest Feature Importance terminology (not SHAP)
+    assert len(data["feature_explanations"]) == 10
+    for exp in data["feature_explanations"]:
+        assert "Random Forest Feature Importance" in exp["risk_contribution"]
+        assert "SHAP" not in exp["risk_contribution"]
+        
     assert len(data["recommendations"]) > 0
 
-def test_predict_endpoint_edge_cases():
-    """Test /predict endpoint with low risk and high risk clinical profiles."""
+def test_predict_endpoint_risk_threshold_bands():
+    """Test /predict endpoint risk level decision bands (HIGH >= 40, MEDIUM >= 20, LOW < 20)."""
     # Low risk clinical profile
     low_payload = {
         "patientName": "Sneha Patel",
-        "age": 25.0,
-        "glucose": 85.0,
-        "bp": "115/75",
-        "bmi": 21.5,
-        "previousAdmissions": 0
+        "age_range": "[20-30)",
+        "time_in_hospital": 1,
+        "num_lab_procedures": 15,
+        "num_medications": 4,
+        "number_inpatient": 0,
+        "number_emergency": 0,
+        "number_diagnoses": 3,
+        "max_glu_serum": "None",
+        "A1Cresult": "None",
+        "diabetesMed": "No"
     }
     low_res = client.post("/predict", json=low_payload)
     assert low_res.status_code == 200
     low_data = low_res.json()["data"]
-    assert 0 <= low_data["score"] <= 100
-    assert low_data["level"] in ["LOW", "MEDIUM", "HIGH"]
+    if low_data["score"] >= 40:
+        assert low_data["level"] == "HIGH"
+    elif low_data["score"] >= 20:
+        assert low_data["level"] == "MEDIUM"
+    else:
+        assert low_data["level"] == "LOW"
 
     # High risk clinical profile
     high_payload = {
         "patientName": "Ramesh Kumar",
-        "age": 78.0,
-        "glucose": 280.0,
-        "bp": "170/105",
-        "bmi": 34.2,
-        "previousAdmissions": 6
+        "age_range": "[70-80)",
+        "time_in_hospital": 10,
+        "num_lab_procedures": 85,
+        "num_medications": 28,
+        "number_inpatient": 5,
+        "number_emergency": 3,
+        "number_diagnoses": 12,
+        "max_glu_serum": ">300",
+        "A1Cresult": ">8",
+        "diabetesMed": "Yes"
     }
     high_res = client.post("/predict", json=high_payload)
     assert high_res.status_code == 200
     high_data = high_res.json()["data"]
-    assert 0 <= high_data["score"] <= 100
-    assert high_data["level"] in ["LOW", "MEDIUM", "HIGH"]
+    if high_data["score"] >= 40:
+        assert high_data["level"] == "HIGH"
+    elif high_data["score"] >= 20:
+        assert high_data["level"] == "MEDIUM"
 
 def test_predict_endpoint_input_validation():
-    """Test /predict endpoint input boundary validation for invalid inputs (422 Unprocessable Entity)."""
-    # Negative age
-    res_neg_age = client.post("/predict", json={
-        "patientName": "Invalid Patient",
-        "age": -10,
-        "glucose": 120,
-        "bp": "120/80",
-        "bmi": 24.5,
-        "previousAdmissions": 1
-    })
-    assert res_neg_age.status_code == 422
-
-    # Out of bounds age (> 120)
-    res_high_age = client.post("/predict", json={
-        "patientName": "Invalid Patient",
-        "age": 150,
-        "glucose": 120,
-        "bp": "120/80",
-        "bmi": 24.5,
-        "previousAdmissions": 1
-    })
-    assert res_high_age.status_code == 422
-
-    # Missing required parameter (glucose)
+    """Test /predict endpoint input boundary validation for missing inputs (422 Unprocessable Entity)."""
     res_missing_field = client.post("/predict", json={
         "patientName": "Incomplete Patient",
-        "age": 45,
-        "bp": "120/80",
-        "bmi": 24.5,
-        "previousAdmissions": 1
+        "age_range": "[60-70)",
+        "num_lab_procedures": 45
     })
     assert res_missing_field.status_code == 422

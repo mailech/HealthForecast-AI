@@ -1,29 +1,52 @@
 {
   "model_name": "HealthForecast-RandomForest-Classifier",
-  "version": "v2.4.0",
+  "version": "v3.0.0",
+  "dataset": "Diabetes 130-US Hospitals Dataset",
+  "training_source": "backend/data/diabetic_data.csv",
   "algorithm": "RandomForestClassifier",
   "n_estimators": 120,
+  "max_depth": 10,
+  "feature_count": 10,
   "features": [
-    "age",
-    "glucose",
-    "bp_systolic",
-    "bp_diastolic",
-    "bmi",
-    "previous_admissions"
+    "age_num",
+    "time_in_hospital",
+    "num_lab_procedures",
+    "num_medications",
+    "number_inpatient",
+    "number_emergency",
+    "number_diagnoses",
+    "max_glu_serum",
+    "A1Cresult",
+    "diabetesMed"
   ],
   "feature_importances": {
-    "age": 0.2197,
-    "glucose": 0.2544,
-    "bp_systolic": 0.1554,
-    "bp_diastolic": 0.1096,
-    "bmi": 0.1126,
-    "previous_admissions": 0.1482
+    "age_num": 0.091,
+    "time_in_hospital": 0.0998,
+    "num_lab_procedures": 0.1368,
+    "num_medications": 0.1246,
+    "number_inpatient": 0.3362,
+    "number_emergency": 0.0628,
+    "number_diagnoses": 0.0769,
+    "max_glu_serum": 0.019,
+    "A1Cresult": 0.0301,
+    "diabetesMed": 0.0229
   },
   "metrics": {
-    "accuracy": 0.8033,
-    "roc_auc": 0.7536,
-    "precision": 0.5052,
-    "recall": 0.4118
+    "accuracy": 0.6801,
+    "precision": 0.172,
+    "recall": 0.4741,
+    "f1": 0.2524,
+    "roc_auc": 0.6348,
+    "confusion_matrix": [
+      [
+        12439,
+        5167
+      ],
+      [
+        1190,
+        1073
+      ]
+    ]
   },
   "artifact_files": [
     "model.pkl",

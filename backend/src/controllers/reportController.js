@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const PDFDocument = require("pdfkit");
+const ExcelJS = require("exceljs");
 const Patient = require("../models/Patient");
 const { logAuditAction } = require("../controllers/auditController");
 
@@ -98,7 +99,7 @@ const downloadReport = async (req, res, next) => {
       const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
       res.status(200).send("\uFEFF" + csvContent);
     } else {
-      // 3. Excel / XLSX Output
+      // 3. Genuine OpenXML Excel / XLSX Output
       res.setHeader(
         "Content-Type",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -108,20 +109,47 @@ const downloadReport = async (req, res, next) => {
         `attachment; filename="${reportName}.xlsx"`
       );
 
-      const headers = ["Patient ID", "Full Name", "Age", "Condition", "Risk Level", "Status", "Blood Pressure", "Glucose (mg/dL)"];
-      const rows = patients.map((p) => [
-        p.id,
-        `"${p.name}"`,
-        p.age,
-        `"${p.disease}"`,
-        p.risk,
-        p.status,
-        `"${p.bp}"`,
-        p.glucose,
-      ]);
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = "HealthForecast AI Platform";
+      workbook.created = new Date();
 
-      const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-      res.status(200).send(Buffer.from("\uFEFF" + csvContent, "utf-8"));
+      const worksheet = workbook.addWorksheet("Clinical Outcome Summary");
+
+      worksheet.columns = [
+        { header: "Patient ID", key: "id", width: 25 },
+        { header: "Full Name", key: "name", width: 22 },
+        { header: "Age", key: "age", width: 10 },
+        { header: "Primary Condition", key: "disease", width: 28 },
+        { header: "Risk Level", key: "risk", width: 15 },
+        { header: "Status", key: "status", width: 15 },
+        { header: "Blood Pressure", key: "bp", width: 18 },
+        { header: "Glucose (mg/dL)", key: "glucose", width: 18 },
+      ];
+
+      // Format Header Row
+      const headerRow = worksheet.getRow(1);
+      headerRow.font = { bold: true, color: { argb: "FFFFFF" } };
+      headerRow.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "1E3A8A" },
+      };
+
+      patients.forEach((p) => {
+        worksheet.addRow({
+          id: p.id,
+          name: p.name,
+          age: p.age,
+          disease: p.disease,
+          risk: p.risk,
+          status: p.status,
+          bp: p.bp,
+          glucose: p.glucose,
+        });
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      res.status(200).send(Buffer.from(buffer));
     }
 
     logAuditAction({

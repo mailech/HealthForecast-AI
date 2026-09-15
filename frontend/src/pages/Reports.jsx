@@ -84,8 +84,14 @@ function Reports() {
     try {
       toast.info(`Preparing ${fileName} download...`);
 
+      const token = localStorage.getItem("token");
       const response = await fetch(
-        `${API_BASE_URL}/api/reports/${reportId}/download?format=${formatType}`
+        `${API_BASE_URL}/api/reports/${reportId}/download?format=${formatType}`,
+        {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        }
       );
 
       if (!response.ok) {

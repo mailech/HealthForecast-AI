@@ -7,15 +7,40 @@ const {
   updatePatient,
   deletePatient,
   downloadCarePlan,
+  assignDoctor,
 } = require("../controllers/patientController");
+const { protect } = require("../middleware/authMiddleware");
+const { authorizeRoles } = require("../middleware/rbacMiddleware");
 
-router.route("/").get(getPatients).post(createPatient);
-router.get("/:id/download-pdf", downloadCarePlan);
-router.get("/:id/care-plan/download", downloadCarePlan);
+router
+  .route("/")
+  .get(protect, authorizeRoles("SYS_ADMIN", "HOSPITAL_ADMIN", "DOCTOR", "RESEARCHER"), getPatients)
+  .post(protect, authorizeRoles("SYS_ADMIN", "HOSPITAL_ADMIN", "DOCTOR"), createPatient);
+
+router.put(
+  "/:id/assign-doctor",
+  protect,
+  authorizeRoles("SYS_ADMIN", "HOSPITAL_ADMIN"),
+  assignDoctor
+);
+
+router.get(
+  "/:id/download-pdf",
+  protect,
+  authorizeRoles("SYS_ADMIN", "HOSPITAL_ADMIN", "DOCTOR", "RESEARCHER"),
+  downloadCarePlan
+);
+router.get(
+  "/:id/care-plan/download",
+  protect,
+  authorizeRoles("SYS_ADMIN", "HOSPITAL_ADMIN", "DOCTOR", "RESEARCHER"),
+  downloadCarePlan
+);
+
 router
   .route("/:id")
-  .get(getPatientById)
-  .put(updatePatient)
-  .delete(deletePatient);
+  .get(protect, authorizeRoles("SYS_ADMIN", "HOSPITAL_ADMIN", "DOCTOR", "RESEARCHER"), getPatientById)
+  .put(protect, authorizeRoles("SYS_ADMIN", "HOSPITAL_ADMIN", "DOCTOR"), updatePatient)
+  .delete(protect, authorizeRoles("SYS_ADMIN", "HOSPITAL_ADMIN", "DOCTOR"), deletePatient);
 
 module.exports = router;

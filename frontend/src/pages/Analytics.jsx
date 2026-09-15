@@ -56,7 +56,12 @@ function Analytics() {
   const fetchAnalytics = async (selectedTf) => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/analytics?timeframe=${selectedTf}`);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/api/analytics?timeframe=${selectedTf}`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
       if (res.ok) {
         const resJson = await res.json();
         if (resJson.data) {
@@ -75,42 +80,46 @@ function Analytics() {
   }, [timeframe]);
 
   // Medication Effectiveness Data
+  const medicationComplianceDisplay = analyticsData?.medicationCompliance !== null && analyticsData?.medicationCompliance !== undefined
+    ? `${analyticsData.medicationCompliance}%`
+    : "N/A (Schema Unmonitored)";
+
   const medicationData = [
-    { name: "ACE Inhibitors (Enalapril)", condition: "Hypertension & Heart Disease", efficacy: "88%", readmissionDrop: "-18%", compliance: `${analyticsData?.medicationCompliance || 94}%` },
-    { name: "Insulin Therapy (Glargine)", condition: "Type-2 Diabetes", efficacy: "82%", readmissionDrop: "-15%", compliance: `${Math.max(70, (analyticsData?.medicationCompliance || 92) - 5)}%` },
-    { name: "Beta-Blockers (Metoprolol)", condition: "Cardiology & Post-MI", efficacy: "85%", readmissionDrop: "-12%", compliance: `${Math.max(75, (analyticsData?.medicationCompliance || 92) - 3)}%` },
-    { name: "Metformin", condition: "Early Diabetes Management", efficacy: "79%", readmissionDrop: "-10%", compliance: `${Math.max(68, (analyticsData?.medicationCompliance || 92) - 7)}%` },
+    { name: "ACE Inhibitors (Enalapril)", condition: "Hypertension & Heart Disease", efficacy: "88%", readmissionDrop: "-18%", compliance: medicationComplianceDisplay },
+    { name: "Insulin Therapy (Glargine)", condition: "Type-2 Diabetes", efficacy: "82%", readmissionDrop: "-15%", compliance: medicationComplianceDisplay },
+    { name: "Beta-Blockers (Metoprolol)", condition: "Cardiology & Post-MI", efficacy: "85%", readmissionDrop: "-12%", compliance: medicationComplianceDisplay },
+    { name: "Metformin", condition: "Early Diabetes Management", efficacy: "79%", readmissionDrop: "-10%", compliance: medicationComplianceDisplay },
   ];
 
   // Dynamic Clinical Scorecards
   const kpiScorecards = [
     {
       title: "Average Days in Care",
-      value: `${analyticsData?.avgDaysInCare || 4.2} Days`,
-      change: "-0.8 Days",
+      value: `${analyticsData?.avgDaysInCare || 0} Days`,
+      change: "Persisted Mongo",
       positive: true,
-      note: `Aggregated across ${analyticsData?.totalPatients || 290} patients (${timeframe.toUpperCase()})`,
+      note: `Aggregated across ${analyticsData?.totalPatients || 0} patients (${timeframe.toUpperCase()})`,
     },
     {
       title: "Medication Compliance Rate",
-      value: `${analyticsData?.medicationCompliance || 92.4}%`,
-      change: "+5.1%",
+      value: analyticsData?.medicationCompliance !== null && analyticsData?.medicationCompliance !== undefined ? `${analyticsData.medicationCompliance}%` : "N/A",
+      change: "Schema Limit",
       positive: true,
-      note: "Monitored via live telemetry sync",
+      note: "Field not tracked in database schema",
     },
     {
       title: "High-Risk Patient Count",
-      value: `${analyticsData?.highRiskCount || 42}`,
-      change: `Low: ${analyticsData?.riskDistribution?.Low || 120}`,
+      value: `${analyticsData?.highRiskCount || 0}`,
+      change: `Low: ${analyticsData?.riskDistribution?.Low || 0}`,
       positive: false,
-      note: `Medium Risk: ${analyticsData?.riskDistribution?.Medium || 128}`,
+      note: `Medium Risk: ${analyticsData?.riskDistribution?.Medium || 0}`,
     },
     {
       title: "30-Day Readmission Rate",
-      value: `${analyticsData?.readmissionRate || 12.0}%`,
-      change: "-4.4%",
+      value: `${analyticsData?.readmissionRate || 0}%`,
+      change: "Historical",
       positive: true,
-      note: `Baseline 16.4% dropped in ${timeframe.toUpperCase()}`,
+      note: `Based on patient previous admissions count`,
     },
   ];
 
@@ -275,26 +284,17 @@ function Analytics() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* CHF Cohort Card */}
           <div className="bg-rose-950/20 p-5 rounded-2xl border border-rose-500/30 border-t border-white/10 space-y-3">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center font-semibold text-slate-300">
               <span className="text-xs font-semibold text-white flex items-center gap-1.5">
                 <Heart size={16} className="text-rose-400" /> Congestive Heart Failure (CHF)
               </span>
               <span className="text-xs font-mono font-bold text-rose-400 bg-rose-500/20 px-2 py-0.5 rounded-md border border-rose-500/30">
-                {analyticsData?.summary?.chf30DayReadmissionRisk || "31.4% Avg Risk"}
+                {analyticsData?.summary?.chf30DayReadmissionRisk || "0 Average Risk Index"}
               </span>
             </div>
             <p className="text-[11px] text-slate-400">
-              Gaussian distribution: mean 31.4% risk, stdDev 4.2%. High winter seasonal peak.
+              Project-defined average risk index aggregated from persisted patient encounter records.
             </p>
-            <div className="space-y-1.5 text-[11px] pt-1">
-              <div className="flex justify-between font-semibold text-slate-300">
-                <span>Peak Risk Level</span>
-                <span className="text-rose-400 font-mono font-bold">34.2%</span>
-              </div>
-              <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                <div className="bg-rose-500 h-full rounded-full w-[82%] shadow-[0_0_8px_rgba(244,63,94,0.6)]"></div>
-              </div>
-            </div>
           </div>
 
           {/* COPD Cohort Card */}
@@ -304,21 +304,12 @@ function Analytics() {
                 <HeartPulse size={16} className="text-amber-400" /> COPD & Respiratory
               </span>
               <span className="text-xs font-mono font-bold text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded-md border border-amber-500/30">
-                {analyticsData?.summary?.copd30DayReadmissionRisk || "27.8% Avg Risk"}
+                {analyticsData?.summary?.copd30DayReadmissionRisk || "0 Average Risk Index"}
               </span>
             </div>
             <p className="text-[11px] text-slate-400">
-              Gaussian distribution: mean 27.8% risk, stdDev 3.8%. Air quality / exertion shift correlation.
+              Project-defined average risk index aggregated from persisted patient encounter records.
             </p>
-            <div className="space-y-1.5 text-[11px] pt-1">
-              <div className="flex justify-between font-semibold text-slate-300">
-                <span>Peak Risk Level</span>
-                <span className="text-amber-400 font-mono font-bold">29.8%</span>
-              </div>
-              <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                <div className="bg-amber-500 h-full rounded-full w-[72%] shadow-[0_0_8px_rgba(251,191,36,0.6)]"></div>
-              </div>
-            </div>
           </div>
 
           {/* Diabetes Cohort Card */}
@@ -328,21 +319,12 @@ function Analytics() {
                 <Stethoscope size={16} className="text-emerald-400" /> Type-2 Diabetes Mellitus
               </span>
               <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded-md border border-emerald-500/30">
-                {analyticsData?.summary?.diabetes30DayReadmissionRisk || "21.5% Avg Risk"}
+                {analyticsData?.summary?.diabetes30DayReadmissionRisk || "0 Average Risk Index"}
               </span>
             </div>
             <p className="text-[11px] text-slate-400">
-              Gaussian distribution: mean 21.5% risk, stdDev 3.1%. Responsive to continuous glucose tracking.
+              Project-defined average risk index aggregated from persisted patient encounter records.
             </p>
-            <div className="space-y-1.5 text-[11px] pt-1">
-              <div className="flex justify-between font-semibold text-slate-300">
-                <span>Peak Risk Level</span>
-                <span className="text-emerald-400 font-mono font-bold">23.4%</span>
-              </div>
-              <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                <div className="bg-emerald-400 h-full rounded-full w-[58%] shadow-[0_0_8px_rgba(52,211,153,0.6)]"></div>
-              </div>
-            </div>
           </div>
         </div>
       </SpotlightCard>
@@ -353,40 +335,24 @@ function Analytics() {
         {/* Recovery Progress Summary */}
         <SpotlightCard className="lg:col-span-8 p-6">
           <h2 className="text-base font-semibold tracking-tight text-white mb-1 flex items-center gap-2">
-            <TrendingDown className="text-emerald-400" size={18} /> 30-Day Recovery Trajectory & Readmission Drop
+            <TrendingDown className="text-emerald-400" size={18} /> Model Risk Index & Readmission Prediction Benchmark
           </h2>
           <p className="text-xs text-slate-400 mb-6">
-            Early interventions guided by AI risk profiling have lowered 30-day readmissions from 16.4% to 12.0%.
+            Aggregated predictions and risk distributions calculated deterministically from database records.
           </p>
 
           <div className="space-y-4 text-xs">
             <div>
               <div className="flex justify-between font-semibold mb-1">
-                <span className="text-slate-300">Baseline Readmission Rate (Without AI)</span>
-                <span className="text-white font-mono font-bold">16.4%</span>
-              </div>
-              <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
-                <div className="bg-slate-600 h-full w-[65%]"></div>
+                <span className="text-slate-300">Model Predicted Readmissions (Score &gt;= 20)</span>
+                <span className="text-white font-mono font-bold">{analyticsData?.predictionStats?.readmissionPredictions || 0} Predictions</span>
               </div>
             </div>
 
             <div>
               <div className="flex justify-between font-semibold mb-1">
-                <span className="text-slate-300">Current AI-Guided Readmission Rate</span>
-                <span className="text-emerald-400 font-mono font-bold">12.0% (-4.4% Improvement)</span>
-              </div>
-              <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
-                <div className="bg-emerald-400 h-full w-[45%] shadow-[0_0_10px_rgba(52,211,153,0.6)]"></div>
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between font-semibold mb-1">
-                <span className="text-slate-300">Hospital Target Reduction Threshold</span>
-                <span className="text-teal-300 font-mono font-bold">10.0% Goal</span>
-              </div>
-              <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
-                <div className="bg-teal-400 h-full w-[38%] shadow-[0_0_10px_rgba(45,212,191,0.6)]"></div>
+                <span className="text-slate-300">Total Encounters Profiled</span>
+                <span className="text-emerald-400 font-mono font-bold">{analyticsData?.predictionStats?.totalPredictions || 0} Total</span>
               </div>
             </div>
           </div>
@@ -402,10 +368,10 @@ function Analytics() {
               Clinical Intelligence
             </span>
             <h3 className="text-lg font-semibold tracking-tight mb-3 text-white">
-              AI Treatment Insights
+              AI Risk Insights
             </h3>
             <p className="text-xs text-slate-300 leading-relaxed font-light mb-4">
-              "Post-discharge medication tracking improved compliance rates by 5.1%, directly contributing to the 45% reduction in 30-day emergency readmissions among high-risk diabetic cohorts."
+              "Risk scores elevation is strongly associated with previous inpatient stays and frequent emergency visits in diabetic encounter histories."
             </p>
           </div>
 
