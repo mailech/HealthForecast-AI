@@ -23,10 +23,7 @@ from ml.cdss import get_cdss_engine
 router = APIRouter()
 
 ALLOWED_ROLES = [
-    "Doctor",
-    "Hospital Administrator",
-    "Healthcare Researcher",
-    "System Administrator"
+    "Doctor"
 ]
 
 def map_db_encounter_to_dict(encounter: Encounter, patient: Patient) -> Dict[str, Any]:

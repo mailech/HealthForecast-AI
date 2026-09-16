@@ -11,7 +11,9 @@ import {
   TrendingUp,
   ShieldCheck,
   Building2,
-  BrainCircuit
+  BrainCircuit,
+  Heart,
+  Activity
 } from 'lucide-react';
 
 export const Sidebar = () => {
@@ -19,7 +21,7 @@ export const Sidebar = () => {
   const roleName = user?.role?.name;
 
   const navItems = [
-    // Clinical Care Views
+    // Clinical Care Views (Doctor Only)
     {
       title: "Doctor Dashboard",
       path: "/doctor/dashboard",
@@ -27,32 +29,116 @@ export const Sidebar = () => {
       roles: ["Doctor"]
     },
     {
-      title: "Risk Forecast (CDSS)",
-      path: "/doctor/predict",
-      icon: BrainCircuit,
-      roles: ["Doctor", "Hospital Administrator", "Healthcare Researcher", "System Administrator"]
-    },
-    {
       title: "Patient Registry",
       path: "/doctor/patients",
       icon: Users,
-      roles: ["Doctor", "Hospital Administrator", "Healthcare Researcher"]
+      roles: ["Doctor"]
+    },
+    {
+      title: "Risk Prediction / CDSS",
+      path: "/doctor/predict",
+      icon: BrainCircuit,
+      roles: ["Doctor"]
+    },
+    {
+      title: "Treatment Effectiveness",
+      path: "/doctor/treatment-effectiveness",
+      icon: FlaskConical,
+      roles: ["Doctor"]
+    },
+    {
+      title: "Patient Outcomes",
+      path: "/doctor/patient-outcomes",
+      icon: Heart,
+      roles: ["Doctor"]
+    },
+    {
+      title: "Healthcare Analytics",
+      path: "/doctor/healthcare-analytics",
+      icon: BarChart3,
+      roles: ["Doctor"]
     },
 
-    // Hospital Performance Analytics
+    // Executive & Hospital Performance Views (Hospital Administrator)
     {
-      title: "Hospital Performance",
+      title: "Hospital Dashboard",
       path: "/admin/dashboard",
       icon: Building2,
-      roles: ["Hospital Administrator", "Doctor", "Healthcare Researcher", "System Administrator"]
+      roles: ["Hospital Administrator"]
+    },
+    {
+      title: "Hospital Performance",
+      path: "/admin/hospital-performance",
+      icon: BarChart3,
+      roles: ["Hospital Administrator"]
+    },
+    {
+      title: "Patient Outcomes",
+      path: "/admin/patient-outcomes",
+      icon: Heart,
+      roles: ["Hospital Administrator"]
+    },
+    {
+      title: "Treatment Effectiveness",
+      path: "/admin/treatment-effectiveness",
+      icon: FlaskConical,
+      roles: ["Hospital Administrator"]
+    },
+    {
+      title: "Population Health",
+      path: "/admin/population-health",
+      icon: Users,
+      roles: ["Hospital Administrator"]
+    },
+    {
+      title: "Reports & Analytics",
+      path: "/admin/reports",
+      icon: ShieldCheck,
+      roles: ["Hospital Administrator"]
     },
 
-    // Treatment & Outcome Analytics
+    // Healthcare Researcher Navigation
     {
-      title: "Treatment Analytics",
+      title: "Research Dashboard",
       path: "/researcher/dashboard",
       icon: FlaskConical,
-      roles: ["Healthcare Researcher", "Doctor", "Hospital Administrator", "System Administrator"]
+      roles: ["Healthcare Researcher"]
+    },
+    {
+      title: "Anonymized Patient Data",
+      path: "/researcher/patients",
+      icon: Users,
+      roles: ["Healthcare Researcher"]
+    },
+    {
+      title: "Treatment Analytics",
+      path: "/researcher/treatment",
+      icon: FlaskConical,
+      roles: ["Healthcare Researcher"]
+    },
+    {
+      title: "Readmission Trends",
+      path: "/researcher/readmission-trends",
+      icon: TrendingUp,
+      roles: ["Healthcare Researcher"]
+    },
+    {
+      title: "Population Health",
+      path: "/researcher/population-health",
+      icon: Building2,
+      roles: ["Healthcare Researcher"]
+    },
+    {
+      title: "Research Dataset",
+      path: "/researcher/research-dataset",
+      icon: Database,
+      roles: ["Healthcare Researcher"]
+    },
+    {
+      title: "Analytical Reports",
+      path: "/researcher/reports",
+      icon: ShieldCheck,
+      roles: ["Healthcare Researcher"]
     },
 
     // System Administration
@@ -63,15 +149,27 @@ export const Sidebar = () => {
       roles: ["System Administrator"]
     },
     {
-      title: "Dataset Ingestion",
+      title: "Dataset Management",
       path: "/sysadmin/dataset",
       icon: Database,
       roles: ["System Administrator"]
     },
     {
-      title: "Audit Trail Logs",
+      title: "Audit Logs",
       path: "/sysadmin/audit",
       icon: ShieldCheck,
+      roles: ["System Administrator"]
+    },
+    {
+      title: "System Status & Settings",
+      path: "/sysadmin/status",
+      icon: TrendingUp,
+      roles: ["System Administrator"]
+    },
+    {
+      title: "AI Model Management",
+      path: "/sysadmin/model",
+      icon: BrainCircuit,
       roles: ["System Administrator"]
     }
   ];

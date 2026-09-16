@@ -16,7 +16,7 @@ async def get_encounters(
     patient_id: Optional[int] = Query(None),
     medical_specialty: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(require_roles(["Doctor", "Hospital Administrator", "Healthcare Researcher", "System Administrator"]))
+    current_user = Depends(require_roles(["Doctor", "System Administrator"]))
 ):
     encounters, total = await list_encounters(
         db, skip=skip, limit=limit, patient_id=patient_id, medical_specialty=medical_specialty
@@ -62,7 +62,7 @@ async def get_encounters(
 async def get_encounter_detail(
     encounter_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(require_roles(["Doctor", "Hospital Administrator", "Healthcare Researcher", "System Administrator"]))
+    current_user = Depends(require_roles(["Doctor", "System Administrator"]))
 ):
     encounter = await get_encounter_by_id(db, encounter_id)
     if not encounter:

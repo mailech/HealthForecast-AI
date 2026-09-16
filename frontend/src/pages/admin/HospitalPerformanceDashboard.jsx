@@ -137,9 +137,9 @@ export const HospitalPerformanceDashboard = () => {
   const activeUtilizationCohorts = filterUtilizationCohorts();
 
   // Dynamic cohort metrics for observational summary
-  const highUtilCohort = utilizationTrends?.cohort_outcomes?.find(c => c.cohort_name.includes('3+ Visits'));
-  const lowUtilCohort = utilizationTrends?.cohort_outcomes?.find(c => c.cohort_name.includes('0 Visits'));
-  const circCohort = contextOutcomes?.cohort_outcomes?.find(c => c.cohort_name.includes('Circulatory'));
+  const highUtilCohort = utilizationTrends?.cohort_outcomes?.find(c => c.cohort_name === 'Prior Inpatient: 3+ Visits');
+  const lowUtilCohort = utilizationTrends?.cohort_outcomes?.find(c => c.cohort_name === 'Prior Inpatient: 0 Visits');
+  const circCohort = contextOutcomes?.cohort_outcomes?.find(c => c.cohort_name === 'Primary Diagnosis: Circulatory');
 
   return (
     <div className="space-y-8 pb-12">
@@ -419,7 +419,7 @@ export const HospitalPerformanceDashboard = () => {
           <Sparkles className="h-4 w-4 text-sky-400 shrink-0" />
           <div>
             <span className="font-semibold text-white">Observational Utilization Pattern: </span>
-            Higher prior hospital utilization is strongly associated with higher observed early readmission rates. Patients with 3+ prior inpatient visits exhibit an observed {highUtilCohort?.early_readmit_rate ?? "elevated"}% early readmission rate ({highUtilCohort?.relative_risk_vs_baseline ?? 1.81}x baseline).
+            Higher prior hospital utilization is strongly associated with higher observed early readmission rates. Patients with 3+ prior inpatient visits exhibit an observed {highUtilCohort?.early_readmit_rate}% early readmission rate ({highUtilCohort?.relative_risk_vs_baseline}x baseline).
           </div>
         </div>
       </div>

@@ -24,6 +24,15 @@ ALLOWED_ROLES = [
     "System Administrator"
 ]
 
+@router.get("/patient-outcomes", response_model=HospitalPerformanceResponse)
+async def get_patient_outcomes(
+    current_user: User = Depends(require_roles(ALLOWED_ROLES))
+):
+    """
+    Retrieve aggregate patient outcome metrics and length-of-stay distribution indicators.
+    """
+    return HospitalPerformanceService.get_overall_performance()
+
 @router.get("/treatment-summary", response_model=TreatmentSummaryResponse)
 async def get_treatment_summary(
     current_user: User = Depends(require_roles(ALLOWED_ROLES))

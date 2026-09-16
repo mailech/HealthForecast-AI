@@ -19,7 +19,13 @@ async def setup_database():
 async def test_system_status():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        response = await ac.get("/api/v1/system/status")
+        login_res = await ac.post(
+            "/api/v1/auth/login",
+            json={"email": "admin@hospital.org", "password": "Admin@123"}
+        )
+        token = login_res.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        response = await ac.get("/api/v1/system/status", headers=headers)
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "online"

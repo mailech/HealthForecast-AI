@@ -18,7 +18,7 @@ async def get_patients(
     limit: int = Query(50, ge=1, le=100),
     search: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(require_roles(["Doctor", "Hospital Administrator", "Healthcare Researcher", "System Administrator"]))
+    current_user = Depends(require_roles(["Doctor", "System Administrator"]))
 ):
     patients, total = await list_patients(db, skip=skip, limit=limit, search=search)
     patient_reads = []
@@ -46,7 +46,7 @@ async def get_patients(
 async def get_patient_detail(
     patient_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(require_roles(["Doctor", "Hospital Administrator", "Healthcare Researcher", "System Administrator"]))
+    current_user = Depends(require_roles(["Doctor", "System Administrator"]))
 ):
     patient = await get_patient_by_id(db, patient_id)
     if not patient:

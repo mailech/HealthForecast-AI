@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, users, patients, encounters, system, predictions, analytics
+from app.api.v1.endpoints import auth, users, patients, encounters, system, predictions, analytics, researcher
 
 api_router = APIRouter()
 
@@ -10,5 +10,6 @@ api_router.include_router(encounters.router, prefix="/encounters", tags=["Clinic
 api_router.include_router(predictions.router, prefix="/predictions", tags=["Risk Predictions & CDSS"])
 api_router.include_router(analytics.router, prefix="/analytics", tags=["Treatment & Outcome Analytics"])
 api_router.include_router(system.router, prefix="/system", tags=["System & Ingestion"])
+api_router.include_router(researcher.router, prefix="/researcher", tags=["Healthcare Researcher"])
 
 
