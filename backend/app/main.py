@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -14,12 +16,34 @@ from .routers import (
     optimization,
 )
 
+from ml.model_service import load_model
+
 
 # =========================
 # CREATE DATABASE TABLES
 # =========================
 
 Base.metadata.create_all(bind=engine)
+
+
+# =========================
+# FASTAPI LIFESPAN
+# =========================
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+
+    print("\n========================================")
+    print(" HealthForecast AI - Starting")
+    print("========================================")
+
+    # Load ML model once during application startup
+    load_model()
+
+    print("Application startup completed.")
+    print("========================================\n")
+
+    yield
 
 
 # =========================
@@ -30,6 +54,7 @@ app = FastAPI(
     title="HealthForecast AI",
     description="AI-powered healthcare risk prediction system",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 

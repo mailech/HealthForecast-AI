@@ -13,6 +13,7 @@ import ClinicalAnalytics from "./pages/ClinicalAnalytics";
 import Research from "./pages/Research";
 import Optimization from "./pages/Optimization";
 
+
 // ============================================================
 // BASIC PROTECTED ROUTE
 // ============================================================
@@ -27,6 +28,7 @@ function ProtectedRoute({ children }) {
 
   return children;
 }
+
 
 // ============================================================
 // ROLE PROTECTED ROUTE
@@ -58,6 +60,7 @@ function RoleRoute({ allowedRoles, children }) {
   return children;
 }
 
+
 // ============================================================
 // APP
 // ============================================================
@@ -66,30 +69,21 @@ function App() {
   return (
     <Routes>
 
-      {/* ======================================================
-          LOGIN
-      ====================================================== */}
+      {/* LOGIN */}
 
       <Route
         path="/login"
         element={<Login />}
       />
 
-
-      {/* ======================================================
-          PATIENT SIGNUP
-      ====================================================== */}
+      {/* SIGNUP */}
 
       <Route
         path="/signup"
         element={<Signup />}
       />
 
-
-      {/* ======================================================
-          DASHBOARD
-          ALL ROLES
-      ====================================================== */}
+      {/* DASHBOARD - ALL LOGGED-IN USERS */}
 
       <Route
         path="/dashboard"
@@ -100,11 +94,7 @@ function App() {
         }
       />
 
-
-      {/* ======================================================
-          PATIENTS
-          ADMIN + DOCTOR + STAFF
-      ====================================================== */}
+      {/* PATIENTS - ADMIN, DOCTOR, STAFF */}
 
       <Route
         path="/patients"
@@ -121,11 +111,7 @@ function App() {
         }
       />
 
-
-      {/* ======================================================
-          PREDICTION
-          ADMIN + DOCTOR
-      ====================================================== */}
+      {/* PREDICTION - ADMIN, DOCTOR */}
 
       <Route
         path="/prediction"
@@ -141,11 +127,7 @@ function App() {
         }
       />
 
-
-      {/* ======================================================
-          ADMISSION HISTORY
-          ALL LOGGED-IN USERS
-      ====================================================== */}
+      {/* ADMISSION HISTORY */}
 
       <Route
         path="/admission-history"
@@ -156,11 +138,7 @@ function App() {
         }
       />
 
-
-      {/* ======================================================
-          CLINICAL ANALYTICS
-          ALL LOGGED-IN USERS
-      ====================================================== */}
+      {/* CLINICAL ANALYTICS */}
 
       <Route
         path="/clinical-analytics"
@@ -171,11 +149,35 @@ function App() {
         }
       />
 
+      {/* RESEARCH - ADMIN, DOCTOR, RESEARCHER */}
 
-      {/* ======================================================
-          USER MANAGEMENT
-          ADMIN ONLY
-      ====================================================== */}
+      <Route
+        path="/research"
+        element={
+          <RoleRoute
+            allowedRoles={[
+              "admin",
+              "doctor",
+              "researcher",
+            ]}
+          >
+            <Research />
+          </RoleRoute>
+        }
+      />
+
+      {/* OPTIMIZATION */}
+
+      <Route
+        path="/optimization"
+        element={
+          <ProtectedRoute>
+            <Optimization />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* USER MANAGEMENT - ADMIN ONLY */}
 
       <Route
         path="/users"
@@ -190,11 +192,7 @@ function App() {
         }
       />
 
-
-      {/* ======================================================
-          MY HEALTH
-          PATIENT ONLY
-      ====================================================== */}
+      {/* MY HEALTH - PATIENT */}
 
       <Route
         path="/my-health"
@@ -209,11 +207,7 @@ function App() {
         }
       />
 
-
-      {/* ======================================================
-          SETTINGS
-          ALL LOGGED-IN USERS
-      ====================================================== */}
+      {/* SETTINGS */}
 
       <Route
         path="/settings"
@@ -224,10 +218,7 @@ function App() {
         }
       />
 
-
-      {/* ======================================================
-          DEFAULT
-      ====================================================== */}
+      {/* DEFAULT */}
 
       <Route
         path="*"
@@ -239,26 +230,7 @@ function App() {
         }
       />
 
-      <Route
-        path="/research"
-        element={
-         <RoleRoute
-           allowedRoles={["admin", "doctor"]}
-         >
-          <Research />
-          </RoleRoute>
-        }
-     />
-
-      <Route path="/optimization" element={
-        <ProtectedRoute>
-          <Optimization />
-        </ProtectedRoute>
-      }/>
-
     </Routes>
-
-
   );
 }
 

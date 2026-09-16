@@ -8,6 +8,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
+    confusion_matrix,
+    recall_score,
     roc_auc_score,
 )
 from sklearn.model_selection import train_test_split
@@ -66,12 +68,6 @@ print(f"Columns: {len(df.columns)}")
 # ============================================================
 # TARGET
 # ============================================================
-
-# Predict early readmission within 30 days.
-#
-# <30  -> 1
-# >30  -> 0
-# NO   -> 0
 
 df = df[
     df["readmitted"].isin(
@@ -249,6 +245,10 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 
+# ============================================================
+# TRAIN
+# ============================================================
+
 print("\nTraining model...")
 
 model.fit(
@@ -258,21 +258,87 @@ model.fit(
 
 
 # ============================================================
-# EVALUATION
+# PREDICTION PROBABILITIES
 # ============================================================
-
-predictions = model.predict(
-    X_test
-)
 
 probabilities = model.predict_proba(
     X_test
 )[:, 1]
 
 
+# ============================================================
+# THRESHOLD COMPARISON
+# ============================================================
+
+print("\n========================================")
+print(" THRESHOLD COMPARISON")
+print("========================================")
+
+for threshold in [0.50, 0.40, 0.30, 0.25, 0.20]:
+
+    threshold_predictions = (
+        probabilities >= threshold
+    ).astype(int)
+
+    threshold_recall = recall_score(
+        y_test,
+        threshold_predictions,
+        zero_division=0
+    )
+
+    (
+        threshold_tn,
+        threshold_fp,
+        threshold_fn,
+        threshold_tp
+    ) = confusion_matrix(
+        y_test,
+        threshold_predictions,
+        labels=[0, 1]
+    ).ravel()
+
+    print(
+        f"\nThreshold: {threshold:.2f}"
+    )
+
+    print(
+        f"Recall: {threshold_recall:.4f}"
+    )
+
+    print(
+        f"False Negatives: {threshold_fn}"
+    )
+
+    print(
+        f"True Positives: {threshold_tp}"
+    )
+
+
+# ============================================================
+# FINAL PREDICTIONS
+# ============================================================
+
+# 0.40 threshold is used for final evaluation
+# because it improves recall and reduces false negatives.
+
+predictions = (
+    probabilities >= 0.40
+).astype(int)
+
+
+# ============================================================
+# EVALUATION
+# ============================================================
+
 accuracy = accuracy_score(
     y_test,
     predictions
+)
+
+recall = recall_score(
+    y_test,
+    predictions,
+    zero_division=0
 )
 
 try:
@@ -284,24 +350,71 @@ except ValueError:
     auc = 0.0
 
 
+# ============================================================
+# CONFUSION MATRIX
+# ============================================================
+
+tn, fp, fn, tp = confusion_matrix(
+    y_test,
+    predictions,
+    labels=[0, 1]
+).ravel()
+
+
+# ============================================================
+# RESULTS
+# ============================================================
+
 print("\n========================================")
-print(" MODEL RESULTS")
+print(" MODEL EVALUATION")
 print("========================================")
 
 print(
-    f"\nAccuracy: {accuracy:.4f}"
+    f"\nAccuracy       : {accuracy:.4f}"
 )
 
 print(
-    f"ROC-AUC : {auc:.4f}"
+    f"Recall         : {recall:.4f}"
 )
 
+print(
+    f"ROC-AUC        : {auc:.4f}"
+)
+
+print(
+    f"False Negatives: {fn}"
+)
+
+print(
+    f"True Positives  : {tp}"
+)
+
+print(
+    f"False Positives : {fp}"
+)
+
+print(
+    f"True Negatives  : {tn}"
+)
+
+
 print("\nClassification Report:")
+
 print(
     classification_report(
         y_test,
         predictions,
         zero_division=0
+    )
+)
+
+
+print("\nConfusion Matrix:")
+
+print(
+    confusion_matrix(
+        y_test,
+        predictions
     )
 )
 
@@ -323,5 +436,6 @@ joblib.dump(
 print("\n========================================")
 print("Model saved successfully!")
 print("========================================")
+
 print(MODEL_PATH)
-print()
+print() 

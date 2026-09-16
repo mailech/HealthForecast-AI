@@ -31,22 +31,12 @@ def register(
     db: Session = Depends(get_db)
 ):
 
-    # Check whether email already exists
-    existing = crud.get_user_by_email(
-        db,
-        user.email
-    )
+    # Public registration is no longer used.
+    # User accounts should be created by an Admin.
 
-    if existing:
-        raise HTTPException(
-            status_code=400,
-            detail="Email already exists"
-        )
-
-    # Public registration ALWAYS creates a Patient
-    return crud.create_user(
-        db,
-        user
+    raise HTTPException(
+        status_code=403,
+        detail="Public registration is disabled. Please contact an administrator."
     )
 
 
@@ -65,7 +55,7 @@ def login(
         user.email
     )
 
-    # Invalid credentials
+    # Check email and password
     if not db_user or not verify_password(
         user.password,
         db_user.password
@@ -140,14 +130,14 @@ def get_all_users(
 
 
 # ============================================================
-# ADMIN — CREATE DOCTOR / STAFF
+# ADMIN — CREATE DOCTOR / STAFF / RESEARCHER
 # ============================================================
 
 @router.post(
     "/admin/create",
     response_model=schemas.UserResponse
 )
-def create_staff_or_doctor(
+def create_managed_user(
     user: schemas.AdminUserCreate,
     current_user=Depends(
         require_roles("admin")
@@ -155,14 +145,20 @@ def create_staff_or_doctor(
     db: Session = Depends(get_db)
 ):
 
-    # Only Doctor and Staff can be created here
-    if user.role not in ["doctor", "staff"]:
+    # Admin can create these three types of accounts
+    allowed_roles = [
+        "doctor",
+        "staff",
+        "researcher"
+    ]
+
+    if user.role not in allowed_roles:
         raise HTTPException(
             status_code=400,
-            detail="Admin can only create Doctor or Staff accounts"
+            detail="Admin can only create Doctor, Staff or Researcher accounts"
         )
 
-    # Check duplicate email
+    # Check whether email already exists
     existing = crud.get_user_by_email(
         db,
         user.email
@@ -174,7 +170,7 @@ def create_staff_or_doctor(
             detail="Email already exists"
         )
 
-    return crud.create_staff_or_doctor(
+    return crud.create_managed_user(
         db,
         user
-    ) 
+    )

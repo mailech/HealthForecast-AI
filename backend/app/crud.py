@@ -40,27 +40,11 @@ def get_users(
     )
 
 
-def create_user(
-    db: Session,
-    user: schemas.UserCreate
-):
-    db_user = models.User(
-        name=user.name,
-        email=user.email,
-        password=hash_password(user.password),
+# ============================================================
+# ADMIN MANAGED USER
+# ============================================================
 
-        # Public signup creates a Patient account
-        role="patient",
-    )
-
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-
-    return db_user
-
-
-def create_staff_or_doctor(
+def create_managed_user(
     db: Session,
     user: schemas.AdminUserCreate
 ):

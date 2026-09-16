@@ -5,25 +5,125 @@ function RecentPatients() {
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Get logged-in user
+  const storedUser = localStorage.getItem("user");
+
+  let user = null;
+
+  try {
+    user = storedUser
+      ? JSON.parse(storedUser)
+      : null;
+  } catch {
+    user = null;
+  }
+
+  const role = user?.role?.toLowerCase();
+
+  // ============================================================
+  // RESEARCHER VIEW
+  // ============================================================
+
+  if (role === "researcher") {
+    return (
+      <div className="bg-white rounded-xl shadow p-6 mt-6">
+
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-900">
+              Research Insights
+            </h2>
+
+            <p className="text-sm text-gray-500 mt-1">
+              Privacy-safe healthcare analytics
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+          <div className="bg-blue-50 rounded-lg p-5">
+            <p className="text-sm text-blue-600 font-medium">
+              Data Access
+            </p>
+
+            <p className="text-lg font-semibold text-slate-900 mt-1">
+              Anonymized
+            </p>
+
+            <p className="text-xs text-gray-500 mt-1">
+              No personally identifiable information
+            </p>
+          </div>
+
+          <div className="bg-slate-50 rounded-lg p-5">
+            <p className="text-sm text-slate-600 font-medium">
+              Research Scope
+            </p>
+
+            <p className="text-lg font-semibold text-slate-900 mt-1">
+              Aggregated Data
+            </p>
+
+            <p className="text-xs text-gray-500 mt-1">
+              Population-level healthcare insights
+            </p>
+          </div>
+
+          <div className="bg-green-50 rounded-lg p-5">
+            <p className="text-sm text-green-600 font-medium">
+              Privacy Status
+            </p>
+
+            <p className="text-lg font-semibold text-slate-900 mt-1">
+              Protected
+            </p>
+
+            <p className="text-xs text-gray-500 mt-1">
+              Patient identity is not exposed
+            </p>
+          </div>
+
+        </div>
+
+      </div>
+    );
+  }
+
+  // ============================================================
+  // FETCH PATIENTS
+  // ============================================================
+
   const fetchRecentPatients = async () => {
     try {
       const response = await api.get("/patients");
 
       // Show the latest 5 patients
       setPatients(response.data.slice(0, 5));
+
     } catch (error) {
       console.error(
         "Failed to fetch recent patients:",
         error
       );
+
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchRecentPatients();
-  }, []);
+    // Researcher must never request patient records.
+    if (role !== "researcher") {
+      fetchRecentPatients();
+    } else {
+      setLoading(false);
+    }
+  }, [role]);
+
+  // ============================================================
+  // NORMAL PATIENT VIEW
+  // ============================================================
 
   return (
     <div className="bg-white rounded-xl shadow p-6 mt-6">
@@ -41,6 +141,7 @@ function RecentPatients() {
       </div>
 
       <div className="overflow-x-auto">
+
         <table className="w-full">
 
           <thead>
@@ -152,6 +253,7 @@ function RecentPatients() {
           </tbody>
 
         </table>
+
       </div>
 
     </div>

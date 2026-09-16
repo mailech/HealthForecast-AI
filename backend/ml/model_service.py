@@ -1,17 +1,9 @@
 import os
 import joblib
-import pandas as pd
 
-
-BASE_DIR = os.path.dirname(
-    os.path.dirname(
-        os.path.abspath(__file__)
-    )
-)
 
 MODEL_PATH = os.path.join(
-    BASE_DIR,
-    "ml",
+    os.path.dirname(os.path.abspath(__file__)),
     "readmission_model.joblib"
 )
 
@@ -19,145 +11,61 @@ MODEL_PATH = os.path.join(
 _model = None
 
 
-def get_model():
+def load_model():
     global _model
 
     if _model is None:
-
         if not os.path.exists(MODEL_PATH):
             raise FileNotFoundError(
-                "Trained ML model not found. "
-                "Run: python ml/train_model.py"
+                f"ML model not found:\n{MODEL_PATH}"
             )
 
-        _model = joblib.load(
-            MODEL_PATH
+        print("Loading readmission model...")
+        _model = joblib.load(MODEL_PATH)
+        print("Readmission model loaded successfully.")
+
+    return _model
+
+
+def get_model():
+    if _model is None:
+        raise RuntimeError(
+            "ML model has not been loaded."
         )
 
     return _model
 
 
-def predict_readmission(
-    age: int,
-    gender: str,
-    disease: str,
-):
+def predict_readmission(data):
     model = get_model()
 
+    probabilities = model.predict_proba(data)
 
-    # ========================================================
-    # MAP APPLICATION PATIENT DATA
-    # TO MODEL FEATURES
-    # ========================================================
+    risk_score = float(probabilities[0][1])
 
-    age_value = str(age)
-
-    if age < 20:
-        age_group = "[0-10)"
-    elif age < 30:
-        age_group = "[20-30)"
-    elif age < 40:
-        age_group = "[30-40)"
-    elif age < 50:
-        age_group = "[40-50)"
-    elif age < 60:
-        age_group = "[50-60)"
-    elif age < 70:
-        age_group = "[60-70)"
-    elif age < 80:
-        age_group = "[70-80)"
-    elif age < 90:
-        age_group = "[80-90)"
-    else:
-        age_group = "[90-100)"
-
-
-    # Default clinical values are used because
-    # the current Patient model stores only basic
-    # demographic/clinical information.
-
-    input_data = pd.DataFrame(
-        [
-            {
-                "race": "Caucasian",
-                "gender": gender,
-                "age": age_group,
-                "admission_type_id": 1,
-                "discharge_disposition_id": 1,
-                "admission_source_id": 7,
-                "time_in_hospital": 4,
-                "num_lab_procedures": 40,
-                "num_procedures": 1,
-                "num_medications": 10,
-                "number_outpatient": 0,
-                "number_emergency": 0,
-                "number_inpatient": 0,
-                "number_diagnoses": 5,
-                "max_glu_serum": "None",
-                "A1Cresult": "None",
-                "insulin": "No",
-                "change": "No",
-                "diabetesMed": "Yes",
-            }
-        ]
-    )
-
-
-    probability = float(
-        model.predict_proba(
-            input_data
-        )[0][1]
-    )
-
-
-    # ========================================================
-    # RISK LEVEL
-    # ========================================================
-
-    if probability >= 0.60:
+    if risk_score >= 0.40:
         risk_level = "High"
-
-    elif probability >= 0.30:
-        risk_level = "Medium"
-
-    else:
-        risk_level = "Low"
-
-
-    # ========================================================
-    # RECOMMENDATION
-    # ========================================================
-
-    if risk_level == "High":
-
         recommendation = (
             "High predicted readmission risk. "
-            "Consider closer clinical follow-up, "
-            "medication review and discharge planning."
+            "Monitor the patient closely and review "
+            "follow-up requirements."
         )
-
-    elif risk_level == "Medium":
-
+    elif risk_score >= 0.20:
+        risk_level = "Medium"
         recommendation = (
             "Moderate predicted readmission risk. "
-            "Monitor the patient closely and "
-            "review follow-up requirements."
+            "Monitor the patient closely and review "
+            "follow-up requirements."
         )
-
     else:
-
+        risk_level = "Low"
         recommendation = (
             "Low predicted readmission risk. "
-            "Continue routine monitoring and "
-            "standard follow-up care."
+            "Continue routine monitoring and follow-up."
         )
 
-
     return {
-        "risk_score": round(
-            probability,
-            4
-        ),
+        "risk_score": round(risk_score, 4),
         "risk_level": risk_level,
         "recommendation": recommendation,
-    }
+    } 

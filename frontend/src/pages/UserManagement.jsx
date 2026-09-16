@@ -190,6 +190,8 @@ function UserManagement() {
               <option value="staff">
                 Staff
               </option>
+
+              <option value="researcher">Researcher</option>
             </select>
           </div>
 

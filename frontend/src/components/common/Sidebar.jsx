@@ -7,12 +7,11 @@ import {
   Settings,
   LogOut,
   Activity,
-  UserCog,
-  HeartPulse,
   ClipboardList,
   BarChart3,
   FlaskConical,
-  Zap
+  Zap,
+  UserCog,
 } from "lucide-react";
 
 function Sidebar() {
@@ -22,8 +21,7 @@ function Sidebar() {
     localStorage.getItem("user") || "{}"
   );
 
-  const role = user.role || "patient";
-
+  const role = user.role || "staff";
 
   // ==========================================================
   // MENU ITEMS
@@ -38,7 +36,7 @@ function Sidebar() {
         "admin",
         "doctor",
         "staff",
-        "patient",
+        "researcher",
       ],
     },
 
@@ -71,7 +69,6 @@ function Sidebar() {
         "admin",
         "doctor",
         "staff",
-        "patient",
       ],
     },
 
@@ -83,7 +80,7 @@ function Sidebar() {
         "admin",
         "doctor",
         "staff",
-        "patient",
+        "researcher",
       ],
     },
 
@@ -97,15 +94,6 @@ function Sidebar() {
     },
 
     {
-      name: "My Health",
-      path: "/my-health",
-      icon: <HeartPulse size={20} />,
-      roles: [
-        "patient",
-      ],
-    },
-
-    {
       name: "Settings",
       path: "/settings",
       icon: <Settings size={20} />,
@@ -113,7 +101,7 @@ function Sidebar() {
         "admin",
         "doctor",
         "staff",
-        "patient",
+        "researcher",
       ],
     },
 
@@ -121,27 +109,32 @@ function Sidebar() {
       name: "Research",
       path: "/research",
       icon: <FlaskConical size={20} />,
-      roles: ["admin", "doctor"],
+      roles: [
+        "admin",
+        "doctor",
+        "researcher",
+      ],
     },
 
     {
       name: "Optimization",
       path: "/optimization",
       icon: <Zap size={20} />,
-      roles: ["admin", "doctor", "staff", "patient"]
+      roles: [
+        "admin",
+        "doctor",
+        "staff",
+      ],
     },
   ];
-
 
   // ==========================================================
   // ROLE FILTER
   // ==========================================================
 
   const menuItems = allMenuItems.filter(
-    (item) =>
-      item.roles.includes(role)
+    (item) => item.roles.includes(role)
   );
-
 
   // ==========================================================
   // LOGOUT
@@ -155,7 +148,6 @@ function Sidebar() {
       replace: true,
     });
   };
-
 
   // ==========================================================
   // UI

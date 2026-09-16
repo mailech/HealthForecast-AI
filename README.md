@@ -1,125 +1,106 @@
-# HealthForecast AI
+# HealthForecast-AI
 
-### Hospital Readmission Prediction & Patient Risk Intelligence
-
-HealthForecast AI is a full-stack healthcare intelligence platform designed to help hospitals analyze patient information, predict readmission risk, monitor clinical outcomes, and support healthcare workflow decisions.
-
-The system combines a React frontend, FastAPI backend, PostgreSQL database, JWT authentication, role-based access control, and a machine-learning readmission prediction model.
-
----
+HealthForecast-AI is an AI-assisted healthcare management system designed to help healthcare professionals manage patient records, analyze healthcare data, and assess patient readmission risk.
 
 ## Features
 
-### Authentication & Role-Based Access
+### Authentication & RBAC
 
-* User registration and login
 * JWT-based authentication
+* Role-based access control
+* Admin, Doctor, Staff, and Researcher roles
 * Protected API endpoints
-* Role-Based Access Control (RBAC)
-* Four user roles:
+* Admin user management
 
-  * Admin
-  * Doctor
-  * Staff
-  * Patient
+### Healthcare Management
 
-### Patient Management
+* Patient management
+* Add, edit, and delete patient records
+* Patient search
+* Admission history
+* Clinical analytics
+* Treatment effectiveness
+* Medication effectiveness
+* Recovery analysis
+* Clinical decision support
+* Notifications and alerts
 
-* Add patient records
-* View patient information
-* Update patient records
-* Delete patients
-* Role-based patient access
-* Patient-specific health view
+### AI & Machine Learning
 
-### AI Readmission Prediction
+* Readmission risk prediction
+* Logistic Regression model
+* Real machine learning prediction service
+* Risk probability visualization
+* Risk classification: Low, Medium, High
+* Model evaluation using Accuracy, Recall, ROC-AUC, and Confusion Matrix
+* Class imbalance handling using balanced class weights
+* Threshold-based risk classification
 
-* Machine-learning based readmission risk prediction
-* Patient risk score generation
-* High / Medium / Low risk classification
-* Prediction history
-* AI-assisted recommendations
-* Clinical Decision Support
+### Research & Analytics
 
-### Healthcare Analytics
-
-* Treatment Effectiveness Analysis
-* Medication Effectiveness Analysis
-* Recovery Analysis
-* Clinical Analytics dashboard
-* Admission History
-* Patient outcome monitoring
-
-### Research & Optimization
-
-* Research summary and healthcare statistics
-* Patient risk analysis
+* Research dashboard
+* Aggregate healthcare statistics
+* High-risk patient analysis
 * Prediction statistics
-* AI-assisted Optimization Workflow
-* Patient prioritization based on risk levels
+* ML model performance metrics
+* Research data export
+* Privacy-protected aggregate data
+* Researcher role access
 
-### Notifications
+## Machine Learning
 
-* High-risk patient notifications
-* New patient admission notifications
+The project uses the **Diabetes 130-US Hospitals** dataset.
 
-### Dashboard
+* Records: 101,766
+* Features: 50
+* Target: Patient Readmission
+* Model: Logistic Regression
+* Class imbalance handled using `class_weight="balanced"`
+* Stratified train/test split
+* Model evaluation:
 
-* Total patients
-* High-risk patients
-* Doctors
-* Registered users
-* Patient risk information
-* Recent patient activity
+  * Accuracy
+  * Recall
+  * ROC-AUC
+  * Confusion Matrix
+  * True Positives
+  * True Negatives
+  * False Positives
+  * False Negatives
 
-### Theme
+The trained model is saved as:
 
-* Light mode
-* Dark mode
-* System theme
-
----
+```text
+backend/ml/readmission_model.joblib
+```
 
 ## Technology Stack
 
 ### Frontend
 
-* React.js
+* React
 * Vite
 * Tailwind CSS
-* Axios
-* React Router
-* Lucide React
 * Recharts
+* Axios
+* Lucide React
 
 ### Backend
 
 * Python
 * FastAPI
 * SQLAlchemy
+* PostgreSQL
 * Pydantic
 * JWT Authentication
 * bcrypt
-
-### Database
-
-* PostgreSQL
 
 ### Machine Learning
 
 * Python
 * Pandas
-* NumPy
-* Scikit-learn
+* scikit-learn
 * Joblib
-
-### Dataset
-
-**Diabetes 130-US Hospitals for Years 1999-2008**
-
-The dataset is used for the hospital readmission prediction model.
-
----
 
 ## Project Structure
 
@@ -129,215 +110,101 @@ HealthForecast-AI/
 ├── backend/
 │   ├── app/
 │   │   ├── routers/
-│   │   │   ├── users.py
-│   │   │   ├── patients.py
-│   │   │   ├── dashboard.py
-│   │   │   ├── prediction.py
-│   │   │   ├── notifications.py
-│   │   │   ├── clinical.py
-│   │   │   ├── research.py
-│   │   │   └── optimization.py
-│   │   │
-│   │   ├── auth.py
 │   │   ├── crud.py
 │   │   ├── database.py
+│   │   ├── main.py
 │   │   ├── models.py
-│   │   ├── schemas.py
-│   │   └── main.py
+│   │   └── schemas.py
 │   │
-│   ├── data/
-│   │   └── diabetic_data.csv
+│   ├── ml/
+│   │   ├── model_service.py
+│   │   ├── train_model.py
+│   │   └── readmission_model.joblib
 │   │
-│   └── ml/
-│       ├── train_model.py
-│       ├── model_service.py
-│       └── readmission_model.joblib
+│   └── data/
+│       └── diabetic_data.csv
 │
-├── frontend/
-│   └── src/
-│       ├── api/
-│       ├── components/
-│       ├── layouts/
-│       └── pages/
-│
-└── README.md
+└── frontend/
+    └── src/
+        ├── components/
+        ├── pages/
+        ├── api/
+        └── App.jsx
 ```
 
----
+## User Roles
 
-## Setup
+| Role       | Access                                                  |
+| ---------- | ------------------------------------------------------- |
+| Admin      | Full system access and user management                  |
+| Doctor     | Patient management, predictions, analytics and research |
+| Staff      | Patient and healthcare management                       |
+| Researcher | Research analytics and aggregate research data          |
 
-### Prerequisites
+## Data Validation & Security
 
-* Python 3
-* Node.js
-* PostgreSQL
-* Git
-* VS Code
+* Request validation using Pydantic
+* Email format validation
+* Age and score range validation
+* JWT authentication
+* Role-based endpoint protection
+* Protected patient and prediction APIs
+* Research API restricted by role
 
----
+## Research Privacy
 
-## Backend
+Research endpoints provide aggregate statistics only.
 
-Open a terminal in the project folder and run:
+Patient names, emails, IDs, and other personally identifiable information are not included in research responses or research exports.
+
+## Running the Project
+
+### Backend
+
+Open a terminal:
 
 ```bash
 cd backend
-```
-
-Create a virtual environment:
-
-```bash
-python -m venv venv
-```
-
-Activate the virtual environment:
-
-```bash
 venv\Scripts\activate
-```
-
-Install the required packages:
-
-```bash
 pip install -r requirements.txt
-```
-
-Start the FastAPI server:
-
-```bash
 uvicorn app.main:app --reload
 ```
 
-The backend will run at:
+Backend runs at:
 
 ```text
 http://127.0.0.1:8000
 ```
 
-API documentation:
+### Frontend
 
-```text
-http://127.0.0.1:8000/docs
-```
-
----
-
-## Frontend
-
-Open a **new terminal** in the project folder and run:
+Open another terminal:
 
 ```bash
 cd frontend
-```
-
-Install the required packages:
-
-```bash
 npm install
-```
-
-Start the React development server:
-
-```bash
 npm run dev
 ```
 
-The frontend will run at:
+Frontend runs at:
 
 ```text
 http://localhost:5173
 ```
 
----
+## Database
 
-## Machine Learning Model
+The application uses PostgreSQL for storing:
 
-To train the readmission prediction model:
+* Users
+* Patient records
+* Admissions
+* Predictions
+* Clinical analytics
+* Treatment records
+* Medication records
+* Recovery records
+* Notifications
 
-```bash
-cd backend
-python ml/train_model.py
-```
-
-The trained model is saved in:
-
-```text
-backend/ml/readmission_model.joblib
-```
-
-The prediction service is implemented in:
-
-```text
-backend/ml/model_service.py
-```
-
----
-
-## API Modules
-
-The backend provides the following API modules:
-
-```text
-/users
-/patients
-/dashboard
-/prediction
-/notifications
-/clinical
-/research
-/optimization
-```
-
-Interactive API documentation:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
----
-
-## Machine Learning Performance
-
-| Metric   | Result |
-| -------- | -----: |
-| Accuracy | 67.15% |
-| ROC-AUC  | 64.62% |
-
-The model provides AI-assisted risk assessment and is intended to support healthcare decision-making.
-
----
-
-## User Roles
-
-| Role    | Access                                               |
-| ------- | ---------------------------------------------------- |
-| Admin   | Full system management                               |
-| Doctor  | Patient management, prediction and clinical analysis |
-| Staff   | Patient viewing and hospital workflow information    |
-| Patient | Own health and clinical information                  |
-
----
-
-## Application Workflow
-
-```text
-Login / Signup
-      ↓
-JWT Authentication
-      ↓
-Role-Based Access Control
-      ↓
-Dashboard
-      ↓
-Patient Management
-      ↓
-AI Readmission Prediction
-      ↓
-Clinical Decision Support
-      ↓
-Treatment / Medication / Recovery Analysis
-      ↓
-Research & Optimization
-```
+Make sure PostgreSQL is running before starting the backend.
  
