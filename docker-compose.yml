@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  # 1. FastAPI Machine Learning Backend Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: healthforecast-backend
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      - PORT=8001
+      - ENVIRONMENT=production
+    volumes:
+      - ./backend/healthforecast.db:/app/healthforecast.db
+    networks:
+      - healthforecast-net
+
+  # 2. React + Vite + Three.js 3D Frontend Service (Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: healthforecast-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - healthforecast-net
+
+networks:
+  healthforecast-net:
+    driver: bridge
