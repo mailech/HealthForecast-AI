@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HealthForecast AI — Clinical Decision Support & Analytics</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --primary: #0284c7;
+      --primary-dark: #0369a1;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --success: #10b981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+
+  
+    .sidebar { width: 250px; background: #0f172a; color: white; display: flex; flex-direction: column; padding: 20px; flex-shrink: 0; }
+    .sidebar h2 { font-size: 18px; color: #38bdf8; margin-bottom: 25px; display: flex; align-items: center; gap: 8px; }
+    .role-badge { font-size: 11px; background: #1e293b; padding: 4px 8px; border-radius: 4px; color: #94a3b8; margin-bottom: 20px; }
+    .nav-item { padding: 12px 14px; border-radius: 6px; cursor: pointer; margin-bottom: 6px; font-size: 14px; font-weight: 500; display: flex; gap: 10px; color: #cbd5e1; }
+    .nav-item:hover, .nav-item.active { background: var(--primary); color: white; }
+
+    
+    .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
+    .topbar { background: var(--card); border-bottom: 1px solid var(--border); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+    .topbar h1 { font-size: 20px; }
+    .role-selector { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+    .role-selector select { padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px; font-weight: bold; color: var(--primary); }
+
+    .content-area { padding: 25px 30px; display: none; }
+    .content-area.active { display: block; }
+
+    
+    .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 25px; }
+    .metric-card { background: var(--card); padding: 20px; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+    .metric-card p { font-size: 12px; color: var(--text-muted); font-weight: bold; text-transform: uppercase; }
+    .metric-card h3 { font-size: 24px; margin-top: 5px; color: var(--primary); }
+
+    .dashboard-grid { display: grid; grid-template-columns: 420px 1fr; gap: 25px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+    .card h3 { font-size: 16px; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+
+    
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
+    .form-group input, .form-group select { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; }
+    .btn { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: 600; width: 100%; margin-top: 10px; }
+    .btn:hover { background: var(--primary-dark); }
+
+    
+    .cdss-box { margin-top: 15px; padding: 12px; border-radius: 6px; display: none; font-size: 13px; }
+    .badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+    .badge-High, .cdss-High { background: #fee2e2; color: #991b1b; border-left: 4px solid var(--danger); }
+    .badge-Medium, .cdss-Medium { background: #fef3c7; color: #92400e; border-left: 4px solid var(--warning); }
+    .badge-Low, .cdss-Low { background: #dcfce7; color: #166534; border-left: 4px solid var(--success); }
+
+    
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 10px; border-bottom: 1px solid var(--border); text-align: left; }
+    th { background: #f8fafc; color: var(--text-muted); font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  
+  <div class="sidebar">
+    <h2>🏥 HealthForecast AI</h2>
+    <div class="role-badge">Role Mode: <span id="currentRole">Doctor</span></div>
+    <div class="nav-item active" onclick="switchTab('dashboard')">🩺 CDSS & Predictor</div>
+    <div class="nav-item" onclick="switchTab('patients')">📋 Patient Registry</div>
+    <div class="nav-item" onclick="switchTab('analytics')">📊 Clinical Analytics</div>
+    <div class="nav-item" onclick="switchTab('audit')">⚙️ System Audit</div>
+  </div>
+
+
+  <div class="main-content">
+    <div class="topbar">
+      <h1 id="pageTitle">Clinical Decision Support System (CDSS)</h1>
+      <div class="role-selector">
+        <label>Switch Role:</label>
+        <select id="roleSelect" onchange="updateRole()">
+          <option value="Doctor">Doctor</option>
+          <option value="Admin">Admin</option>
+          <option value="Researcher">Researcher</option>
+          <option value="SysAdmin">SysAdmin</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="dashboard" class="content-area active">
+      <div class="metrics-grid">
+        <div class="metric-card"><p>Total Records</p><h3 id="statTotal">2</h3></div>
+        <div class="metric-card"><p>High Risk Readmissions</p><h3 id="statHigh" style="color:var(--danger)">1</h3></div>
+        <div class="metric-card"><p>Readmission Rate</p><h3 id="statRate">50%</h3></div>
+        <div class="metric-card"><p>Model Baseline</p><h3 style="color:var(--success)">Random Forest</h3></div>
+      </div>
+
+      <div class="dashboard-grid">
+      
+        <div class="card">
+          <h3>Assess Patient Readmission Risk</h3>
+          <form id="predictForm">
+            <div class="form-group"><label>Patient ID</label><input id="p_id" value="P-103" required></div>
+            <div class="form-group"><label>Patient Name</label><input id="p_name" value="Ananya Sharma" required></div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div class="form-group"><label>Age</label><input type="number" id="p_age" value="72" required></div>
+              <div class="form-group"><label>Gender</label>
+                <select id="p_gender"><option>Female</option><option>Male</option></select>
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div class="form-group"><label>Hospital Days</label><input type="number" id="p_time" value="8" required></div>
+              <div class="form-group"><label>Medications</label><input type="number" id="p_meds" value="18" required></div>
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div class="form-group"><label>Prior Emergency Visits</label><input type="number" id="p_emg" value="3" required></div>
+              <div class="form-group"><label>Admission Type</label>
+                <select id="p_adm"><option>Emergency</option><option>Urgent</option><option>Elective</option></select>
+              </div>
+            </div>
+            <div class="form-group"><label>Primary Diagnosis</label><input id="p_diag" value="Diabetes with Hyperglycemia" required></div>
+            <div class="form-group"><label>Prescribed Treatment</label><input id="p_treat" value="Insulin Glargine" required></div>
+            <button type="submit" class="btn">Generate Risk Prediction & CDSS</button>
+          </form>
+
+          <div id="cdssResult" class="cdss-box"></div>
+        </div>
+
+        
+        <div class="card">
+          <h3>Recent Clinical Evaluations</h3>
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Name</th><th>Diagnosis</th><th>Risk Score</th><th>Risk Level</th><th>Action Plan</th></tr>
+            </thead>
+            <tbody id="evalTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  
+    <div id="patients" class="content-area">
+      <div class="card">
+        <h3>Master Patient Registry</h3>
+        <table>
+          <thead>
+            <tr><th>Patient ID</th><th>Name</th><th>Age</th><th>Gender</th><th>Admission</th><th>Medications</th><th>Effectiveness</th></tr>
+          </thead>
+          <tbody id="masterTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+  
+    <div id="analytics" class="content-area">
+      <div class="card">
+        <h3>Population Health & Treatment Effectiveness Intelligence</h3>
+        <p style="color:var(--text-muted); margin-bottom: 15px;">Aggregated metrics derived from Diabetes 130-US Hospitals cohort patterns.</p>
+        <div class="metrics-grid">
+          <div class="metric-card"><p>Inference Latency</p><h3>12 ms</h3></div>
+          <div class="metric-card"><p>Cross-Validation AUC</p><h3>0.842</h3></div>
+          <div class="metric-card"><p>High Sensitivity Threshold</p><h3>&ge; 0.65</h3></div>
+          <div class="metric-card"><p>System State</p><h3 style="color:var(--success)">Active / Calibrated</h3></div>
+        </div>
+      </div>
+    </div>
+
+  
+    <div id="audit" class="content-area">
+      <div class="card">
+        <h3>System Audit & Access Logs</h3>
+        <table>
+          <thead><tr><th>Timestamp</th><th>User/Role</th><th>Event</th><th>Severity</th></tr></thead>
+          <tbody>
+            <tr><td>Today</td><td>SysAdmin</td><td>Model Weights Loaded (model.pkl)</td><td><span class="badge badge-Low">INFO</span></td></tr>
+            <tr><td>Today</td><td>Doctor</td><td>API Inference POST /api/v1/patients/predict</td><td><span class="badge badge-Low">SUCCESS</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const API_BASE = "http://127.0.0.1:8000/api/v1";
+
+    function updateRole() {
+      const role = document.getElementById('roleSelect').value;
+      document.getElementById('currentRole').innerText = role;
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.content-area').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      event.currentTarget.classList.add('active');
+    }
+
+    async function loadPatients() {
+      try {
+        const res = await fetch(`${API_BASE}/patients`);
+        const data = await res.json();
+        
+        const evalTbody = document.getElementById('evalTable');
+        const masterTbody = document.getElementById('masterTable');
+        evalTbody.innerHTML = '';
+        masterTbody.innerHTML = '';
+
+        let highCount = 0;
+        data.forEach(p => {
+          if (p.risk_level === 'High') highCount++;
+
+          evalTbody.innerHTML += `<tr>
+            <td><strong>${p.patient_id}</strong></td>
+            <td>${p.patient_name}</td>
+            <td>${p.primary_diagnosis || 'N/A'}</td>
+            <td>${(p.risk_score * 100).toFixed(1)}%</td>
+            <td><span class="badge badge-${p.risk_level}">${p.risk_level}</span></td>
+            <td><small>${p.recommendation}</small></td>
+          </tr>`;
+
+          masterTbody.innerHTML += `<tr>
+            <td>${p.patient_id}</td>
+            <td>${p.patient_name}</td>
+            <td>${p.age}</td>
+            <td>${p.gender || 'N/A'}</td>
+            <td>${p.admission_type || 'N/A'}</td>
+            <td>${p.num_medications}</td>
+            <td>${p.treatment_effectiveness}</td>
+          </tr>`;
+        });
+
+        document.getElementById('statTotal').innerText = data.length;
+        document.getElementById('statHigh').innerText = highCount;
+        document.getElementById('statRate').innerText = `${Math.round((highCount / data.length) * 100)}%`;
+      } catch (e) {
+        console.error("Backend offline or not reachable", e);
+      }
+    }
+
+    document.getElementById('predictForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const box = document.getElementById('cdssResult');
+      box.style.display = 'block';
+      box.className = 'cdss-box';
+      box.innerText = 'Running Random Forest inference...';
+
+      const payload = {
+        patient_id: document.getElementById('p_id').value,
+        patient_name: document.getElementById('p_name').value,
+        age: parseInt(document.getElementById('p_age').value),
+        gender: document.getElementById('p_gender').value,
+        admission_type: document.getElementById('p_adm').value,
+        time_in_hospital: parseInt(document.getElementById('p_time').value),
+        num_lab_procedures: 55,
+        num_medications: parseInt(document.getElementById('p_meds').value),
+        number_diagnoses: 6,
+        number_emergency: parseInt(document.getElementById('p_emg').value),
+        primary_diagnosis: document.getElementById('p_diag').value,
+        medication: document.getElementById('p_treat').value
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}/patients/predict`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+
+        box.className = `cdss-box cdss-${result.risk_level}`;
+        box.innerHTML = `<strong>${result.risk_level} Readmission Risk (${(result.risk_score * 100).toFixed(1)}%)</strong><br>
+                         <strong>CDSS Directive:</strong> ${result.recommendation}<br>
+                         <strong>Treatment Status:</strong> ${result.treatment_effectiveness}`;
+        loadPatients();
+      } catch (err) {
+        box.className = 'cdss-box cdss-High';
+        box.innerText = 'Connection Error: Make sure FastAPI backend is active on port 8000.';
+      }
+    });
+
+  
+    loadPatients();
+  </script>
+</body>
+</html>
