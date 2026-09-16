@@ -65,10 +65,10 @@ def register_by_role(user_data: UserRegisterByRole, db: Session = Depends(get_db
         )
     role = db.query(Role).filter(Role.name == user_data.role_name).first()
     if not role:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Role '{user_data.role_name}' not found"
-        )
+        role = Role(name=user_data.role_name, description=f"{user_data.role_name} system role")
+        db.add(role)
+        db.commit()
+        db.refresh(role)
     hashed_password = get_password_hash(user_data.password)
     new_user = User(
         email=user_data.email,

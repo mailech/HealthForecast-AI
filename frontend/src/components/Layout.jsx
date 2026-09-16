@@ -4,45 +4,52 @@ import {
   LayoutDashboard, Users, UserCog, FileText,
   Settings, LogOut, Menu, X, Activity,
   Stethoscope, Building2, FlaskConical, ShieldCheck,
-  BedDouble, ClipboardList, BarChart3, Database
+  BedDouble, ClipboardList, BarChart3, Database,
+  TrendingUp, Pill, Sparkles, Calendar, HeartPulse,
+  PieChart, LineChart, Download, Globe, FileSpreadsheet,
+  Lock, Cpu, UserCheck
 } from 'lucide-react'
 import { useState } from 'react'
 
-// Nav items per role
+// Nav items per role strictly matching requirements
 const NAV_BY_ROLE = {
   'Doctor': [
-    { name: 'Dashboard', href: '/dashboard/doctor', icon: LayoutDashboard },
-    { name: 'Risk Forecast', href: '/risk-prediction', icon: Activity },
-    { name: 'Clinical Insights', href: '/clinical-insights', icon: Stethoscope },
-    { name: 'Model Validation', href: '/model-validation', icon: BarChart3 },
-    { name: 'Patients', href: '/patients', icon: Users },
+    { name: 'Doctor Dashboard', href: '/dashboard/doctor', icon: LayoutDashboard },
+    { name: 'My Patients', href: '/patients', icon: Users },
+    { name: 'Patient Details', href: '/patients/1', icon: UserCheck },
+    { name: 'Risk Predictions', href: '/risk-prediction', icon: Activity },
+    { name: 'Readmission Forecast', href: '/readmission-forecast', icon: TrendingUp },
+    { name: 'Treatment Effectiveness', href: '/treatment-effectiveness', icon: Pill },
+    { name: 'Care Recommendations', href: '/care-recommendations', icon: Sparkles },
+    { name: 'Follow-up Planning', href: '/followup-planning', icon: Calendar },
+    { name: 'Patient Reports', href: '/reports', icon: FileText },
   ],
   'Hospital Administrator': [
-    { name: 'Dashboard', href: '/dashboard/hospital-admin', icon: LayoutDashboard },
-    { name: 'Risk Forecast', href: '/risk-prediction', icon: Activity },
-    { name: 'Clinical Insights', href: '/clinical-insights', icon: Stethoscope },
-    { name: 'Patients', href: '/patients', icon: Users },
-    { name: 'Model Validation', href: '/model-validation', icon: BarChart3 },
+    { name: 'Admin Dashboard', href: '/dashboard/hospital-admin', icon: LayoutDashboard },
+    { name: 'Hospital Analytics', href: '/hospital-analytics', icon: Building2 },
+    { name: 'Readmission Analytics', href: '/readmission-analytics', icon: BarChart3 },
+    { name: 'Patient Outcomes', href: '/patient-outcomes', icon: HeartPulse },
+    { name: 'Department Performance', href: '/department-performance', icon: PieChart },
+    { name: 'Treatment Analytics', href: '/treatment-analytics', icon: LineChart },
     { name: 'Reports', href: '/reports', icon: FileText },
+    { name: 'Export', href: '/export', icon: Download },
   ],
   'Healthcare Researcher': [
-    { name: 'Dashboard', href: '/dashboard/researcher', icon: LayoutDashboard },
-    { name: 'Risk Forecast', href: '/risk-prediction', icon: Activity },
-    { name: 'Clinical Insights', href: '/clinical-insights', icon: Stethoscope },
-    { name: 'Model Validation', href: '/model-validation', icon: BarChart3 },
-    { name: 'Datasets', href: '/dataset', icon: Database },
-    { name: 'Reports', href: '/reports', icon: FileText },
+    { name: 'Research Dashboard', href: '/dashboard/researcher', icon: LayoutDashboard },
+    { name: 'Population Analytics', href: '/population-analytics', icon: Globe },
+    { name: 'Readmission Trends', href: '/readmission-trends', icon: TrendingUp },
+    { name: 'Treatment Analysis', href: '/treatment-analysis', icon: FlaskConical },
+    { name: 'Anonymized Dataset', href: '/dataset', icon: Database },
+    { name: 'Research Reports', href: '/research-reports', icon: FileSpreadsheet },
+    { name: 'Export Dataset', href: '/export-dataset', icon: Download },
   ],
   'System Administrator': [
-    { name: 'Dashboard', href: '/dashboard/admin', icon: LayoutDashboard },
-    { name: 'Risk Forecast', href: '/risk-prediction', icon: Activity },
-    { name: 'Clinical Insights', href: '/clinical-insights', icon: Stethoscope },
-    { name: 'Patients', href: '/patients', icon: Users },
-    { name: 'Model Validation', href: '/model-validation', icon: BarChart3 },
+    { name: 'System Dashboard', href: '/dashboard/admin', icon: LayoutDashboard },
     { name: 'User Management', href: '/users', icon: UserCog },
-    { name: 'Reports', href: '/reports', icon: FileText },
-    { name: 'Dataset', href: '/dataset', icon: Database },
-    { name: 'Settings', href: '/settings', icon: Settings },
+    { name: 'Permission Management', href: '/permissions', icon: Lock },
+    { name: 'Dataset Management', href: '/dataset', icon: Database },
+    { name: 'AI Model Management', href: '/model-validation', icon: Cpu },
+    { name: 'System Settings', href: '/settings', icon: Settings },
   ],
 }
 

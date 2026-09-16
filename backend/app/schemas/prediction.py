@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
@@ -43,8 +43,7 @@ class PatientRiskPredictionResponse(BaseModel):
     clinical_recommendations: List[ClinicalRecommendationItem]
     created_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ModelMetricBenchmark(BaseModel):
     model_name: str

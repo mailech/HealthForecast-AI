@@ -163,9 +163,9 @@ def get_patient_risk_prediction(
 
 @router.get("/high-risk-list", response_model=List[PatientRiskPredictionResponse])
 def get_high_risk_patients(
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(20, ge=1, le=1000),
     db: Session = Depends(get_db),
-    current_user = Depends(require_role("Doctor", "Hospital Administrator", "System Administrator"))
+    current_user = Depends(require_role("Doctor", "Hospital Administrator", "Healthcare Researcher", "System Administrator"))
 ):
     """Get top high-risk active patients for triage and workflow monitoring."""
     patients = db.query(Patient).filter(Patient.is_active == True).limit(limit).all()

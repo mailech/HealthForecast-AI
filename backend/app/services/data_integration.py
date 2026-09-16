@@ -3,6 +3,7 @@ Diabetes 130-US Hospitals Dataset Integration
 This script handles loading, cleaning, and preprocessing the dataset
 """
 
+import os
 import pandas as pd
 import numpy as np
 from sqlalchemy.orm import Session
@@ -11,7 +12,7 @@ from app.models.patient import Patient
 from app.models.admission import Admission
 from app.models.medical_history import MedicalHistory
 from app.models.treatment import Treatment
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -19,17 +20,16 @@ logger = logging.getLogger(__name__)
 
 
 class DiabetesDatasetIntegration:
-    def __init__(self, dataset_path: str = None):
+    def __init__(self, dataset_path: str = None, db: Session = None):
         self.dataset_path = dataset_path
-        self.db = SessionLocal()
+        self.db = db if db is not None else SessionLocal()
+        self._own_db = db is None
     
     def load_dataset(self):
         """Load the Diabetes 130-US Hospitals dataset"""
         try:
             logger.info("Loading Diabetes 130-US Hospitals dataset...")
             
-            # The dataset typically comes as a CSV file
-            # Column names based on the UCI repository dataset
             column_names = [
                 'encounter_id', 'patient_nbr', 'race', 'gender', 'age',
                 'weight', 'admission_type_id', 'discharge_disposition_id',
@@ -41,10 +41,16 @@ class DiabetesDatasetIntegration:
                 'change', 'diabetesMed', 'readmitted'
             ]
             
-            if self.dataset_path:
-                df = pd.read_csv(self.dataset_path, names=column_names)
+            if self.dataset_path and isinstance(self.dataset_path, str) and self.dataset_path.strip() and os.path.exists(self.dataset_path) and os.path.isfile(self.dataset_path):
+                try:
+                    first_line = pd.read_csv(self.dataset_path, nrows=1)
+                    if 'encounter_id' in first_line.columns or 'patient_nbr' in first_line.columns or 'patient_id' in first_line.columns:
+                        df = pd.read_csv(self.dataset_path)
+                    else:
+                        df = pd.read_csv(self.dataset_path, names=column_names)
+                except Exception:
+                    df = pd.read_csv(self.dataset_path, names=column_names)
             else:
-                # For demonstration, create sample data structure
                 df = self.create_sample_data()
             
             logger.info(f"Dataset loaded with {len(df)} records")
@@ -56,8 +62,8 @@ class DiabetesDatasetIntegration:
     def create_sample_data(self):
         """Create sample data for demonstration purposes"""
         data = {
-            'encounter_id': range(1, 101),
-            'patient_nbr': [f'PAT{i:03d}' for i in range(1, 101)],
+            'encounter_id': range(101, 201),
+            'patient_nbr': [f'PAT{i:03d}' for i in range(101, 201)],
             'race': np.random.choice(['Caucasian', 'AfricanAmerican', 'Hispanic', 'Asian', 'Other'], 100),
             'gender': np.random.choice(['Male', 'Female'], 100),
             'age': np.random.choice(['[0-10)', '[10-20)', '[20-30)', '[30-40)', '[40-50)', '[50-60)', '[60-70)', '[70-80)', '[80-90)', '[90-100)'], 100),
@@ -99,13 +105,15 @@ class DiabetesDatasetIntegration:
         categorical_cols = ['race', 'gender', 'payer_code', 'medical_specialty', 'max_glu_serum', 'A1Cresult']
         for col in categorical_cols:
             if col in df.columns:
-                df[col].fillna(df[col].mode()[0] if not df[col].mode().empty else 'Unknown', inplace=True)
+                mode_val = df[col].mode()[0] if not df[col].mode().empty else 'Unknown'
+                df[col] = df[col].fillna(mode_val)
         
         # For numeric variables, fill with median
         numeric_cols = ['time_in_hospital', 'num_lab_procedures', 'num_procedures', 'num_medications']
         for col in numeric_cols:
             if col in df.columns:
-                df[col].fillna(df[col].median(), inplace=True)
+                median_val = df[col].median()
+                df[col] = df[col].fillna(median_val)
         
         # Convert age ranges to numeric (midpoint)
         age_mapping = {
@@ -113,10 +121,14 @@ class DiabetesDatasetIntegration:
             '[40-50)': 45, '[50-60)': 55, '[60-70)': 65, '[70-80)': 75,
             '[80-90)': 85, '[90-100)': 95
         }
-        df['age_numeric'] = df['age'].map(age_mapping)
+        if 'age' in df.columns:
+            df['age_numeric'] = df['age'].map(age_mapping)
         
         # Convert readmitted to binary flag
-        df['readmission_flag'] = df['readmitted'].apply(lambda x: 'Yes' if x == '<30' else 'No')
+        if 'readmitted' in df.columns:
+            df['readmission_flag'] = df['readmitted'].apply(lambda x: 'Yes' if x == '<30' else 'No')
+        elif 'readmission_flag' not in df.columns:
+            df['readmission_flag'] = 'No'
         
         logger.info("Data cleaning completed")
         return df
@@ -130,65 +142,74 @@ class DiabetesDatasetIntegration:
         medical_history_data = []
         treatments_data = []
         
-        # Get existing patient IDs to avoid duplicates
         existing_patient_ids = {p.patient_id for p in self.db.query(Patient).all()}
+        seen_patient_ids = set(existing_patient_ids)
         
         for _, row in df.iterrows():
-            patient_id = row['patient_nbr']
+            patient_id_raw = row.get('patient_nbr', row.get('patient_id', ''))
+            pid_str = str(patient_id_raw)
+            if not pid_str or pid_str == 'nan':
+                continue
             
-            # Create patient record if not exists
-            if patient_id not in existing_patient_ids:
-                # Generate a random date of birth based on age
+            if pid_str not in seen_patient_ids:
+                seen_patient_ids.add(pid_str)
                 age = row.get('age_numeric', 50)
-                birth_year = datetime.now().year - age
+                if pd.isna(age):
+                    age = 50
+                birth_year = datetime.now().year - int(age)
                 dob = date(birth_year, 1, 1)
                 
+                pid_suffix = pid_str.split("_")[1] if "_" in pid_str else pid_str
                 patients_data.append({
-                    'patient_id': patient_id,
-                    'first_name': f'Patient_{patient_id.split("_")[1]}',
+                    'patient_id': pid_str,
+                    'first_name': f'Patient_{pid_suffix}',
                     'last_name': 'Dataset',
                     'date_of_birth': dob,
-                    'gender': row['gender'],
+                    'gender': str(row.get('gender', 'Unknown')),
                     'is_active': True
                 })
             
-            # Create admission record
-            admission_date = datetime.now() - pd.Timedelta(days=np.random.randint(1, 365))
-            discharge_date = admission_date + pd.Timedelta(days=row['time_in_hospital'])
+            days_back = int(np.random.randint(1, 365))
+            time_in_hosp = int(row.get('time_in_hospital', 1)) if not pd.isna(row.get('time_in_hospital')) else 1
+            
+            now_dt = datetime.now()
+            admission_dt = now_dt - timedelta(days=days_back)
+            discharge_dt = admission_dt + timedelta(days=time_in_hosp)
+            
+            encounter_id = row.get('encounter_id', np.random.randint(10000, 99999))
+            adm_num = f'ADM_{encounter_id}'
             
             admissions_data.append({
-                'patient_id': patient_id,
-                'admission_number': f'ADM_{row["encounter_id"]}',
-                'admission_date': admission_date.date(),
-                'discharge_date': discharge_date.date(),
-                'admission_type': self.get_admission_type(row['admission_type_id']),
-                'department': row['medical_specialty'],
-                'diagnosis': self.get_diagnosis_description(row['diag_1']),
-                'length_of_stay': row['time_in_hospital'],
-                'readmission_flag': row['readmission_flag'],
-                'readmission_reason': 'Diabetes-related readmission' if row['readmission_flag'] == 'Yes' else None
+                'patient_id': pid_str,
+                'admission_number': adm_num,
+                'admission_date': admission_dt.date(),
+                'discharge_date': discharge_dt.date(),
+                'admission_type': self.get_admission_type(row.get('admission_type_id', 1)),
+                'department': str(row.get('medical_specialty', 'InternalMedicine')),
+                'diagnosis': self.get_diagnosis_description(row.get('diag_1', '250')),
+                'length_of_stay': time_in_hosp,
+                'readmission_flag': str(row.get('readmission_flag', 'No')),
+                'readmission_reason': 'Diabetes-related readmission' if str(row.get('readmission_flag')) == 'Yes' else None
             })
             
-            # Create medical history record for diabetes
             medical_history_data.append({
-                'patient_id': patient_id,
+                'patient_id': pid_str,
                 'condition': 'Type 2 Diabetes',
-                'diagnosis_date': admission_date,
+                'diagnosis_date': admission_dt,
                 'status': 'Active',
-                'notes': f'A1C: {row["A1Cresult"]}, Max Glucose: {row["max_glu_serum"]}'
+                'notes': f'A1C: {row.get("A1Cresult", "None")}, Max Glucose: {row.get("max_glu_serum", "None")}'
             })
             
-            # Create treatment record
-            if row['diabetesMed'] == 'Yes':
+            if str(row.get('diabetesMed')) == 'Yes':
                 treatments_data.append({
-                    'patient_id': patient_id,
-                    'admission_number': f'ADM_{row["encounter_id"]}',
+                    'patient_id': pid_str,
+                    'admission_number': adm_num,
                     'treatment_name': 'Diabetes Medication',
                     'treatment_type': 'Medication',
-                    'start_date': admission_date,
-                    'end_date': discharge_date,
+                    'start_date': admission_dt,
+                    'end_date': discharge_dt,
                     'prescribed_by': 'Dataset Import',
-                    'outcome': 'Ongoing' if row['change'] == 'Ch' else 'Completed'
+                    'outcome': 'Ongoing' if str(row.get('change')) == 'Ch' else 'Completed'
                 })
         
         logger.info(f"Transformed {len(patients_data)} patients, {len(admissions_data)} admissions")
@@ -206,7 +227,10 @@ class DiabetesDatasetIntegration:
             7: 'Trauma Center',
             8: 'Not Mapped'
         }
-        return mapping.get(type_id, 'Unknown')
+        try:
+            return mapping.get(int(type_id), 'Unknown')
+        except Exception:
+            return 'Unknown'
     
     def get_diagnosis_description(self, diag_code):
         """Map ICD-9 diagnosis code to description"""
@@ -226,7 +250,7 @@ class DiabetesDatasetIntegration:
         logger.info("Saving data to database...")
         
         try:
-            # Save patients
+            # 1. Save patients
             for patient_data in patients_data:
                 existing = self.db.query(Patient).filter(
                     Patient.patient_id == patient_data['patient_id']
@@ -234,45 +258,41 @@ class DiabetesDatasetIntegration:
                 if not existing:
                     patient = Patient(**patient_data)
                     self.db.add(patient)
+            self.db.flush()
             
-            # Save admissions
+            patient_map = {p.patient_id: p.id for p in self.db.query(Patient).all()}
+            
+            # 2. Save admissions
             for admission_data in admissions_data:
-                # Get patient ID from patient_id string
-                patient = self.db.query(Patient).filter(
-                    Patient.patient_id == admission_data['patient_id']
-                ).first()
-                if patient:
-                    admission_data['patient_id'] = patient.id
+                pid_str = admission_data['patient_id']
+                if pid_str in patient_map:
+                    admission_data['patient_id'] = patient_map[pid_str]
                     existing = self.db.query(Admission).filter(
                         Admission.admission_number == admission_data['admission_number']
                     ).first()
                     if not existing:
                         admission = Admission(**admission_data)
                         self.db.add(admission)
+            self.db.flush()
             
-            # Save medical history
+            admission_map = {a.admission_number: a.id for a in self.db.query(Admission).all()}
+            
+            # 3. Save medical history
             for history_data in medical_history_data:
-                patient = self.db.query(Patient).filter(
-                    Patient.patient_id == history_data['patient_id']
-                ).first()
-                if patient:
-                    history_data['patient_id'] = patient.id
+                pid_str = history_data['patient_id']
+                if pid_str in patient_map:
+                    history_data['patient_id'] = patient_map[pid_str]
                     history = MedicalHistory(**history_data)
                     self.db.add(history)
             
-            # Save treatments
+            # 4. Save treatments
             for treatment_data in treatments_data:
-                patient = self.db.query(Patient).filter(
-                    Patient.patient_id == treatment_data['patient_id']
-                ).first()
-                admission = self.db.query(Admission).filter(
-                    Admission.admission_number == treatment_data['admission_number']
-                ).first()
-                if patient:
-                    treatment_data['patient_id'] = patient.id
-                    if admission:
-                        treatment_data['admission_id'] = admission.id
-                    del treatment_data['admission_number']
+                pid_str = treatment_data['patient_id']
+                adm_num = treatment_data.pop('admission_number', None)
+                if pid_str in patient_map:
+                    treatment_data['patient_id'] = patient_map[pid_str]
+                    if adm_num and adm_num in admission_map:
+                        treatment_data['admission_id'] = admission_map[adm_num]
                     treatment = Treatment(**treatment_data)
                     self.db.add(treatment)
             
@@ -284,7 +304,8 @@ class DiabetesDatasetIntegration:
             logger.error(f"Error saving to database: {e}")
             raise
         finally:
-            self.db.close()
+            if self._own_db:
+                self.db.close()
     
     def run_integration(self, dataset_path: str = None):
         """Run the complete integration process"""
@@ -292,16 +313,9 @@ class DiabetesDatasetIntegration:
             self.dataset_path = dataset_path
         
         try:
-            # Load dataset
             df = self.load_dataset()
-            
-            # Clean data
             df_cleaned = self.clean_data(df)
-            
-            # Transform to database format
             patients, admissions, history, treatments = self.transform_to_db_format(df_cleaned)
-            
-            # Save to database
             self.save_to_database(patients, admissions, history, treatments)
             
             logger.info("Dataset integration completed successfully")

@@ -20,7 +20,7 @@ def integrate_dataset(
     Only accessible by System Administrator
     """
     try:
-        integrator = DiabetesDatasetIntegration(dataset_path)
+        integrator = DiabetesDatasetIntegration(dataset_path, db=db)
         success = integrator.run_integration()
         
         if success:

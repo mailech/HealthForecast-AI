@@ -29,6 +29,10 @@ const PatientList = () => {
 
   useEffect(() => {
     fetchPatients()
+    const searchParams = new URLSearchParams(window.location.search)
+    if (searchParams.get('add') === 'true') {
+      setShowAddModal(true)
+    }
   }, [])
 
   const fetchPatients = async () => {

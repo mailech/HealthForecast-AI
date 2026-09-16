@@ -18,7 +18,7 @@ import HospitalAdminDashboard from './pages/dashboards/HospitalAdminDashboard'
 import ResearcherDashboard from './pages/dashboards/ResearcherDashboard'
 import AdminDashboard from './pages/dashboards/AdminDashboard'
 
-// Shared pages
+// Core & Shared pages
 import PatientList from './pages/PatientList'
 import PatientDetails from './pages/PatientDetails'
 import UserManagement from './pages/UserManagement'
@@ -29,6 +29,29 @@ import Dataset from './pages/Dataset'
 import ModelValidation from './pages/ModelValidation'
 import RiskPredictionDashboard from './pages/RiskPredictionDashboard'
 import ClinicalInsights from './pages/ClinicalInsights'
+
+// Doctor pages
+import ReadmissionForecast from './pages/ReadmissionForecast'
+import TreatmentEffectiveness from './pages/TreatmentEffectiveness'
+import CareRecommendations from './pages/CareRecommendations'
+import FollowUpPlanning from './pages/FollowUpPlanning'
+
+// Hospital Administrator pages
+import HospitalAnalytics from './pages/HospitalAnalytics'
+import ReadmissionAnalytics from './pages/ReadmissionAnalytics'
+import PatientOutcomes from './pages/PatientOutcomes'
+import DepartmentPerformance from './pages/DepartmentPerformance'
+import TreatmentAnalytics from './pages/TreatmentAnalytics'
+
+// Healthcare Researcher pages
+import PopulationAnalytics from './pages/PopulationAnalytics'
+import ReadmissionTrends from './pages/ReadmissionTrends'
+import TreatmentAnalysis from './pages/TreatmentAnalysis'
+import ResearchReports from './pages/ResearchReports'
+
+// Shared Export & System Admin pages
+import DataExport from './pages/DataExport'
+import PermissionManagement from './pages/PermissionManagement'
 
 function App() {
   return (
@@ -88,7 +111,33 @@ function App() {
             {/* Fallback /dashboard → role redirect handled by ProtectedRoute */}
             <Route path="dashboard" element={<RoleDashboardRedirect />} />
 
-            {/* Shared protected pages */}
+            {/* Doctor Navigation Routes */}
+            <Route path="readmission-forecast" element={<ProtectedRoute requiredRoles={['Doctor', 'System Administrator']}><ReadmissionForecast /></ProtectedRoute>} />
+            <Route path="treatment-effectiveness" element={<ProtectedRoute requiredRoles={['Doctor', 'System Administrator']}><TreatmentEffectiveness /></ProtectedRoute>} />
+            <Route path="care-recommendations" element={<ProtectedRoute requiredRoles={['Doctor', 'System Administrator']}><CareRecommendations /></ProtectedRoute>} />
+            <Route path="followup-planning" element={<ProtectedRoute requiredRoles={['Doctor', 'System Administrator']}><FollowUpPlanning /></ProtectedRoute>} />
+
+            {/* Hospital Administrator Navigation Routes */}
+            <Route path="hospital-analytics" element={<ProtectedRoute requiredRoles={['Hospital Administrator', 'System Administrator']}><HospitalAnalytics /></ProtectedRoute>} />
+            <Route path="readmission-analytics" element={<ProtectedRoute requiredRoles={['Hospital Administrator', 'System Administrator']}><ReadmissionAnalytics /></ProtectedRoute>} />
+            <Route path="patient-outcomes" element={<ProtectedRoute requiredRoles={['Hospital Administrator', 'System Administrator']}><PatientOutcomes /></ProtectedRoute>} />
+            <Route path="department-performance" element={<ProtectedRoute requiredRoles={['Hospital Administrator', 'System Administrator']}><DepartmentPerformance /></ProtectedRoute>} />
+            <Route path="treatment-analytics" element={<ProtectedRoute requiredRoles={['Hospital Administrator', 'System Administrator']}><TreatmentAnalytics /></ProtectedRoute>} />
+
+            {/* Healthcare Researcher Navigation Routes */}
+            <Route path="population-analytics" element={<ProtectedRoute requiredRoles={['Healthcare Researcher', 'System Administrator']}><PopulationAnalytics /></ProtectedRoute>} />
+            <Route path="readmission-trends" element={<ProtectedRoute requiredRoles={['Healthcare Researcher', 'System Administrator']}><ReadmissionTrends /></ProtectedRoute>} />
+            <Route path="treatment-analysis" element={<ProtectedRoute requiredRoles={['Healthcare Researcher', 'System Administrator']}><TreatmentAnalysis /></ProtectedRoute>} />
+            <Route path="research-reports" element={<ProtectedRoute requiredRoles={['Healthcare Researcher', 'System Administrator']}><ResearchReports /></ProtectedRoute>} />
+
+            {/* Shared & Export Routes */}
+            <Route path="export" element={<DataExport />} />
+            <Route path="export-dataset" element={<DataExport />} />
+
+            {/* System Administrator Navigation Routes */}
+            <Route path="permissions" element={<ProtectedRoute requiredRoles={['System Administrator']}><PermissionManagement /></ProtectedRoute>} />
+
+            {/* General Shared protected pages */}
             <Route path="model-validation" element={<ModelValidation />} />
             <Route path="risk-prediction" element={<RiskPredictionDashboard />} />
             <Route path="clinical-insights" element={<ClinicalInsights />} />

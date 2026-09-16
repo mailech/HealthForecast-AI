@@ -13,11 +13,11 @@ router = APIRouter()
 @router.get("/", response_model=List[PatientResponse])
 def get_patients(
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=100),
+    limit: int = Query(100, ge=1, le=1000),
     search: Optional[str] = None,
     is_active: Optional[bool] = None,
     db: Session = Depends(get_db),
-    current_user = Depends(require_role("Doctor", "Hospital Administrator", "System Administrator"))
+    current_user = Depends(require_role("Doctor", "Hospital Administrator", "Healthcare Researcher", "System Administrator"))
 ):
     query = db.query(Patient)
     
@@ -39,7 +39,7 @@ def get_patients(
 def get_patient(
     patient_id: int,
     db: Session = Depends(get_db),
-    current_user = Depends(require_role("Doctor", "Hospital Administrator", "System Administrator"))
+    current_user = Depends(require_role("Doctor", "Hospital Administrator", "Healthcare Researcher", "System Administrator"))
 ):
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
     if not patient:

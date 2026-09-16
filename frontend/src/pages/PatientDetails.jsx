@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import {
   ArrowLeft, Edit, Calendar, Phone, Mail, MapPin,
-  Activity, X, Plus, Stethoscope, Pill, FileText, Save, User
+  Activity, X, Plus, Stethoscope, Pill, FileText, Save, User, Users
 } from 'lucide-react'
 
 // ── Reusable Modal wrapper ──────────────────────────────────────
@@ -312,7 +312,9 @@ const AddTreatmentModal = ({ patientId, admissions, onClose, onSaved }) => {
 // ── Main PatientDetails Page ─────────────────────────────────────
 const PatientDetails = () => {
   const { id } = useParams()
+  const navigate = useNavigate()
   const [patient, setPatient] = useState(null)
+  const [allPatientsList, setAllPatientsList] = useState([])
   const [medicalHistory, setMedicalHistory] = useState([])
   const [admissions, setAdmissions] = useState([])
   const [treatments, setTreatments] = useState([])
@@ -324,22 +326,52 @@ const PatientDetails = () => {
   const [showAddAdmission, setShowAddAdmission] = useState(false)
   const [showAddTreatment, setShowAddTreatment] = useState(false)
 
+  useEffect(() => {
+    // Fetch all patients for dropdown selection
+    api.get('/patients')
+      .then(res => setAllPatientsList(res.data))
+      .catch(err => console.error('Failed to fetch patient list for dropdown:', err))
+  }, [])
+
   useEffect(() => { fetchAll() }, [id])
 
   const fetchAll = async () => {
+    setLoading(true)
+    let targetId = id
     try {
       const [patientRes, historyRes, admissionsRes, treatmentsRes] = await Promise.all([
-        api.get(`/patients/${id}`),
-        api.get(`/medical-history/patient/${id}`),
-        api.get(`/admissions/patient/${id}`),
-        api.get(`/treatments/patient/${id}`),
+        api.get(`/patients/${targetId}`),
+        api.get(`/medical-history/patient/${targetId}`),
+        api.get(`/admissions/patient/${targetId}`),
+        api.get(`/treatments/patient/${targetId}`),
       ])
       setPatient(patientRes.data)
       setMedicalHistory(historyRes.data)
       setAdmissions(admissionsRes.data)
       setTreatments(treatmentsRes.data)
     } catch (err) {
-      console.error('Failed to fetch patient details:', err)
+      console.error('Failed to fetch patient details for ID:', targetId, err)
+      // Fallback: try loading the first patient in the database if available
+      try {
+        const listRes = await api.get('/patients?limit=5')
+        if (listRes.data && listRes.data.length > 0) {
+          const fallbackPatient = listRes.data[0]
+          const [hRes, aRes, tRes] = await Promise.all([
+            api.get(`/medical-history/patient/${fallbackPatient.id}`),
+            api.get(`/admissions/patient/${fallbackPatient.id}`),
+            api.get(`/treatments/patient/${fallbackPatient.id}`),
+          ])
+          setPatient(fallbackPatient)
+          setMedicalHistory(hRes.data)
+          setAdmissions(aRes.data)
+          setTreatments(tRes.data)
+        } else {
+          setPatient(null)
+        }
+      } catch (fallbackErr) {
+        console.error('Fallback patient fetch failed:', fallbackErr)
+        setPatient(null)
+      }
     } finally {
       setLoading(false)
     }
@@ -352,9 +384,33 @@ const PatientDetails = () => {
   )
 
   if (!patient) return (
-    <div className="text-center py-12">
-      <p className="text-gray-500">Patient not found</p>
-      <Link to="/patients" className="btn-primary mt-4 inline-block">Back to Patients</Link>
+    <div className="bg-white p-8 rounded-2xl border border-gray-200 text-center max-w-lg mx-auto my-12 shadow-sm space-y-4">
+      <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">
+        👤
+      </div>
+      <h2 className="text-xl font-bold text-gray-900">Patient Chart Not Found</h2>
+      <p className="text-sm text-gray-500">
+        No patient record found for requested ID. Select a patient below or return to the patient directory.
+      </p>
+      {allPatientsList.length > 0 && (
+        <div className="pt-2">
+          <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Select Active Patient</label>
+          <select
+            onChange={(e) => navigate(`/patients/${e.target.value}`)}
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-semibold text-gray-800 bg-white focus:ring-2 focus:ring-primary-500"
+          >
+            <option value="">Choose Patient...</option>
+            {allPatientsList.map(p => (
+              <option key={p.id} value={p.id}>{p.first_name} {p.last_name} ({p.patient_id})</option>
+            ))}
+          </select>
+        </div>
+      )}
+      <div className="pt-2">
+        <Link to="/patients" className="btn-primary inline-flex items-center text-sm px-5 py-2.5 rounded-xl">
+          <Users className="w-4 h-4 mr-2" /> Back to Patient Directory
+        </Link>
+      </div>
     </div>
   )
 
@@ -380,20 +436,44 @@ const PatientDetails = () => {
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
         <div className="flex items-center space-x-4">
-          <Link to="/patients" className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+          <Link to="/patients" className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{patient.first_name} {patient.last_name}</h1>
-            <p className="text-gray-500 text-sm">Patient ID: {patient.patient_id}</p>
+            <div className="flex items-center space-x-2">
+              <h1 className="text-2xl font-bold text-gray-900">{patient.first_name} {patient.last_name}</h1>
+              <span className="px-2.5 py-0.5 bg-blue-50 text-blue-700 text-xs font-bold rounded-full border border-blue-200">
+                {patient.gender}
+              </span>
+            </div>
+            <p className="text-gray-500 text-xs mt-0.5 font-mono">Patient ID: <span className="font-bold text-teal-700">{patient.patient_id}</span></p>
           </div>
         </div>
-        <button onClick={() => setShowEditPatient(true)}
-          className="flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors">
-          <Edit className="w-4 h-4 mr-2" /> Edit Patient
-        </button>
+
+        <div className="flex items-center gap-3">
+          {/* Patient Switcher Dropdown */}
+          {allPatientsList.length > 0 && (
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-semibold text-gray-500 hidden md:inline">Select Chart:</label>
+              <select
+                value={patient.id}
+                onChange={(e) => navigate(`/patients/${e.target.value}`)}
+                className="px-3 py-2 border border-gray-300 rounded-xl text-xs font-semibold text-gray-800 bg-gray-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                {allPatientsList.map(p => (
+                  <option key={p.id} value={p.id}>{p.first_name} {p.last_name} ({p.patient_id})</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <button onClick={() => setShowEditPatient(true)}
+            className="flex items-center px-4 py-2 bg-primary-600 text-white text-xs font-semibold rounded-xl hover:bg-primary-700 transition-colors shadow-xs">
+            <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit Patient
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
