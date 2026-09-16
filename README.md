@@ -11,6 +11,7 @@ HealthForecast-AI is an AI-assisted healthcare management system designed to hel
 * Admin, Doctor, Staff, and Researcher roles
 * Protected API endpoints
 * Admin user management
+* Secure login and role-based access
 
 ### Healthcare Management
 
@@ -19,8 +20,8 @@ HealthForecast-AI is an AI-assisted healthcare management system designed to hel
 * Patient search
 * Admission history
 * Clinical analytics
-* Treatment effectiveness
-* Medication effectiveness
+* Treatment effectiveness analysis
+* Medication effectiveness analysis
 * Recovery analysis
 * Clinical decision support
 * Notifications and alerts
@@ -35,6 +36,7 @@ HealthForecast-AI is an AI-assisted healthcare management system designed to hel
 * Model evaluation using Accuracy, Recall, ROC-AUC, and Confusion Matrix
 * Class imbalance handling using balanced class weights
 * Threshold-based risk classification
+* Model loaded during backend startup
 
 ### Research & Analytics
 
@@ -51,24 +53,28 @@ HealthForecast-AI is an AI-assisted healthcare management system designed to hel
 
 The project uses the **Diabetes 130-US Hospitals** dataset.
 
-* Records: 101,766
-* Features: 50
-* Target: Patient Readmission
-* Model: Logistic Regression
-* Class imbalance handled using `class_weight="balanced"`
-* Stratified train/test split
-* Model evaluation:
+* **Records:** 101,766
+* **Features:** 50
+* **Target:** Patient Readmission
+* **Model:** Logistic Regression
+* **Class imbalance:** Handled using `class_weight="balanced"`
+* **Data split:** Stratified train/test split
+* **Risk threshold:** 0.40
 
-  * Accuracy
-  * Recall
-  * ROC-AUC
-  * Confusion Matrix
-  * True Positives
-  * True Negatives
-  * False Positives
-  * False Negatives
+### Model Evaluation
 
-The trained model is saved as:
+The model is evaluated using:
+
+* Accuracy
+* Recall
+* ROC-AUC
+* Confusion Matrix
+* True Positives
+* True Negatives
+* False Positives
+* False Negatives
+
+The trained model is stored at:
 
 ```text
 backend/ml/readmission_model.joblib
@@ -134,12 +140,12 @@ HealthForecast-AI/
 
 ## User Roles
 
-| Role       | Access                                                  |
-| ---------- | ------------------------------------------------------- |
-| Admin      | Full system access and user management                  |
-| Doctor     | Patient management, predictions, analytics and research |
-| Staff      | Patient and healthcare management                       |
-| Researcher | Research analytics and aggregate research data          |
+| Role           | Access                                                   |
+| -------------- | -------------------------------------------------------- |
+| **Admin**      | Full system access and user management                   |
+| **Doctor**     | Patient management, predictions, analytics, and research |
+| **Staff**      | Patient and healthcare management                        |
+| **Researcher** | Research analytics and aggregate research data           |
 
 ## Data Validation & Security
 
@@ -150,18 +156,30 @@ HealthForecast-AI/
 * Role-based endpoint protection
 * Protected patient and prediction APIs
 * Research API restricted by role
+* Input validation for patient and clinical data
 
 ## Research Privacy
 
-Research endpoints provide aggregate statistics only.
+Research endpoints provide **aggregate statistics only**.
 
 Patient names, emails, IDs, and other personally identifiable information are not included in research responses or research exports.
 
+Research access is restricted to authorized roles.
+
 ## Running the Project
+
+### Prerequisites
+
+Make sure the following are installed and running:
+
+* Python
+* Node.js
+* PostgreSQL
+* Git
 
 ### Backend
 
-Open a terminal:
+Open a terminal in the project directory:
 
 ```bash
 cd backend
@@ -170,10 +188,16 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-Backend runs at:
+The backend runs at:
 
 ```text
 http://127.0.0.1:8000
+```
+
+FastAPI documentation is available at:
+
+```text
+http://127.0.0.1:8000/docs
 ```
 
 ### Frontend
@@ -186,7 +210,7 @@ npm install
 npm run dev
 ```
 
-Frontend runs at:
+The frontend runs at:
 
 ```text
 http://localhost:5173
@@ -194,7 +218,7 @@ http://localhost:5173
 
 ## Database
 
-The application uses PostgreSQL for storing:
+The application uses **PostgreSQL** to store:
 
 * Users
 * Patient records
@@ -207,4 +231,39 @@ The application uses PostgreSQL for storing:
 * Notifications
 
 Make sure PostgreSQL is running before starting the backend.
+
+## AI Prediction Workflow
+
+```text
+Patient Data
+     ↓
+Input Validation
+     ↓
+Preprocessing
+     ↓
+ML Prediction Service
+     ↓
+Readmission Probability
+     ↓
+Risk Classification
+     ↓
+Low / Medium / High
+     ↓
+Dashboard Visualization
+```
+
+## Research Workflow
+
+```text
+Healthcare Data
+     ↓
+Analytics Engine
+     ↓
+Aggregate Statistics
+     ↓
+Research Dashboard
+     ↓
+Privacy-Protected Export
+```
+ 
  
