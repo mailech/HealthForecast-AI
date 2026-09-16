@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 
 export default function AccessDenied({ requiredRole }) {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, getRoleDashboard } = useAuth();
 
   return (
     <Box sx={{ py: 8, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
@@ -31,7 +31,7 @@ export default function AccessDenied({ requiredRole }) {
             bgcolor: '#FEE2E2',
             display: 'flex',
             alignItems: 'center',
-            justify: 'center',
+            justifyContent: 'center',
             mx: 'auto',
             mb: 2.5
           }}
@@ -44,7 +44,7 @@ export default function AccessDenied({ requiredRole }) {
         </Typography>
         
         <Typography sx={{ fontSize: '0.88rem', color: '#7F1D1D', mb: 1, lineHeight: 1.5 }}>
-          Your current account role <strong>"{user?.role || 'Guest'}"</strong> does not have permission to access this module.
+          Your current account role <strong>"{user?.role || 'User'}"</strong> does not have permission to access this module.
         </Typography>
 
         {requiredRole && (
@@ -56,7 +56,7 @@ export default function AccessDenied({ requiredRole }) {
         <Button
           variant="contained"
           startIcon={<ArrowBackRoundedIcon />}
-          onClick={() => navigate('/')}
+          onClick={() => navigate(getRoleDashboard ? getRoleDashboard() : '/')}
           sx={{
             borderRadius: '10px',
             bgcolor: '#DC2626',
@@ -67,7 +67,7 @@ export default function AccessDenied({ requiredRole }) {
             '&:hover': { bgcolor: '#B91C1C' }
           }}
         >
-          Return to Dashboard
+          Return to My Dashboard
         </Button>
       </Paper>
     </Box>

@@ -32,11 +32,11 @@ export default function Footer() {
                 fontWeight: 500,
               }}
             >
-              Health Forecast AI
+              HM Hospital
             </Typography>
             <Typography variant="caption" sx={{ color: '#D1D5DB' }}>|</Typography>
             <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
-              Patient Risk Intelligence System
+              Risk Intelligence System
             </Typography>
           </Box>
           <Typography

@@ -61,37 +61,44 @@ function UserForm({ initial, onSave, onClose }) {
   );
 }
 
-export default function Users() {
+export default function Users({ filterRole }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [dialog, setDialog] = useState({ open: false, mode: 'create', user: null });
   const [deleteId, setDeleteId] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const { isAdmin } = useAuth();
+  const { role, user } = useAuth();
+
+  const normRole = (role || user?.role || '').toLowerCase().replace(/ /g, '');
+  const isAuthorized = normRole === 'admin' || normRole === 'hospitaladministrator' || normRole === 'sysadmin' || normRole === 'systemadministrator';
 
   const fetchUsers = () => {
     setLoading(true);
     api.get('/api/v1/users?limit=100')
-      .then(res => setUsers(res.data))
-      .catch(() => setError('Failed to load users. Admin access required.'))
+      .then(res => setUsers(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setError('Failed to load users. Administrator access required.'))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
-    if (isAdmin) fetchUsers();
-  }, [isAdmin]);
+    if (isAuthorized) fetchUsers();
+  }, [isAuthorized]);
 
-  // Block non-admins immediately — backend will also return 403
-  if (!isAdmin) {
+  // Block unauthorized users immediately
+  if (!isAuthorized) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 400, gap: 2 }}>
         <LockIcon sx={{ fontSize: 64, color: '#D32F2F', opacity: 0.4 }} />
         <Typography variant="h6" fontWeight={700} color="#D32F2F">Access Denied</Typography>
-        <Typography variant="body2" color="text.secondary">Only System Administrators can manage users.</Typography>
+        <Typography variant="body2" color="text.secondary">Only System Administrators can manage users and roles.</Typography>
       </Box>
     );
   }
+
+  const displayedUsers = filterRole
+    ? users.filter(u => (u.role || '').toLowerCase().includes(filterRole.toLowerCase()))
+    : users;
 
   const handleSave = async (data) => {
     try {
@@ -99,7 +106,8 @@ export default function Users() {
         await api.post('/api/v1/users', data);
         setSnackbar({ open: true, message: 'User created successfully.', severity: 'success' });
       } else {
-        await api.put(`/api/v1/users/${dialog.user.id}`, data);
+        const targetId = dialog.user.id || dialog.user._id;
+        await api.put(`/api/v1/users/${targetId}`, data);
         setSnackbar({ open: true, message: 'User updated successfully.', severity: 'success' });
       }
       setDialog({ open: false, mode: 'create', user: null });
@@ -139,7 +147,7 @@ export default function Users() {
             </IconButton>
           </Tooltip>
           <Tooltip title="Delete">
-            <IconButton size="small" color="error" onClick={() => setDeleteId(p.row.id)}>
+            <IconButton size="small" color="error" onClick={() => setDeleteId(p.row.id || p.row._id)}>
               <DeleteIcon fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -151,7 +159,7 @@ export default function Users() {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" fontWeight={700} color="#1565C0">Users Management</Typography>
+        <Typography variant="h5" fontWeight={700} color="#1565C0">Role & User Management</Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setDialog({ open: true, mode: 'create', user: null })}
           sx={{ bgcolor: '#1565C0', borderRadius: 2 }}>
           Add User
@@ -167,7 +175,7 @@ export default function Users() {
           <CardContent sx={{ p: 0 }}>
             <Box sx={{ height: 500 }}>
               <DataGrid
-                rows={users}
+                rows={displayedUsers}
                 columns={columns}
                 getRowId={(row) => row.id || row._id || row.email}
                 pageSizeOptions={[10, 25]}

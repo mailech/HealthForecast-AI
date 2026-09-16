@@ -28,11 +28,15 @@ class TreatmentService:
 
     @staticmethod
     def get_by_patient_id(patient_id: str) -> List[dict]:
-        return list(treatments_collection.find({"patient_id": patient_id}))
+        return list(treatments_collection.find({"patient_id": patient_id}).sort("created_at", -1))
+
+    @staticmethod
+    def get_by_prediction_id(prediction_id: str) -> List[dict]:
+        return list(treatments_collection.find({"prediction_id": prediction_id}).sort("created_at", -1))
 
     @staticmethod
     def get_all_treatments(skip: int = 0, limit: int = 100) -> List[dict]:
-        return list(treatments_collection.find().skip(skip).limit(limit))
+        return list(treatments_collection.find().sort("created_at", -1).skip(skip).limit(limit))
 
     @staticmethod
     def update_treatment(treatment_id: str, treatment_in: TreatmentUpdate) -> Optional[dict]:

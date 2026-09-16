@@ -9,7 +9,7 @@ from app.middleware.error_handler import ErrorHandlerMiddleware
 from app.middleware.logging_middleware import LoggingMiddleware
 from app.utils.security import get_password_hash
 
-from app.routes import auth, users, patients, history, prediction, treatments, dashboard, reports, upload
+from app.routes import auth, users, patients, history, prediction, treatments, dashboard, reports, upload, audit
 
 DEMO_USERS = [
     {
@@ -20,23 +20,23 @@ DEMO_USERS = [
         "password": "Password123",
     },
     {
-        "email": "admin@hospital.com",
-        "full_name": "Admin Officer John Connor",
-        "role": "Hospital Administrator",
-        "hospital": "General Hospital",
+        "email": "researcher@hospital.com",
+        "full_name": "Dr. Miles Dyson",
+        "role": "Researcher",
+        "hospital": "Cyberdyne Lab",
         "password": "Password123",
     },
     {
-        "email": "researcher@hospital.com",
-        "full_name": "Dr. Miles Dyson",
-        "role": "Healthcare Researcher",
-        "hospital": "Cyberdyne Lab",
+        "email": "admin@hospital.com",
+        "full_name": "Admin Officer John Connor",
+        "role": "Admin",
+        "hospital": "General Hospital",
         "password": "Password123",
     },
     {
         "email": "sysadmin@hospital.com",
         "full_name": "System Administrator",
-        "role": "System Administrator",
+        "role": "SysAdmin",
         "hospital": "IT Headquarters",
         "password": "Password123",
     },
@@ -44,20 +44,22 @@ DEMO_USERS = [
 
 def ensure_demo_users():
     """
-    Creates any missing demo accounts on startup.
-    Never overwrites existing users or touches other collections.
+    Ensures standard 4 demo accounts exist in MongoDB with password 'Password123' and active status.
     """
     for u in DEMO_USERS:
-        if not users_collection.find_one({"email": u["email"]}):
-            users_collection.insert_one({
+        users_collection.update_one(
+            {"email": u["email"]},
+            {"$set": {
                 "email": u["email"],
                 "full_name": u["full_name"],
                 "role": u["role"],
                 "hospital": u["hospital"],
                 "hashed_password": get_password_hash(u["password"]),
                 "is_active": True,
-                "created_at": datetime.utcnow(),
-            })
+                "must_change_password": False,
+            }},
+            upsert=True
+        )
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -78,10 +80,12 @@ app = FastAPI(
 # CORSMiddleware must be added LAST so it executes FIRST (outermost layer).
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(ErrorHandlerMiddleware)
+cors_origins = [str(origin).rstrip("/") for origin in settings.BACKEND_CORS_ORIGINS] if settings.BACKEND_CORS_ORIGINS else ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=cors_origins if cors_origins else ["*"],
+    allow_credentials=True if cors_origins and cors_origins != ["*"] else False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -95,6 +99,7 @@ app.include_router(treatments.router, prefix="/api/v1")
 app.include_router(dashboard.router, prefix="/api/v1")
 app.include_router(reports.router, prefix="/api/v1")
 app.include_router(upload.router, prefix="/api/v1")
+app.include_router(audit.router, prefix="/api/v1")
 
 @app.get("/", tags=["Health Check"])
 def health_check():

@@ -6,9 +6,11 @@ from app.schemas.object_id import PyObjectId
 class UserBase(BaseModel):
     email: EmailStr
     full_name: str
-    role: str  # Doctor, Hospital Administrator, Healthcare Researcher, System Administrator
-    hospital: str
+    role: str  # Doctor, Researcher, Admin, SysAdmin
+    hospital: Optional[str] = "General Hospital"
     is_active: bool = True
+    must_change_password: bool = False
+    profile_picture: Optional[str] = None
 
 class UserCreate(UserBase):
     password: str
@@ -19,6 +21,8 @@ class UserUpdate(BaseModel):
     role: Optional[str] = None
     hospital: Optional[str] = None
     is_active: Optional[bool] = None
+    must_change_password: Optional[bool] = None
+    profile_picture: Optional[str] = None
     password: Optional[str] = None
 
 class UserResponse(UserBase):

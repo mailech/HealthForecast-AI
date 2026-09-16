@@ -42,8 +42,9 @@ def init_db():
         predictions_collection.create_index([("patient_id", ASCENDING)])
         predictions_collection.create_index([("risk_level", ASCENDING)])
         
-        # Create index for treatments patient_id
+        # Create index for treatments patient_id and prediction_id
         treatments_collection.create_index([("patient_id", ASCENDING)])
+        treatments_collection.create_index([("prediction_id", ASCENDING)])
         
         logger.info("MongoDB indexes successfully verified and initialized.")
     except Exception as e:

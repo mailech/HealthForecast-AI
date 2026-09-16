@@ -4,7 +4,7 @@ from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "AI Hospital Readmission Prediction & Patient Risk Intelligence System"
+    PROJECT_NAME: str = "HM Hospital — Risk Intelligence System"
     VERSION: str = "1.0.0"
     ENVIRONMENT: str = "development"
     DEBUG: bool = True

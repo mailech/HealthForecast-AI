@@ -1,4 +1,15 @@
+from datetime import datetime
+from bson import ObjectId
 from app.database import patients_collection, predictions_collection, medical_histories_collection, treatments_collection
+
+def _sanitize_doc(item):
+    if isinstance(item, dict):
+        return {k: _sanitize_doc(v) for k, v in item.items() if k != "_id"}
+    elif isinstance(item, list):
+        return [_sanitize_doc(i) for i in item]
+    elif isinstance(item, (datetime, ObjectId)):
+        return str(item)
+    return item
 
 class DashboardService:
     @staticmethod
@@ -26,27 +37,35 @@ class DashboardService:
             if risk == "High":
                 high_risk_count += 1
 
-        # Daily admission trends (last 10 days)
+        # Daily admission trends (last 10 days) with safe type checking
         admissions_pipeline = [
+            {"$match": {"admission_date": {"$ne": None}}},
             {"$group": {
-                "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$admission_date"}},
+                "_id": {
+                    "$cond": {
+                        "if": {"$eq": [{"$type": "$admission_date"}, "date"]},
+                        "then": {"$dateToString": {"format": "%Y-%m-%d", "date": "$admission_date"}},
+                        "else": {"$substr": [{"$toString": "$admission_date"}, 0, 10]}
+                    }
+                },
                 "count": {"$sum": 1}
             }},
             {"$sort": {"_id": -1}},
             {"$limit": 10}
         ]
-        admissions_trend = list(medical_histories_collection.aggregate(admissions_pipeline))
-        admissions_trend.reverse()
+        try:
+            admissions_trend = list(medical_histories_collection.aggregate(admissions_pipeline))
+            admissions_trend.reverse()
+        except Exception:
+            admissions_trend = []
 
         # Recent predictions (last 10)
-        recent_preds = list(
-            predictions_collection.find({}, {"_id": 0})
+        recent_preds_raw = list(
+            predictions_collection.find()
             .sort("prediction_date", -1)
             .limit(10)
         )
-        for p in recent_preds:
-            if hasattr(p.get("prediction_date"), "isoformat"):
-                p["prediction_date"] = p["prediction_date"].isoformat()
+        recent_preds = [_sanitize_doc(p) for p in recent_preds_raw]
 
         return {
             "total_patients": total_patients,

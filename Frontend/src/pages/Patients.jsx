@@ -15,7 +15,9 @@ import MedicalInformationRoundedIcon from '@mui/icons-material/MedicalInformatio
 import LocalHospitalRoundedIcon from '@mui/icons-material/LocalHospitalRounded';
 import FilterListRoundedIcon from '@mui/icons-material/FilterListRounded';
 import { useNavigate } from 'react-router-dom';
+import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
 import api from '../api/api';
+import { useAuth } from '../context/AuthContext';
 
 const STEPS = ['Basic Info', 'Medical History', 'Admission'];
 const GENDERS = ['Male', 'Female', 'Other'];
@@ -78,7 +80,12 @@ function FSwitch({ name, label, form, onChange }) {
   );
 }
 
-export default function Patients() {
+export default function Patients({ readOnly = false }) {
+  const { role } = useAuth();
+  const normRole = (role || '').toLowerCase().replace(/ /g, '');
+  const isResearcher = normRole === 'researcher' || normRole === 'healthcareresearcher';
+  const isReadOnly = readOnly || isResearcher;
+
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -121,7 +128,7 @@ export default function Patients() {
   const validateStep = () => {
     const errs = {};
     if (activeStep === 0) {
-      ['patient_id', 'first_name', 'last_name', 'gender', 'hospital'].forEach(k => {
+      ['first_name', 'last_name', 'gender', 'hospital'].forEach(k => {
         if (!form[k]) errs[k] = 'Required';
       });
     }
@@ -135,26 +142,32 @@ export default function Patients() {
   const closeModal = () => setModalOpen(false);
 
   const handleSave = async () => {
-    if (!validateStep()) return;
     setSaving(true);
     try {
-      // Only send fields that PatientCreate schema accepts
+      const pid = form.patient_id?.trim() || `PAT-${Date.now().toString().slice(-5)}`;
       const payload = {
-        patient_id: form.patient_id,
-        first_name: form.first_name,
-        last_name: form.last_name,
+        patient_id: pid,
+        first_name: form.first_name?.trim(),
+        last_name: form.last_name?.trim(),
         date_of_birth: form.date_of_birth || '2000-01-01',
         gender: form.gender,
-        hospital: form.hospital,
-        ...(form.email ? { email: form.email } : {}),
-        ...(form.phone ? { phone: form.phone } : {}),
+        hospital: form.hospital?.trim() || 'General Hospital',
+        ...(form.email?.trim() ? { email: form.email.trim() } : {}),
+        ...(form.phone?.trim() ? { phone: form.phone.trim() } : {}),
       };
       await api.post('/api/v1/patients', payload);
       setSnackbar({ open: true, message: 'Patient added successfully!', severity: 'success' });
       closeModal();
       fetchPatients();
     } catch (err) {
-      setSnackbar({ open: true, message: err.response?.data?.detail || 'Failed to add patient.', severity: 'error' });
+      const detail = err.response?.data?.detail;
+      let msg = 'Failed to add patient.';
+      if (Array.isArray(detail)) {
+        msg = detail.map(d => `${d.loc?.join('.') || 'field'}: ${d.msg}`).join(' | ');
+      } else if (typeof detail === 'string') {
+        msg = detail;
+      }
+      setSnackbar({ open: true, message: msg, severity: 'error' });
     } finally { setSaving(false); }
   };
 
@@ -175,10 +188,12 @@ export default function Patients() {
           <Typography sx={{ fontWeight: 800, fontSize: '1.2rem', color: '#0F172A' }}>Patients</Typography>
           <Typography sx={{ fontSize: '0.8rem', color: '#64748B', mt: 0.3 }}>Manage and monitor all patient records</Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={openModal}
-          sx={{ bgcolor: '#1D4ED8', borderRadius: '10px', px: 2.5, py: 1, fontWeight: 600, fontSize: '0.82rem', boxShadow: '0 4px 12px rgba(29,78,216,0.25)', '&:hover': { bgcolor: '#1E40AF' } }}>
-          Add Patient
-        </Button>
+        {!isReadOnly && (
+          <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={openModal}
+            sx={{ bgcolor: '#1D4ED8', borderRadius: '10px', px: 2.5, py: 1, fontWeight: 600, fontSize: '0.82rem', boxShadow: '0 4px 12px rgba(29,78,216,0.25)', '&:hover': { bgcolor: '#1E40AF' } }}>
+            Add Patient
+          </Button>
+        )}
       </Box>
 
       {/* Search + Filter bar */}
@@ -209,7 +224,7 @@ export default function Patients() {
             <PersonRoundedIcon sx={{ fontSize: 48, color: '#CBD5E1', mb: 1 }} />
             <Typography sx={{ fontWeight: 600, color: '#475569', fontSize: '0.9rem' }}>No patients found</Typography>
             <Typography sx={{ fontSize: '0.78rem', color: '#94A3B8', mt: 0.5 }}>
-              {search ? 'Try a different search term.' : 'Add your first patient to get started.'}
+              {search ? 'Try a different search term.' : 'No patients registered in the system.'}
             </Typography>
           </Box>
         ) : (
@@ -253,18 +268,29 @@ export default function Patients() {
                       </TableCell>
                       <TableCell align="right">
                         <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
-                          <Tooltip title="Edit">
-                            <IconButton size="small" onClick={() => navigate(`/patients/edit/${p.patient_id}`)}
-                              sx={{ color: '#3B82F6', bgcolor: '#EFF6FF', borderRadius: '7px', '&:hover': { bgcolor: '#DBEAFE' } }}>
-                              <EditRoundedIcon sx={{ fontSize: 15 }} />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Delete">
-                            <IconButton size="small" onClick={() => setDeleteId(p.patient_id)}
-                              sx={{ color: '#EF4444', bgcolor: '#FEF2F2', borderRadius: '7px', '&:hover': { bgcolor: '#FEE2E2' } }}>
-                              <DeleteRoundedIcon sx={{ fontSize: 15 }} />
-                            </IconButton>
-                          </Tooltip>
+                          {isReadOnly ? (
+                            <Tooltip title="View Predictions">
+                              <IconButton size="small" onClick={() => navigate(`/doctor/patients/${p.patient_id}/predictions`)}
+                                sx={{ color: '#0F6CBD', bgcolor: '#EFF6FF', borderRadius: '7px', '&:hover': { bgcolor: '#DBEAFE' } }}>
+                                <HistoryRoundedIcon sx={{ fontSize: 15 }} />
+                              </IconButton>
+                            </Tooltip>
+                          ) : (
+                            <>
+                              <Tooltip title="Edit">
+                                <IconButton size="small" onClick={() => navigate(`/patients/edit/${p.patient_id}`)}
+                                  sx={{ color: '#3B82F6', bgcolor: '#EFF6FF', borderRadius: '7px', '&:hover': { bgcolor: '#DBEAFE' } }}>
+                                  <EditRoundedIcon sx={{ fontSize: 15 }} />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Delete">
+                                <IconButton size="small" onClick={() => setDeleteId(p.patient_id)}
+                                  sx={{ color: '#EF4444', bgcolor: '#FEF2F2', borderRadius: '7px', '&:hover': { bgcolor: '#FEE2E2' } }}>
+                                  <DeleteRoundedIcon sx={{ fontSize: 15 }} />
+                                </IconButton>
+                              </Tooltip>
+                            </>
+                          )}
                         </Box>
                       </TableCell>
                     </TableRow>

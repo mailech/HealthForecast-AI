@@ -7,8 +7,8 @@ from app.dependencies import RoleChecker
 
 router = APIRouter(prefix="/treatments", tags=["Treatments Management"])
 
-read_dependency = Depends(RoleChecker(allowed_roles=["Doctor", "Hospital Administrator", "Healthcare Researcher", "System Administrator"]))
-write_dependency = Depends(RoleChecker(allowed_roles=["Doctor", "Hospital Administrator", "System Administrator"]))
+read_dependency = Depends(RoleChecker(allowed_roles=["Doctor", "Researcher", "Admin", "SysAdmin"]))
+write_dependency = Depends(RoleChecker(allowed_roles=["Doctor", "SysAdmin"]))
 
 @router.get("/doctors", dependencies=[read_dependency])
 def list_doctors():
@@ -44,6 +44,13 @@ def get_patient_treatments(patient_id: str):
     Retrieves all treatment schedules for a specific patient.
     """
     return TreatmentService.get_by_patient_id(patient_id)
+
+@router.get("/prediction/{prediction_id}", response_model=List[TreatmentResponse], dependencies=[read_dependency])
+def get_prediction_treatments(prediction_id: str):
+    """
+    Retrieves all treatment plans linked to a specific prediction record.
+    """
+    return TreatmentService.get_by_prediction_id(prediction_id)
 
 @router.get("/{treatment_id}", response_model=TreatmentResponse, dependencies=[read_dependency])
 def get_treatment(treatment_id: str):

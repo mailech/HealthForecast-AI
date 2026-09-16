@@ -7,11 +7,24 @@ from app.schemas.patient import PatientCreate, PatientUpdate
 class PatientService:
     @staticmethod
     def create_patient(patient_in: PatientCreate) -> Optional[dict]:
+        # Auto-generate patient_id if missing or empty
+        if not patient_in.patient_id or not patient_in.patient_id.strip():
+            count = patients_collection.count_documents({}) + 10001
+            patient_in.patient_id = f"PAT-{count}"
+        else:
+            patient_in.patient_id = patient_in.patient_id.strip()
+
         # Check unique patient_id
         if patients_collection.find_one({"patient_id": patient_in.patient_id}):
             return None
             
         patient_dict = patient_in.model_dump()
+        # Clean empty strings for optional fields
+        if not patient_dict.get("email"):
+            patient_dict["email"] = None
+        if not patient_dict.get("phone"):
+            patient_dict["phone"] = None
+
         patient_dict["created_at"] = datetime.utcnow()
         patient_dict["updated_at"] = datetime.utcnow()
         
@@ -24,7 +37,6 @@ class PatientService:
         try:
             return patients_collection.find_one({"_id": ObjectId(patient_id)})
         except Exception:
-            # Check by custom patient_id
             return patients_collection.find_one({"patient_id": patient_id})
 
     @staticmethod
@@ -32,8 +44,8 @@ class PatientService:
         return patients_collection.find_one({"patient_id": patient_id})
 
     @staticmethod
-    def get_patients(skip: int = 0, limit: int = 100) -> List[dict]:
-        return list(patients_collection.find().skip(skip).limit(limit))
+    def get_patients(skip: int = 0, limit: int = 200) -> List[dict]:
+        return list(patients_collection.find().sort("created_at", -1).skip(skip).limit(limit))
 
     @staticmethod
     def update_patient(patient_id: str, patient_in: PatientUpdate) -> Optional[dict]:

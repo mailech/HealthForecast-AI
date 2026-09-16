@@ -11,20 +11,20 @@ class PredictionInput(BaseModel):
     admission_type_id: int = Field(1, ge=1, le=8)
     discharge_disposition_id: int = Field(1, ge=1, le=30)
     admission_source_id: int = Field(7, ge=1, le=25)
-    time_in_hospital: int = Field(3, ge=1, le=14)
-    num_lab_procedures: int = Field(40, ge=1, le=150)
-    num_procedures: int = Field(1, ge=0, le=10)
-    num_medications: int = Field(15, ge=1, le=100)
+    time_in_hospital: int = Field(0, ge=0, le=14)
+    num_lab_procedures: int = Field(0, ge=0, le=150)
+    num_procedures: int = Field(0, ge=0, le=10)
+    num_medications: int = Field(0, ge=0, le=100)
     number_outpatient: int = Field(0, ge=0)
     number_emergency: int = Field(0, ge=0)
     number_inpatient: int = Field(0, ge=0)
     diag_1: str = Field("250.01", description="Primary ICD-9 diagnosis code")
     diag_2: str = Field("401", description="Secondary ICD-9 diagnosis code")
     diag_3: str = Field("272", description="Tertiary ICD-9 diagnosis code")
-    number_diagnoses: int = Field(9, ge=1, le=16)
+    number_diagnoses: int = Field(0, ge=0, le=16)
     medical_specialty: str = Field("InternalMedicine")
     change: str = Field("No", description="Ch, No")
-    diabetesMed: str = Field("Yes", description="Yes, No")
+    diabetesMed: str = Field("No", description="Yes, No")
     medications: Optional[Dict[str, str]] = Field(default_factory=dict)
 
     model_config = {
@@ -33,19 +33,26 @@ class PredictionInput(BaseModel):
 
 class PredictionResponse(BaseModel):
     patient_id: str
-    model1_probability: float = Field(..., description="Probability score from Model 1 (Patient Risk)")
-    model1_prediction: str = Field(..., description="Prediction label from Model 1")
-    model2_probability: float = Field(..., description="Probability score from Model 2 (Readmission)")
-    model2_prediction: str = Field(..., description="Prediction label from Model 2")
-    readmission_risk_score: float = Field(..., description="Max risk score between 0.0 and 1.0")
-    risk_level: str = Field(..., description="High, Medium, or Low")
-    clinical_interpretation: str = Field(..., description="Detailed clinical summary")
-    prediction_date: datetime = Field(default_factory=datetime.utcnow)
+    model1_probability: Optional[float] = Field(0.0, description="Probability score from Model 1 (Patient Risk)")
+    model1_prediction: Optional[str] = Field("Low Risk", description="Prediction label from Model 1")
+    model2_probability: Optional[float] = Field(0.0, description="Probability score from Model 2 (Readmission)")
+    model2_prediction: Optional[str] = Field("No Readmission", description="Prediction label from Model 2")
+    readmission_risk_score: Optional[float] = Field(0.0, description="Max risk score between 0.0 and 1.0")
+    risk_level: Optional[str] = Field("Low", description="High, Medium, or Low")
+    clinical_interpretation: Optional[str] = Field("Clinical assessment complete.", description="Detailed clinical summary")
+    prediction_date: Optional[datetime] = Field(default_factory=datetime.utcnow)
     predicted_by: Optional[str] = None
+    doctor_name: Optional[str] = Field(default=None, description="Human-readable doctor display name")
+    patient_name: Optional[str] = Field(default=None, description="Patient full name at time of prediction")
     notes: Optional[str] = None
 
 class PredictionSave(PredictionResponse):
-    features_used: Dict[str, Any]
+    features_used: Optional[Dict[str, Any]] = Field(default_factory=dict)
+
+class PredictionUpdate(BaseModel):
+    """Schema for partially updating a saved prediction record (e.g., editing the doctor name)."""
+    predicted_by: Optional[str] = None
+    doctor_name: Optional[str] = None
 
 class PredictionInDB(PredictionSave):
     id: Optional[PyObjectId] = Field(default=None, alias="_id")

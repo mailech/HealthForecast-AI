@@ -1,1028 +1,919 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   Box, Typography, Grid, Card, CardContent, Button, TextField,
   MenuItem, CircularProgress, Alert, Chip, Divider, Avatar,
-  Table, TableBody, TableCell, TableHead, TableRow, TableContainer, IconButton,
-  Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Snackbar
+  InputAdornment, Autocomplete, Snackbar, Paper, LinearProgress,
+  Dialog, DialogTitle, DialogContent, DialogActions, IconButton
 } from '@mui/material';
 import PsychologyRoundedIcon from '@mui/icons-material/PsychologyRounded';
-import MedicalServicesRoundedIcon from '@mui/icons-material/MedicalServicesRounded';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
-import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
-import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
-import VisibilityRoundedIcon from '@mui/icons-material/VisibilityRounded';
-import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
-import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
-import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
+import MonitorHeartRoundedIcon from '@mui/icons-material/MonitorHeartRounded';
 import LocalPharmacyRoundedIcon from '@mui/icons-material/LocalPharmacyRounded';
+import MedicalServicesRoundedIcon from '@mui/icons-material/MedicalServicesRounded';
 import AssignmentRoundedIcon from '@mui/icons-material/AssignmentRounded';
-import LocalHospitalRoundedIcon from '@mui/icons-material/LocalHospitalRounded';
-import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
+import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
+import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
+import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
+import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
+import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
+import { useAuth } from '../context/AuthContext';
 
-// Categorical Constants
-const RACES = ['Caucasian', 'AfricanAmerican', 'Hispanic', 'Asian', 'Other', 'Unknown'];
-const GENDERS = ['Female', 'Male'];
-const AGE_BRACKETS = ['[0-10)', '[10-20)', '[20-30)', '[30-40)', '[40-50)', '[50-60)', '[60-70)', '[70-80)', '[80-90)', '[90-100)'];
-
-const ADMISSION_TYPES = [
-  { id: 1, label: '1 - Emergency' },
-  { id: 2, label: '2 - Urgent' },
-  { id: 3, label: '3 - Elective' },
-  { id: 4, label: '4 - Newborn' },
-  { id: 5, label: '5 - Trauma Center' },
-  { id: 6, label: '6 - Not Available' },
-  { id: 7, label: '7 - Emergency Room' },
-  { id: 8, label: '8 - Not Mapped' },
-];
-
-const DISCHARGE_DISPOSITIONS = [
-  { id: 1, label: '1 - Discharged to Home' },
-  { id: 2, label: '2 - Transferred to Short Term Hospital' },
-  { id: 3, label: '3 - Transferred to SNF' },
-  { id: 6, label: '6 - Home Health Service' },
-  { id: 11, label: '11 - Expired' },
-  { id: 18, label: '18 - Hospice / Home' },
-];
-
-const ADMISSION_SOURCES = [
-  { id: 7, label: '7 - Emergency Room' },
-  { id: 1, label: '1 - Physician Referral' },
-  { id: 2, label: '2 - Clinic Referral' },
-  { id: 3, label: '3 - HMO Referral' },
-  { id: 4, label: '4 - Transfer from Hospital' },
-  { id: 5, label: '5 - Transfer from SNF' },
-  { id: 9, label: '9 - Internal' },
-  { id: 17, label: '17 - Other' },
-];
-
-const MEDICAL_SPECIALTIES = [
-  'InternalMedicine', 'Cardiology', 'Surgery-General',
-  'Emergency/Trauma', 'Family/GeneralPractice', 'Pediatrics',
-  'Nephrology', 'Orthopedics', 'Other', 'Unknown'
-];
-
-const MED_NAMES = [
-  "metformin", "repaglinide", "nateglinide", "chlorpropamide", "glimepiride",
-  "acetohexamide", "glipizide", "glyburide", "tolbutamide", "pioglitazone",
-  "rosiglitazone", "acarbose", "miglitol", "troglitazone", "tolazamide",
-  "examide", "citoglipton", "insulin", "glyburide-metformin",
-  "glipizide-metformin", "glimepiride-pioglitazone",
-  "metformin-rosiglitazone", "metformin-pioglitazone"
-];
-
-const MED_STATUS_OPTIONS = ['No', 'Steady', 'Up', 'Down'];
-
-const RISK_STYLES = {
-  High:   { color: '#EF4444', bg: '#FEF2F2', border: '#FECACA', text: '#DC2626' },
-  Medium: { color: '#F59E0B', bg: '#FFFBEB', border: '#FDE68A', text: '#D97706' },
-  Low:    { color: '#10B981', bg: '#ECFDF5', border: '#A7F3D0', text: '#059669' },
+// ─── Risk level colors ────────────────────────────────────────────────────────
+const RISK_CONFIG = {
+  High:   { color: '#DC2626', bg: '#FEF2F2', border: '#FECACA', icon: <WarningAmberRoundedIcon /> },
+  Medium: { color: '#D97706', bg: '#FFFBEB', border: '#FDE68A', icon: <WarningAmberRoundedIcon /> },
+  Low:    { color: '#059669', bg: '#ECFDF5', border: '#A7F3D0', icon: <CheckCircleRoundedIcon /> },
 };
 
-function ageToBracket(dob) {
-  if (!dob) return '[50-60)';
-  try {
-    const birth = new Date(dob);
-    const age = Math.floor((new Date() - birth) / (365.25 * 24 * 3600 * 1000));
-    if (age < 10) return '[0-10)';
-    if (age < 20) return '[10-20)';
-    if (age < 30) return '[20-30)';
-    if (age < 40) return '[30-40)';
-    if (age < 50) return '[40-50)';
-    if (age < 60) return '[50-60)';
-    if (age < 70) return '[60-70)';
-    if (age < 80) return '[70-80)';
-    if (age < 90) return '[80-90)';
-    return '[90-100)';
-  } catch {
-    return '[50-60)';
-  }
+// ─── Section Card ─────────────────────────────────────────────────────────────
+function SectionCard({ icon, title, children, action }) {
+  return (
+    <Card elevation={0} sx={{ borderRadius: '14px', border: '1px solid #E2E8F0', mb: 2.5 }}>
+      <Box sx={{
+        px: 2.5, py: 1.8, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        borderBottom: '1px solid #F1F5F9', bgcolor: '#FAFBFD'
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+          <Box sx={{ color: '#0F6CBD', display: 'flex' }}>{icon}</Box>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: '#0F172A' }}>{title}</Typography>
+        </Box>
+        {action}
+      </Box>
+      <CardContent sx={{ p: 2.5 }}>{children}</CardContent>
+    </Card>
+  );
 }
 
-function RiskBadge({ level }) {
-  const r = RISK_STYLES[level] || RISK_STYLES.Low;
+// ─── VitalField ───────────────────────────────────────────────────────────────
+function VitalField({ label, value, onChange, unit, type = 'number', min, max, disabled }) {
   return (
-    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.6, px: 1.2, py: 0.4, borderRadius: '6px', bgcolor: r.bg, border: `1px solid ${r.border}` }}>
-      <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: r.color }} />
-      <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: r.text }}>{level}</Typography>
+    <Box>
+      <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748B', mb: 0.5 }}>{label}</Typography>
+      <TextField
+        size="small"
+        type={type}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        disabled={disabled}
+        inputProps={{ min, max, step: type === 'number' ? 'any' : undefined }}
+        InputProps={unit ? { endAdornment: <InputAdornment position="end"><Typography sx={{ fontSize: '0.72rem', color: '#94A3B8' }}>{unit}</Typography></InputAdornment> } : undefined}
+        sx={{ width: '100%', '& .MuiInputBase-root': { borderRadius: '10px', fontSize: '0.85rem' } }}
+        placeholder="—"
+      />
     </Box>
   );
 }
 
-function SectionTitle({ icon, title }) {
+// ─── Condition Toggle ─────────────────────────────────────────────────────────
+function ConditionToggle({ label, value, onChange, disabled }) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, pb: 0.5, borderBottom: '1px solid #F1F5F9' }}>
-      {icon}
-      <Typography sx={{ fontWeight: 700, fontSize: '0.88rem', color: '#0F172A' }}>{title}</Typography>
+    <Box
+      onClick={() => !disabled && onChange(!value)}
+      sx={{
+        display: 'flex', alignItems: 'center', gap: 1, px: 1.8, py: 1.2,
+        borderRadius: '10px', border: `2px solid ${value ? '#0F6CBD' : '#E2E8F0'}`,
+        bgcolor: value ? '#EFF6FF' : '#FAFBFD', cursor: disabled ? 'default' : 'pointer',
+        transition: 'all 0.15s', userSelect: 'none', opacity: disabled ? 0.6 : 1,
+      }}
+    >
+      <Box sx={{ width: 18, height: 18, borderRadius: '5px', border: `2px solid ${value ? '#0F6CBD' : '#CBD5E1'}`,
+        bgcolor: value ? '#0F6CBD' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        {value && <CheckCircleRoundedIcon sx={{ fontSize: 13, color: '#fff' }} />}
+      </Box>
+      <Typography sx={{ fontSize: '0.82rem', fontWeight: value ? 700 : 500, color: value ? '#0F6CBD' : '#475569' }}>{label}</Typography>
     </Box>
   );
 }
 
-/* =========================================================================
-   CREATE TREATMENT DIALOG (Integrates with prediction result)
-   ========================================================================= */
-function CreateTreatmentDialog({ open, patient, result, user, onClose, onCreated }) {
-  const [saving, setSaving] = useState(false);
+// ─── Add Treatment Modal ─────────────────────────────────────────────────────
+function AddTreatmentModal({ open, patient, prediction, onClose, onCreated }) {
+  const { user } = useAuth();
+  const [creating, setCreating] = useState(false);
   const [err, setErr] = useState('');
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const ninetyDaysStr = new Date(Date.now() + 90 * 86400000).toISOString().split('T')[0];
+
   const [form, setForm] = useState({
     treatment_plan: '',
+    status: 'Active',
     diagnosis: '',
     notes: '',
-    medication_name: '',
-    medication_dosage: '40 mg',
-    medication_frequency: 'Once daily'
+    monitoring_parameters: '',
+    start_date: todayStr,
+    follow_up_date: '',
+    end_date: ninetyDaysStr,
+    medications: []
   });
 
   useEffect(() => {
-    if (result && open) {
+    if (open) {
       setForm({
-        treatment_plan: `Readmission prevention plan based on AI Risk Assessment (${result.risk_level}).`,
-        diagnosis: result.features_used?.diag_1 || '250.01',
-        notes: result.clinical_interpretation || '',
-        medication_name: 'Metformin',
-        medication_dosage: '500 mg',
-        medication_frequency: 'Once daily'
+        treatment_plan: '',
+        status: 'Active',
+        diagnosis: '',
+        notes: '',
+        monitoring_parameters: '',
+        start_date: new Date().toISOString().split('T')[0],
+        follow_up_date: '',
+        end_date: new Date(Date.now() + 90 * 86400000).toISOString().split('T')[0],
+        medications: []
       });
       setErr('');
     }
-  }, [result, open]);
+  }, [open]);
 
-  const handleSave = async () => {
-    if (!form.treatment_plan.trim()) { setErr('Treatment plan is required.'); return; }
-    setSaving(true); setErr('');
-    try {
-      const now = new Date();
-      const followUp = new Date(now), endDate = new Date(now);
-      const rl = result?.risk_level || 'Low';
-      if (rl === 'High')   { followUp.setDate(followUp.getDate() + 7);  endDate.setDate(endDate.getDate() + 90); }
-      if (rl === 'Medium') { followUp.setDate(followUp.getDate() + 14); endDate.setDate(endDate.getDate() + 60); }
-      if (rl === 'Low')    { followUp.setDate(followUp.getDate() + 30); endDate.setDate(endDate.getDate() + 30); }
-      
-      const medications = form.medication_name.trim()
-        ? [{ name: form.medication_name.trim(), dosage: form.medication_dosage.trim() || 'As prescribed', frequency: form.medication_frequency.trim() || 'Once daily' }]
-        : [];
-
-      await api.post('/api/v1/treatments', {
-        patient_id: patient.patient_id,
-        doctor_id: user?.email || 'doctor@hospital.com',
-        treatment_plan: form.treatment_plan.trim(),
-        diagnosis: form.diagnosis.trim() || null,
-        notes: form.notes.trim() || null,
-        medications,
-        start_date: now.toISOString(),
-        end_date: endDate.toISOString(),
-        follow_up_date: followUp.toISOString(),
-        status: 'Active',
-        recovery_percentage: 0,
-      });
-      onCreated(); onClose();
-    } catch (e) {
-      setErr(e.response?.data?.detail || 'Failed to create treatment.');
-    } finally { setSaving(false); }
+  const handleAddMed = () => {
+    setForm(p => ({ ...p, medications: [...p.medications, { name: '', dosage: '', frequency: 'Once daily' }] }));
   };
 
+  const handleRemoveMed = (index) => {
+    setForm(p => ({ ...p, medications: p.medications.filter((_, i) => i !== index) }));
+  };
+
+  const handleMedChange = (index, field, value) => {
+    setForm(p => {
+      const updated = [...p.medications];
+      updated[index] = { ...updated[index], [field]: value };
+      return { ...p, medications: updated };
+    });
+  };
+
+  const handleCreate = async () => {
+    if (!form.treatment_plan.trim()) {
+      setErr('Please enter a treatment plan.');
+      return;
+    }
+    setCreating(true);
+    setErr('');
+    try {
+      const predId = prediction._id || prediction.id;
+      const cleanMeds = form.medications
+        .filter(m => m.name.trim() !== '')
+        .map(m => ({ name: m.name.trim(), dosage: m.dosage.trim() || 'As prescribed', frequency: m.frequency.trim() || 'As directed' }));
+
+      const payload = {
+        patient_id: patient.patient_id,
+        prediction_id: predId,
+        doctor_id: user?.email || 'Dr. Doctor',
+        treatment_plan: form.treatment_plan.trim(),
+        medications: cleanMeds,
+        status: form.status,
+        start_date: form.start_date ? new Date(form.start_date).toISOString() : new Date().toISOString(),
+        end_date: form.end_date ? new Date(form.end_date).toISOString() : new Date(Date.now() + 90 * 86400000).toISOString(),
+        follow_up_date: form.follow_up_date ? new Date(form.follow_up_date).toISOString() : null,
+        diagnosis: form.diagnosis.trim() || null,
+        notes: form.notes.trim() || null,
+        monitoring_parameters: form.monitoring_parameters.trim() || null,
+      };
+
+      const res = await api.post('/api/v1/treatments', payload);
+      onCreated(res.data);
+      onClose();
+    } catch (e) {
+      setErr(e?.response?.data?.detail || 'Failed to create treatment plan. Please try again.');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  if (!patient || !prediction) return null;
+  const riskProb = Math.round((prediction.readmission_risk_score || prediction.model1_probability || 0) * 100);
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth
-      PaperProps={{ sx: { borderRadius: '16px', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' } }}>
-      <DialogTitle sx={{ pb: 1 }}>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: '16px' } }}>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box sx={{ width: 36, height: 36, borderRadius: '10px', bgcolor: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <MedicalServicesRoundedIcon sx={{ color: '#1D4ED8', fontSize: 18 }} />
+          <Box sx={{ width: 38, height: 38, borderRadius: '10px', bgcolor: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <MedicalServicesRoundedIcon sx={{ color: '#0F6CBD', fontSize: 20 }} />
           </Box>
           <Box>
-            <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: '#0F172A' }}>Create Treatment Plan</Typography>
-            <Typography sx={{ fontSize: '0.72rem', color: '#64748B' }}>{patient?.first_name} {patient?.last_name} ({patient?.patient_id})</Typography>
+            <Typography sx={{ fontWeight: 800, fontSize: '1.05rem', color: '#0F172A' }}>ADD TREATMENT PLAN</Typography>
+            <Typography sx={{ fontSize: '0.75rem', color: '#64748B' }}>Create treatment plan based on AI Risk Assessment</Typography>
           </Box>
         </Box>
+        <IconButton onClick={onClose}><CloseRoundedIcon /></IconButton>
       </DialogTitle>
-      <DialogContent sx={{ pt: 1 }}>
-        {err && <Alert severity="error" sx={{ mb: 2, borderRadius: '8px', fontSize: '0.8rem' }}>{err}</Alert>}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-          <TextField label="Treatment Plan *" multiline rows={3} value={form.treatment_plan} onChange={e => setForm(f => ({ ...f, treatment_plan: e.target.value }))} fullWidth size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px', fontSize: '0.85rem' } }} />
-          <TextField label="Primary Diagnosis" value={form.diagnosis} onChange={e => setForm(f => ({ ...f, diagnosis: e.target.value }))} fullWidth size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px', fontSize: '0.85rem' } }} />
+      <DialogContent dividers sx={{ p: 3 }}>
+        {err && <Alert severity="error" sx={{ mb: 2, borderRadius: '10px' }}>{err}</Alert>}
+
+        {/* Patient & AI Summary Header */}
+        <Box sx={{ p: 2, borderRadius: '12px', bgcolor: '#F8FAFC', border: '1px solid #E2E8F0', mb: 3, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
           <Box>
-            <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', mb: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Medication (optional)</Typography>
-            <Grid container spacing={1.5}>
-              <Grid item xs={12} sm={4}><TextField label="Name" value={form.medication_name} onChange={e => setForm(f => ({ ...f, medication_name: e.target.value }))} fullWidth size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '9px', fontSize: '0.82rem' } }} /></Grid>
-              <Grid item xs={12} sm={4}><TextField label="Dosage" value={form.medication_dosage} onChange={e => setForm(f => ({ ...f, medication_dosage: e.target.value }))} fullWidth size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '9px', fontSize: '0.82rem' } }} /></Grid>
-              <Grid item xs={12} sm={4}><TextField label="Frequency" value={form.medication_frequency} onChange={e => setForm(f => ({ ...f, medication_frequency: e.target.value }))} fullWidth size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '9px', fontSize: '0.82rem' } }} /></Grid>
-            </Grid>
+            <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Patient</Typography>
+            <Typography sx={{ fontWeight: 800, color: '#0F172A' }}>{patient.first_name} {patient.last_name} ({patient.patient_id})</Typography>
           </Box>
-          <TextField label="Doctor Notes" multiline rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} fullWidth size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px', fontSize: '0.85rem' } }} />
+          <Box>
+            <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>AI Assessment</Typography>
+            <Chip
+              label={`${prediction.risk_level} Risk — ${riskProb}% Probability`}
+              size="small"
+              sx={{ fontWeight: 800, fontSize: '0.72rem', bgcolor: prediction.risk_level === 'High' ? '#FEF2F2' : '#EFF6FF', color: prediction.risk_level === 'High' ? '#DC2626' : '#0F6CBD' }}
+            />
+          </Box>
         </Box>
+
+        <Grid container spacing={2.5}>
+          {/* Treatment Plan */}
+          <Grid item xs={12}>
+            <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', mb: 0.7 }}>
+              Treatment Plan <span style={{ color: '#EF4444' }}>*</span>
+            </Typography>
+            <TextField
+              size="small" fullWidth multiline minRows={2}
+              value={form.treatment_plan}
+              onChange={e => setForm(p => ({ ...p, treatment_plan: e.target.value }))}
+              placeholder="Enter comprehensive treatment plan guidelines..."
+              sx={{ '& .MuiInputBase-root': { borderRadius: '10px' } }}
+            />
+          </Grid>
+
+          {/* Diagnosis */}
+          <Grid item xs={12} sm={6}>
+            <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', mb: 0.7 }}>Diagnosis</Typography>
+            <TextField
+              size="small" fullWidth
+              value={form.diagnosis}
+              onChange={e => setForm(p => ({ ...p, diagnosis: e.target.value }))}
+              placeholder="Primary diagnosis..."
+              sx={{ '& .MuiInputBase-root': { borderRadius: '10px' } }}
+            />
+          </Grid>
+
+          {/* Status */}
+          <Grid item xs={12} sm={6}>
+            <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', mb: 0.7 }}>Treatment Status</Typography>
+            <TextField
+              select size="small" fullWidth
+              value={form.status}
+              onChange={e => setForm(p => ({ ...p, status: e.target.value }))}
+              sx={{ '& .MuiInputBase-root': { borderRadius: '10px' } }}
+            >
+              {['Active', 'In Progress', 'Completed', 'Pending Follow-up', 'Discontinued', 'Cancelled', 'Paused'].map(s => (
+                <MenuItem key={s} value={s}>{s}</MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+
+          {/* Dates */}
+          <Grid item xs={12} sm={4}>
+            <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', mb: 0.7 }}>Start Date</Typography>
+            <TextField type="date" size="small" fullWidth value={form.start_date} onChange={e => setForm(p => ({ ...p, start_date: e.target.value }))} InputLabelProps={{ shrink: true }} sx={{ '& .MuiInputBase-root': { borderRadius: '10px' } }} />
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', mb: 0.7 }}>Follow-up Date</Typography>
+            <TextField type="date" size="small" fullWidth value={form.follow_up_date} onChange={e => setForm(p => ({ ...p, follow_up_date: e.target.value }))} InputLabelProps={{ shrink: true }} sx={{ '& .MuiInputBase-root': { borderRadius: '10px' } }} />
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', mb: 0.7 }}>End Date</Typography>
+            <TextField type="date" size="small" fullWidth value={form.end_date} onChange={e => setForm(p => ({ ...p, end_date: e.target.value }))} InputLabelProps={{ shrink: true }} sx={{ '& .MuiInputBase-root': { borderRadius: '10px' } }} />
+          </Grid>
+
+          {/* Medications section */}
+          <Grid item xs={12}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+              <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Medications</Typography>
+              <Button size="small" startIcon={<AddRoundedIcon />} onClick={handleAddMed} sx={{ fontSize: '0.72rem', fontWeight: 700 }}>
+                + Add Medication
+              </Button>
+            </Box>
+            {form.medications.length === 0 ? (
+              <Box sx={{ py: 2, textAlign: 'center', color: '#94A3B8', border: '1px dashed #CBD5E1', borderRadius: '10px' }}>
+                <Typography sx={{ fontSize: '0.8rem' }}>No medications added to this plan yet.</Typography>
+              </Box>
+            ) : (
+              form.medications.map((m, idx) => (
+                <Box key={idx} sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 1 }}>
+                  <TextField size="small" placeholder="Medication Name" value={m.name} onChange={e => handleMedChange(idx, 'name', e.target.value)} sx={{ flex: 2, '& .MuiInputBase-root': { borderRadius: '8px' } }} />
+                  <TextField size="small" placeholder="Dosage (e.g. 500mg)" value={m.dosage} onChange={e => handleMedChange(idx, 'dosage', e.target.value)} sx={{ flex: 1, '& .MuiInputBase-root': { borderRadius: '8px' } }} />
+                  <TextField select size="small" value={m.frequency} onChange={e => handleMedChange(idx, 'frequency', e.target.value)} sx={{ flex: 1.5, '& .MuiInputBase-root': { borderRadius: '8px' } }}>
+                    {['Once daily', 'Twice daily', 'Three times daily', 'Four times daily', 'Every 8 hours', 'Every 12 hours', 'As needed', 'As directed'].map(o => (
+                      <MenuItem key={o} value={o}>{o}</MenuItem>
+                    ))}
+                  </TextField>
+                  <IconButton size="small" color="error" onClick={() => handleRemoveMed(idx)}>
+                    <CloseRoundedIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </Box>
+              ))
+            )}
+          </Grid>
+
+          {/* Notes */}
+          <Grid item xs={12}>
+            <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', mb: 0.7 }}>Doctor Notes</Typography>
+            <TextField size="small" fullWidth multiline minRows={2} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} placeholder="Clinical notes & instructions..." sx={{ '& .MuiInputBase-root': { borderRadius: '10px' } }} />
+          </Grid>
+
+          {/* Monitoring parameters */}
+          <Grid item xs={12}>
+            <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', mb: 0.7 }}>Monitoring Parameters</Typography>
+            <TextField size="small" fullWidth value={form.monitoring_parameters} onChange={e => setForm(p => ({ ...p, monitoring_parameters: e.target.value }))} placeholder="e.g. Blood pressure daily, Blood glucose weekly..." sx={{ '& .MuiInputBase-root': { borderRadius: '10px' } }} />
+          </Grid>
+        </Grid>
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-        <Button onClick={onClose} disabled={saving} sx={{ borderRadius: '8px', color: '#64748B', fontSize: '0.82rem' }}>Cancel</Button>
-        <Button variant="contained" onClick={handleSave} disabled={saving} startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <MedicalServicesRoundedIcon />} sx={{ borderRadius: '8px', bgcolor: '#1D4ED8', fontWeight: 700, fontSize: '0.82rem', '&:hover': { bgcolor: '#1E40AF' } }}>
-          {saving ? 'Creating...' : 'Create Treatment'}
+      <DialogActions sx={{ p: 2.5, gap: 1.5 }}>
+        <Button onClick={onClose} variant="outlined" sx={{ fontWeight: 700, borderRadius: '10px' }}>Cancel</Button>
+        <Button onClick={handleCreate} disabled={creating} variant="contained" startIcon={creating ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : <AddRoundedIcon />} sx={{ fontWeight: 700, borderRadius: '10px', bgcolor: '#0F6CBD' }}>
+          {creating ? 'Creating...' : 'Create Treatment'}
         </Button>
       </DialogActions>
     </Dialog>
   );
 }
 
-/* =========================================================================
-   MAIN PREDICTION COMPONENT
-   ========================================================================= */
+// ─── Main Component ───────────────────────────────────────────────────────────
 export default function Prediction() {
+  const navigate = useNavigate();
+  const { user, role } = useAuth();
+  const normRole = (role || user?.role || '').toLowerCase().replace(/ /g, '');
+  const isDoctor = normRole === 'doctor';
+
+  // Patients list
   const [patients, setPatients] = useState([]);
-  const [loadingPatients, setLoadingPatients] = useState(true);
-  const [selectedPatientId, setSelectedPatientId] = useState('');
-  const [patient, setPatient] = useState(null);
-  
-  // Full Trained Model Feature Form State
-  const [form, setForm] = useState({
-    race: 'Caucasian',
-    gender: 'Female',
-    age: '[50-60)',
-    admission_type_id: 1,
-    discharge_disposition_id: 1,
-    admission_source_id: 7,
-    time_in_hospital: 3,
-    num_lab_procedures: 40,
-    num_procedures: 1,
-    num_medications: 15,
-    number_outpatient: 0,
-    number_emergency: 0,
-    number_inpatient: 0,
-    diag_1: '250.01',
-    diag_2: '401',
-    diag_3: '272',
-    number_diagnoses: 9,
-    medical_specialty: 'InternalMedicine',
-    change: 'No',
-    diabetesMed: 'Yes',
-    medications: MED_NAMES.reduce((acc, m) => {
-      acc[m] = (m === 'metformin' || m === 'insulin') ? 'Steady' : 'No';
-      return acc;
-    }, {})
+  const [patientsLoading, setPatientsLoading] = useState(true);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+
+  // Treatment summary
+  const [treatments, setTreatments] = useState([]);
+  const [treatmentsLoading, setTreatmentsLoading] = useState(false);
+
+  // Vitals form
+  const [vitals, setVitals] = useState({
+    bp_systolic: '', bp_diastolic: '', blood_glucose: '', hba1c: '',
+    heart_rate: '', spo2: '', body_temperature: '', bmi: '', cholesterol: ''
   });
 
-  const [submitting, setSubmitting] = useState(false);
-  const [predResult, setPredResult] = useState(null);
+  // Conditions
+  const [conditions, setConditions] = useState({
+    has_diabetes: false, has_hypertension: false, has_heart_disease: false, other: ''
+  });
+
+  // Notes
+  const [symptomsNotes, setSymptomsNotes] = useState('');
+
+  // Prediction state
+  const [predicting, setPredicting] = useState(false);
+  const [predictionResult, setPredictionResult] = useState(null);
   const [predError, setPredError] = useState('');
-  
-  // Prediction History State
-  const [predictionsHistory, setPredictionsHistory] = useState([]);
-  const [loadingHistory, setLoadingHistory] = useState(true);
-  const [historyModalOpen, setHistoryModalOpen] = useState(false);
-  const [historySearch, setHistorySearch] = useState('');
 
-  // Delete Prediction Dialog State
-  const [deleteDialog, setDeleteDialog] = useState(false);
-  const [deletePredId, setDeletePredId] = useState(null);
-  const [deleting, setDeleting] = useState(false);
+  // Download PDF
+  const [downloadingPDF, setDownloadingPDF] = useState(false);
 
-  // Treatment Integration State
-  const [txDialog, setTxDialog] = useState(false);
-  const [existingTx, setExistingTx] = useState(null);
-  const [checkingTx, setCheckingTx] = useState(false);
+  // Add Treatment Modal State
+  const [openAddTreatmentModal, setOpenAddTreatmentModal] = useState(false);
 
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const navigate = useNavigate();
+  // Snackbar
+  const [snack, setSnack] = useState({ open: false, msg: '' });
 
-  // Load patients and initial prediction history
-  const loadPredictionsHistory = useCallback(() => {
-    setLoadingHistory(true);
-    api.get('/api/v1/prediction?limit=500')
-      .then(res => setPredictionsHistory(Array.isArray(res.data) ? res.data : []))
-      .catch(() => setPredictionsHistory([]))
-      .finally(() => setLoadingHistory(false));
-  }, []);
-
+  // ─── Load patients ─────────────────────────────────────────────────────────
   useEffect(() => {
-    setLoadingPatients(true);
+    setPatientsLoading(true);
     api.get('/api/v1/patients?limit=500')
-      .then(res => setPatients(Array.isArray(res.data) ? res.data : []))
-      .catch(() => setPatients([]))
-      .finally(() => setLoadingPatients(false));
-
-    loadPredictionsHistory();
-  }, [loadPredictionsHistory]);
-
-  const checkExistingTreatment = useCallback(async (patientId) => {
-    if (!patientId) return;
-    setCheckingTx(true);
-    try {
-      const res = await api.get(`/api/v1/treatments/patient/${patientId}`);
-      setExistingTx(res.data?.length > 0 ? res.data[0] : null);
-    } catch { setExistingTx(null); }
-    finally { setCheckingTx(false); }
+      .then(res => {
+        console.log("PATIENT API RESPONSE:", res.data);
+        let list = [];
+        if (Array.isArray(res.data)) {
+          list = res.data;
+        } else if (Array.isArray(res.data?.patients)) {
+          list = res.data.patients;
+        } else if (Array.isArray(res.data?.data)) {
+          list = res.data.data;
+        } else if (Array.isArray(res.data?.items)) {
+          list = res.data.items;
+        }
+        setPatients(list);
+      })
+      .catch(err => {
+        console.error("PATIENT API ERROR:", err?.response?.status, err?.response?.data || err.message);
+        setPatients([]);
+      })
+      .finally(() => setPatientsLoading(false));
   }, []);
 
-  const handlePatientSelect = (e) => {
-    const id = e.target.value;
-    setSelectedPatientId(id);
-    setPredResult(null); setPredError(''); setExistingTx(null);
-    const p = Array.isArray(patients) ? patients.find(pt => pt.patient_id === id) : null;
-    setPatient(p || null);
-    if (p) {
-      setForm(f => ({
-        ...f,
-        gender: p.gender === 'Male' ? 'Male' : 'Female',
-        age: ageToBracket(p.date_of_birth),
-      }));
-      checkExistingTreatment(id);
-    }
-  };
-
-  const handleFieldChange = (name, value) => {
-    setForm(f => ({ ...f, [name]: value }));
-  };
-
-  const handleMedStatusChange = (medName, value) => {
-    setForm(f => ({
-      ...f,
-      medications: {
-        ...f.medications,
-        [medName]: value
-      }
-    }));
-  };
-
-  const handleRunPrediction = async () => {
-    if (!selectedPatientId) {
-      setPredError('Please select or enter a Patient ID.');
+  // ─── On patient select: load treatment ────────────────────────────────────
+  const loadPatientData = useCallback(async (patient) => {
+    if (!patient) {
+      setTreatments([]);
       return;
     }
-    setSubmitting(true);
-    setPredError('');
-    setPredResult(null);
+    const pid = patient.patient_id;
+    setTreatmentsLoading(true);
+    try {
+      const res = await api.get(`/api/v1/treatments/patient/${pid}`);
+      setTreatments(Array.isArray(res.data) ? res.data : []);
+    } catch {
+      setTreatments([]);
+    } finally {
+      setTreatmentsLoading(false);
+    }
+  }, []);
 
-    const payload = {
-      patient_id: selectedPatientId,
-      race: form.race,
-      gender: form.gender,
-      age: form.age,
-      admission_type_id: Number(form.admission_type_id),
-      discharge_disposition_id: Number(form.discharge_disposition_id),
-      admission_source_id: Number(form.admission_source_id),
-      time_in_hospital: Number(form.time_in_hospital),
-      num_lab_procedures: Number(form.num_lab_procedures),
-      num_procedures: Number(form.num_procedures),
-      num_medications: Number(form.num_medications),
-      number_outpatient: Number(form.number_outpatient),
-      number_emergency: Number(form.number_emergency),
-      number_inpatient: Number(form.number_inpatient),
-      diag_1: form.diag_1 || '250.01',
-      diag_2: form.diag_2 || '401',
-      diag_3: form.diag_3 || '272',
-      number_diagnoses: Number(form.number_diagnoses),
-      medical_specialty: form.medical_specialty,
-      change: form.change,
-      diabetesMed: form.diabetesMed,
-      medications: form.medications
-    };
+  const handlePatientChange = (_, newVal) => {
+    setSelectedPatient(newVal);
+    setPredictionResult(null);
+    setPredError('');
+    loadPatientData(newVal);
+  };
+
+  // ─── Run Prediction ────────────────────────────────────────────────────────
+  const handleRunPrediction = async () => {
+    if (!selectedPatient) {
+      setPredError('Please select a patient first.');
+      return;
+    }
+    setPredError('');
+    setPredicting(true);
+    setPredictionResult(null);
 
     try {
-      // 1. Run inference via backend trained model
-      const res = await api.post('/api/v1/prediction/predict', payload);
-      const predictionOutput = res.data;
-
-      // 2. Persist prediction analysis to database
-      const savePayload = {
-        patient_id: selectedPatientId,
-        model1_probability: predictionOutput.model1_probability,
-        model1_prediction: predictionOutput.model1_prediction,
-        model2_probability: predictionOutput.model2_probability,
-        model2_prediction: predictionOutput.model2_prediction,
-        readmission_risk_score: predictionOutput.readmission_risk_score,
-        risk_level: predictionOutput.risk_level,
-        clinical_interpretation: predictionOutput.clinical_interpretation,
-        notes: predictionOutput.notes,
-        features_used: payload
+      const payload = {
+        patient_id: selectedPatient.patient_id,
+        blood_pressure_systolic: vitals.bp_systolic ? parseInt(vitals.bp_systolic) : null,
+        blood_pressure_diastolic: vitals.bp_diastolic ? parseInt(vitals.bp_diastolic) : null,
+        blood_glucose: vitals.blood_glucose ? parseFloat(vitals.blood_glucose) : null,
+        hba1c: vitals.hba1c ? parseFloat(vitals.hba1c) : null,
+        heart_rate: vitals.heart_rate ? parseInt(vitals.heart_rate) : null,
+        spo2: vitals.spo2 ? parseFloat(vitals.spo2) : null,
+        body_temperature: vitals.body_temperature ? parseFloat(vitals.body_temperature) : null,
+        bmi: vitals.bmi ? parseFloat(vitals.bmi) : null,
+        cholesterol: vitals.cholesterol ? parseFloat(vitals.cholesterol) : null,
+        has_diabetes: conditions.has_diabetes || null,
+        has_hypertension: conditions.has_hypertension || null,
+        has_heart_disease: conditions.has_heart_disease || null,
+        other_conditions: conditions.other || null,
+        symptoms_notes: symptomsNotes || null,
       };
 
-      const savedRes = await api.post('/api/v1/prediction', savePayload);
-      
-      setPredResult({ ...predictionOutput, ...savedRes.data, features_used: payload });
-      setSnackbar({ open: true, message: 'AI Assessment completed and saved to history.', severity: 'success' });
-      
-      // Refresh history list
-      loadPredictionsHistory();
-      checkExistingTreatment(selectedPatientId);
-    } catch (e) {
-      setPredError(e.response?.data?.detail || 'Failed to run prediction analysis.');
+      console.log('FRONTEND PREDICTION PAYLOAD:', JSON.stringify(payload, null, 2));
+
+      const res = await api.post('/api/v1/prediction/simple-predict', payload);
+      setPredictionResult(res.data);
+      setSnack({ open: true, msg: 'AI prediction completed and saved to MongoDB.' });
+    } catch (err) {
+      setPredError(err?.response?.data?.detail || 'Prediction failed. Please try again.');
     } finally {
-      setSubmitting(false);
+      setPredicting(false);
     }
   };
 
-  const handleDeletePredictionClick = (id) => {
-    setDeletePredId(id);
-    setDeleteDialog(true);
-  };
-
-  const handleDeletePredictionConfirm = async () => {
-    if (!deletePredId) return;
-    setDeleting(true);
+  // ─── Download PDF ─────────────────────────────────────────────────────────
+  const handleDownloadPDF = async () => {
+    if (!predictionResult) return;
+    const predId = predictionResult._id || predictionResult.id;
+    if (!predId) { setSnack({ open: true, msg: 'Prediction ID not found. Cannot download PDF.' }); return; }
+    setDownloadingPDF(true);
     try {
-      await api.delete(`/api/v1/prediction/${deletePredId}`);
-      setSnackbar({ open: true, message: 'Prediction record deleted successfully', severity: 'success' });
-      setDeleteDialog(false);
-      setDeletePredId(null);
-      loadPredictionsHistory();
-    } catch (e) {
-      setSnackbar({ open: true, message: e.response?.data?.detail || 'Failed to delete prediction.', severity: 'error' });
+      const res = await api.get(`/api/v1/prediction/${predId}/pdf`, { responseType: 'blob' });
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `prediction_report_${selectedPatient?.patient_id || 'record'}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch {
+      setSnack({ open: true, msg: 'Failed to download PDF report.' });
     } finally {
-      setDeleting(false);
+      setDownloadingPDF(false);
     }
   };
 
-  // Recent predictions displays ONLY latest 10 (sorted newest first)
-  const recentPredictions = useMemo(() => {
-    return predictionsHistory.slice(0, 10);
-  }, [predictionsHistory]);
+  const handleTreatmentCreated = (newTreatment) => {
+    setTreatments(prev => [newTreatment, ...prev]);
+    setSnack({ open: true, msg: 'Treatment created and saved to MongoDB successfully!' });
+  };
 
-  const filteredHistory = useMemo(() => {
-    if (!historySearch.trim()) return predictionsHistory;
-    const q = historySearch.trim().toLowerCase();
-    return predictionsHistory.filter(p =>
-      p.patient_id?.toLowerCase().includes(q) ||
-      p.risk_level?.toLowerCase().includes(q) ||
-      p.model1_prediction?.toLowerCase().includes(q)
-    );
-  }, [predictionsHistory, historySearch]);
+  // ─── Derived ──────────────────────────────────────────────────────────────
+  const activeMeds = treatments.filter(t => t.status === 'Active' || t.status === 'In Progress')
+    .flatMap(t => t.medications || [])
+    .filter(m => m.status !== 'Discontinued' && m.status !== 'Cancelled');
+  const totalMedCount = activeMeds.length;
 
+  const patientAge = selectedPatient?.date_of_birth
+    ? Math.floor((new Date() - new Date(selectedPatient.date_of_birth)) / (1000 * 60 * 60 * 24 * 365.25))
+    : null;
+
+  const rc = predictionResult ? (RISK_CONFIG[predictionResult.risk_level] || RISK_CONFIG.Low) : null;
+  const predId = predictionResult ? (predictionResult._id || predictionResult.id) : null;
+
+  const alreadyHasTreatment = predId
+    ? treatments.some(t => String(t.prediction_id) === String(predId))
+    : false;
+
+  // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <Box sx={{ maxWidth: 1280, mx: 'auto', pb: 4 }}>
-      
+    <Box sx={{ maxWidth: 960, mx: 'auto', pb: 6 }}>
       {/* Header */}
-      <Box sx={{ mb: 3 }}>
-        <Typography sx={{ fontWeight: 800, fontSize: '1.25rem', color: '#0F172A' }}>
-          AI Readmission Risk Assessment
-        </Typography>
-        <Typography sx={{ fontSize: '0.8rem', color: '#64748B', mt: 0.3 }}>
-          Evaluate patient readmission risk and clinical indicators using trained machine learning models
-        </Typography>
+      <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ width: 44, height: 44, borderRadius: '12px', background: 'linear-gradient(135deg,#0F6CBD,#18A999)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(15,108,189,.25)' }}>
+          <PsychologyRoundedIcon sx={{ color: '#fff', fontSize: 24 }} />
+        </Box>
+        <Box>
+          <Typography sx={{ fontWeight: 800, fontSize: '1.35rem', color: '#0F172A', lineHeight: 1.2 }}>AI Medical Assessment</Typography>
+          <Typography sx={{ fontSize: '0.8rem', color: '#64748B' }}>Clinical AI-powered readmission risk prediction</Typography>
+        </Box>
       </Box>
 
-      {/* Main Grid: Input Form + Assessment Results */}
-      <Grid container spacing={3}>
-
-        {/* Left Column: Model Feature Inputs */}
-        <Grid item xs={12} lg={8}>
-          
-          <Card sx={{ borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', mb: 3 }}>
-            <CardContent sx={{ p: 3 }}>
-              
-              {/* Patient Selection Banner */}
-              <Box sx={{ p: 2, borderRadius: '12px', bgcolor: '#F8FAFC', border: '1px solid #E2E8F0', mb: 3 }}>
-                <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1 }}>
-                  Select Target Patient
-                </Typography>
-                <Grid container spacing={2} alignItems="center">
-                  <Grid item xs={12} md={8}>
-                    <TextField
-                      select
-                      fullWidth
-                      size="small"
-                      label="Select Target Patient"
-                      value={selectedPatientId}
-                      onChange={handlePatientSelect}
-                      disabled={loadingPatients}
-                      SelectProps={{ displayEmpty: true }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': { borderRadius: '10px', bgcolor: '#fff', fontSize: '0.88rem' }
-                      }}
-                    >
-                      <MenuItem value="" disabled sx={{ fontSize: '0.85rem', color: '#94A3B8' }}>
-                        Select Target Patient
-                      </MenuItem>
-                      {patients.map(pt => (
-                        <MenuItem key={pt.patient_id} value={pt.patient_id} sx={{ fontSize: '0.85rem' }}>
-                          {pt.first_name} {pt.last_name} ({pt.patient_id})
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                  </Grid>
-                  <Grid item xs={12} md={4}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Patient ID"
-                      placeholder="e.g. PAT-10001"
-                      value={selectedPatientId}
-                      onChange={e => {
-                        const id = e.target.value;
-                        setSelectedPatientId(id);
-                        setPatient(null);
-                        setPredResult(null);
-                        setPredError('');
-                        setExistingTx(null);
-                      }}
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px', bgcolor: '#fff', fontSize: '0.88rem' } }}
-                    />
-                  </Grid>
-                </Grid>
-              </Box>
-
-              {predError && (
-                <Alert severity="error" sx={{ mb: 3, borderRadius: '10px', fontSize: '0.85rem' }}>
-                  {predError}
-                </Alert>
-              )}
-
-              {/* Form Section 1: Patient Information */}
-              <Box sx={{ mb: 3 }}>
-                <SectionTitle icon={<PersonRoundedIcon sx={{ fontSize: 18, color: '#1D4ED8' }} />} title="1. Patient Demographics & Specialty" />
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <TextField select label="Race" fullWidth size="small" value={form.race} onChange={e => handleFieldChange('race', e.target.value)} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '9px', fontSize: '0.85rem' } }}>
-                      {RACES.map(r => <MenuItem key={r} value={r} sx={{ fontSize: '0.85rem' }}>{r}</MenuItem>)}
-                    </TextField>
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <TextField select label="Gender" fullWidth size="small" value={form.gender} onChange={e => handleFieldChange('gender', e.target.value)} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '9px', fontSize: '0.85rem' } }}>
-                      {GENDERS.map(g => <MenuItem key={g} value={g} sx={{ fontSize: '0.85rem' }}>{g}</MenuItem>)}
-                    </TextField>
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <TextField select label="Age Bracket" fullWidth size="small" value={form.age} onChange={e => handleFieldChange('age', e.target.value)} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '9px', fontSize: '0.85rem' } }}>
-                      {AGE_BRACKETS.map(a => <MenuItem key={a} value={a} sx={{ fontSize: '0.85rem' }}>{a}</MenuItem>)}
-                    </TextField>
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <TextField select label="Medical Specialty" fullWidth size="small" value={form.medical_specialty} onChange={e => handleFieldChange('medical_specialty', e.target.value)} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '9px', fontSize: '0.85rem' } }}>
-                      {MEDICAL_SPECIALTIES.map(s => <MenuItem key={s} value={s} sx={{ fontSize: '0.85rem' }}>{s}</MenuItem>)}
-                    </TextField>
-                  </Grid>
-                </Grid>
-              </Box>
-
-              {/* Form Section 2: Admission & Hospitalization History */}
-              <Box sx={{ mb: 3 }}>
-                <SectionTitle icon={<LocalHospitalRoundedIcon sx={{ fontSize: 18, color: '#0891B2' }} />} title="2. Admission & Hospitalization History" />
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6} md={4}>
-                    <TextField select label="Admission Type" fullWidth size="small" value={form.admission_type_id} onChange={e => handleFieldChange('admission_type_id', e.target.value)} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '9px', fontSize: '0.85rem' } }}>
-                      {ADMISSION_TYPES.map(at => <MenuItem key={at.id} value={at.id} sx={{ fontSize: '0.85rem' }}>{at.label}</MenuItem>)}
-                    </TextField>
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={4}>
-                    <TextField select label="Admission Source" fullWidth size="small" value={form.admission_source_id} onChange={e => handleFieldChange('admission_source_id', e.target.value)} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '9px', fontSize: '0.85rem' } }}>
-                      {ADMISSION_SOURCES.map(as => <MenuItem key={as.id} value={as.id} sx={{ fontSize: '0.85rem' }}>{as.label}</MenuItem>)}
-                    </TextField>
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={4}>
-                    <TextField select label="Discharge Disposition" fullWidth size="small" value={form.discharge_disposition_id} onChange={e => handleFieldChange('discharge_disposition_id', e.target.value)} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '9px', fontSize: '0.85rem' } }}>
-                      {DISCHARGE_DISPOSITIONS.map(dd => <MenuItem key={dd.id} value={dd.id} sx={{ fontSize: '0.85rem' }}>{dd.label}</MenuItem>)}
-                    </TextField>
-                  </Grid>
-
-                  <Grid item xs={6} sm={3}>
-                    <TextField label="Days in Hospital" type="number" fullWidth size="small" value={form.time_in_hospital} onChange={e => handleFieldChange('time_in_hospital', e.target.value)} inputProps={{ min: 1, max: 14 }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '9px', fontSize: '0.85rem' } }} />
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <TextField label="Outpatient Visits" type="number" fullWidth size="small" value={form.number_outpatient} onChange={e => handleFieldChange('number_outpatient', e.target.value)} inputProps={{ min: 0 }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '9px', fontSize: '0.85rem' } }} />
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <TextField label="Emergency Visits" type="number" fullWidth size="small" value={form.number_emergency} onChange={e => handleFieldChange('number_emergency', e.target.value)} inputProps={{ min: 0 }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '9px', fontSize: '0.85rem' } }} />
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <TextField label="Inpatient Visits" type="number" fullWidth size="small" value={form.number_inpatient} onChange={e => handleFieldChange('number_inpatient', e.target.value)} inputProps={{ min: 0 }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '9px', fontSize: '0.85rem' } }} />
-                  </Grid>
-                </Grid>
-              </Box>
-
-              {/* Form Section 3: Clinical & Diagnosis Information */}
-              <Box sx={{ mb: 3 }}>
-                <SectionTitle icon={<AssignmentRoundedIcon sx={{ fontSize: 18, color: '#7C3AED' }} />} title="3. Diagnosis & Procedure Metrics" />
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={4}>
-                    <TextField label="Primary Diagnosis (ICD-9)" fullWidth size="small" value={form.diag_1} onChange={e => handleFieldChange('diag_1', e.target.value)} placeholder="e.g. 250.01" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '9px', fontSize: '0.85rem' } }} />
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <TextField label="Secondary Diagnosis (ICD-9)" fullWidth size="small" value={form.diag_2} onChange={e => handleFieldChange('diag_2', e.target.value)} placeholder="e.g. 401" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '9px', fontSize: '0.85rem' } }} />
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <TextField label="Tertiary Diagnosis (ICD-9)" fullWidth size="small" value={form.diag_3} onChange={e => handleFieldChange('diag_3', e.target.value)} placeholder="e.g. 272" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '9px', fontSize: '0.85rem' } }} />
-                  </Grid>
-
-                  <Grid item xs={6} sm={3}>
-                    <TextField label="Lab Procedures" type="number" fullWidth size="small" value={form.num_lab_procedures} onChange={e => handleFieldChange('num_lab_procedures', e.target.value)} inputProps={{ min: 1 }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '9px', fontSize: '0.85rem' } }} />
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <TextField label="Procedures" type="number" fullWidth size="small" value={form.num_procedures} onChange={e => handleFieldChange('num_procedures', e.target.value)} inputProps={{ min: 0 }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '9px', fontSize: '0.85rem' } }} />
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <TextField label="Total Medications" type="number" fullWidth size="small" value={form.num_medications} onChange={e => handleFieldChange('num_medications', e.target.value)} inputProps={{ min: 1 }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '9px', fontSize: '0.85rem' } }} />
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <TextField label="Number of Diagnoses" type="number" fullWidth size="small" value={form.number_diagnoses} onChange={e => handleFieldChange('number_diagnoses', e.target.value)} inputProps={{ min: 1, max: 16 }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '9px', fontSize: '0.85rem' } }} />
-                  </Grid>
-                </Grid>
-              </Box>
-
-              {/* Form Section 4: Medication Features Grid */}
-              <Box sx={{ mb: 3 }}>
-                <SectionTitle icon={<LocalPharmacyRoundedIcon sx={{ fontSize: 18, color: '#059669' }} />} title="4. Medication Features & Status (23 Medications)" />
-                
-                <Grid container spacing={2} sx={{ mb: 2 }}>
-                  <Grid item xs={12} sm={6}>
-                    <TextField select label="Medication Change During Visit?" fullWidth size="small" value={form.change} onChange={e => handleFieldChange('change', e.target.value)} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '9px', fontSize: '0.85rem' } }}>
-                      <MenuItem value="No" sx={{ fontSize: '0.85rem' }}>No Change</MenuItem>
-                      <MenuItem value="Ch" sx={{ fontSize: '0.85rem' }}>Ch (Medication Changed)</MenuItem>
-                    </TextField>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField select label="On Diabetes Medication?" fullWidth size="small" value={form.diabetesMed} onChange={e => handleFieldChange('diabetesMed', e.target.value)} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '9px', fontSize: '0.85rem' } }}>
-                      <MenuItem value="Yes" sx={{ fontSize: '0.85rem' }}>Yes</MenuItem>
-                      <MenuItem value="No" sx={{ fontSize: '0.85rem' }}>No</MenuItem>
-                    </TextField>
-                  </Grid>
-                </Grid>
-
-                <Paper variant="outlined" sx={{ p: 2, borderRadius: '12px', bgcolor: '#FAFAFA' }}>
-                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1.5 }}>
-                    Specific Medication Dosage Status (No / Steady / Up / Down)
-                  </Typography>
-                  
-                  <Grid container spacing={1.5}>
-                    {MED_NAMES.map(med => (
-                      <Grid item xs={12} sm={6} md={4} key={med}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1, borderRadius: '8px', bgcolor: '#fff', border: '1px solid #E2E8F0' }}>
-                          <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', textTransform: 'capitalize' }}>
-                            {med}
-                          </Typography>
-                          <TextField
-                            select
-                            size="small"
-                            value={form.medications[med] || 'No'}
-                            onChange={e => handleMedStatusChange(med, e.target.value)}
-                            sx={{
-                              width: 100,
-                              '& .MuiOutlinedInput-root': { borderRadius: '6px', fontSize: '0.78rem', fontWeight: 700 }
-                            }}
-                          >
-                            {MED_STATUS_OPTIONS.map(opt => (
-                              <MenuItem key={opt} value={opt} sx={{ fontSize: '0.78rem' }}>{opt}</MenuItem>
-                            ))}
-                          </TextField>
-                        </Box>
-                      </Grid>
-                    ))}
-                  </Grid>
-                </Paper>
-
-              </Box>
-
-              {/* Action Button */}
-              <Box sx={{ pt: 1 }}>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  size="large"
-                  onClick={handleRunPrediction}
-                  disabled={submitting}
-                  startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : <PsychologyRoundedIcon />}
-                  sx={{
-                    borderRadius: '12px',
-                    bgcolor: '#1D4ED8',
-                    py: 1.4,
-                    fontWeight: 700,
-                    fontSize: '0.95rem',
-                    boxShadow: '0 4px 14px rgba(29,78,216,0.3)',
-                    '&:hover': { bgcolor: '#1E40AF' }
-                  }}
-                >
-                  {submitting ? 'Evaluating Trained ML Pipeline...' : 'Run AI Readmission Assessment'}
-                </Button>
-              </Box>
-
-            </CardContent>
-          </Card>
-
-        </Grid>
-
-        {/* Right Column: Prediction Results Output */}
-        <Grid item xs={12} lg={4}>
-
-          {/* Inference Output Card */}
-          <Card sx={{ borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', mb: 3 }}>
-            <CardContent sx={{ p: 3 }}>
-              
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                <Typography sx={{ fontWeight: 800, fontSize: '1rem', color: '#0F172A' }}>
-                  AI Risk Prediction Result
-                </Typography>
-                {predResult && <RiskBadge level={predResult.risk_level} />}
-              </Box>
-
-              {!predResult && !submitting && (
-                <Box sx={{ py: 6, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, textAlign: 'center' }}>
-                  <PsychologyRoundedIcon sx={{ fontSize: 48, color: '#CBD5E1' }} />
-                  <Typography sx={{ fontWeight: 600, fontSize: '0.9rem', color: '#475569' }}>
-                    No prediction available
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.78rem', color: '#94A3B8', maxWidth: 260 }}>
-                    Review the patient information and click "Run AI Readmission Assessment".
-                  </Typography>
+      {/* ─── 1. Select Patient ─────────────────────────────────────────── */}
+      <SectionCard icon={<PersonRoundedIcon sx={{ fontSize: 20 }} />} title="Select Patient">
+        <Autocomplete
+          options={Array.isArray(patients) ? patients.filter(Boolean) : []}
+          loading={patientsLoading}
+          value={selectedPatient}
+          onChange={handlePatientChange}
+          getOptionLabel={p => {
+            if (!p) return '';
+            if (typeof p === 'string') return p;
+            const fname = p.first_name || p.firstName || '';
+            const lname = p.last_name || p.lastName || '';
+            const pid = p.patient_id || p.patientId || p.id || '';
+            const name = `${fname} ${lname}`.trim();
+            return name ? `${name} (${pid})` : (pid || '');
+          }}
+          isOptionEqualToValue={(a, b) => {
+            if (!a || !b) return a === b;
+            const idA = a.patient_id || a.patientId || a._id || a.id;
+            const idB = b.patient_id || b.patientId || b._id || b.id;
+            return Boolean(idA && idB && idA === idB);
+          }}
+          renderOption={(props, p) => {
+            if (!p) return null;
+            const fname = p.first_name || p.firstName || '';
+            const lname = p.last_name || p.lastName || '';
+            const pid = p.patient_id || p.patientId || p.id || '';
+            const gender = p.gender || '';
+            const hospital = p.hospital || '';
+            const initials = `${fname[0] || ''}${lname[0] || ''}`.toUpperCase() || 'P';
+            return (
+              <Box component="li" {...props} key={pid || props.key} sx={{ gap: 1.5 }}>
+                <Avatar sx={{ width: 30, height: 30, bgcolor: '#0F6CBD', fontSize: '0.7rem', fontWeight: 700, flexShrink: 0 }}>
+                  {initials}
+                </Avatar>
+                <Box>
+                  <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A' }}>{fname} {lname}</Typography>
+                  <Typography sx={{ fontSize: '0.7rem', color: '#94A3B8' }}>{pid} {gender ? `· ${gender}` : ''} {hospital ? `· ${hospital}` : ''}</Typography>
                 </Box>
-              )}
-
-              {submitting && (
-                <Box sx={{ py: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                  <CircularProgress size={36} sx={{ color: '#1D4ED8' }} />
-                  <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>
-                    Running preprocessors & models...
-                  </Typography>
-                </Box>
-              )}
-
-              {predResult && (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-                  
-                  {/* Model 1 Box */}
-                  <Box sx={{ p: 2, borderRadius: '12px', bgcolor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-                    <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>
-                      Model 1 — Patient Risk Prediction (&lt; 30 days)
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', mb: 0.5 }}>
-                      <Typography sx={{ fontSize: '1.4rem', fontWeight: 800, color: predResult.model1_probability >= 0.5 ? '#DC2626' : '#059669' }}>
-                        {(predResult.model1_probability * 100).toFixed(2)}%
-                      </Typography>
-                      <Chip
-                        label={predResult.model1_prediction}
-                        size="small"
-                        sx={{
-                          fontWeight: 700,
-                          fontSize: '0.68rem',
-                          bgcolor: predResult.model1_probability >= 0.5 ? '#FEF2F2' : '#ECFDF5',
-                          color: predResult.model1_probability >= 0.5 ? '#DC2626' : '#059669',
-                          border: `1px solid ${predResult.model1_probability >= 0.5 ? '#FECACA' : '#A7F3D0'}`
-                        }}
-                      />
-                    </Box>
-                  </Box>
-
-                  {/* Model 2 Box */}
-                  <Box sx={{ p: 2, borderRadius: '12px', bgcolor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-                    <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>
-                      Model 2 — Hospital Readmission Prediction
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', mb: 0.5 }}>
-                      <Typography sx={{ fontSize: '1.4rem', fontWeight: 800, color: predResult.model2_probability >= 0.5 ? '#D97706' : '#059669' }}>
-                        {(predResult.model2_probability * 100).toFixed(2)}%
-                      </Typography>
-                      <Chip
-                        label={predResult.model2_prediction}
-                        size="small"
-                        sx={{
-                          fontWeight: 700,
-                          fontSize: '0.68rem',
-                          bgcolor: predResult.model2_probability >= 0.5 ? '#FFFBEB' : '#ECFDF5',
-                          color: predResult.model2_probability >= 0.5 ? '#D97706' : '#059669',
-                          border: `1px solid ${predResult.model2_probability >= 0.5 ? '#FDE68A' : '#A7F3D0'}`
-                        }}
-                      />
-                    </Box>
-                  </Box>
-
-                  {/* Clinical Interpretation Banner */}
-                  <Box sx={{
-                    p: 2, borderRadius: '12px',
-                    bgcolor: (RISK_STYLES[predResult.risk_level] || RISK_STYLES.Low).bg,
-                    border: `1px solid ${(RISK_STYLES[predResult.risk_level] || RISK_STYLES.Low).border}`
-                  }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.5 }}>
-                      <WarningAmberRoundedIcon sx={{ fontSize: 16, color: (RISK_STYLES[predResult.risk_level] || RISK_STYLES.Low).text }} />
-                      <Typography sx={{ fontSize: '0.72rem', fontWeight: 800, color: (RISK_STYLES[predResult.risk_level] || RISK_STYLES.Low).text, textTransform: 'uppercase' }}>
-                        Clinical Interpretation
-                      </Typography>
-                    </Box>
-                    <Typography sx={{ fontSize: '0.82rem', color: '#334155', lineHeight: 1.5 }}>
-                      {predResult.clinical_interpretation}
-                    </Typography>
-                  </Box>
-
-                  {/* Treatment Plan Action */}
-                  <Box sx={{ pt: 1, borderTop: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {checkingTx ? (
-                      <CircularProgress size={20} sx={{ mx: 'auto', my: 1 }} />
-                    ) : existingTx ? (
-                      <Button
-                        fullWidth
-                        variant="contained"
-                        startIcon={<OpenInNewRoundedIcon />}
-                        onClick={() => navigate('/treatments')}
-                        sx={{ borderRadius: '10px', bgcolor: '#10B981', fontWeight: 700, fontSize: '0.82rem', py: 1, '&:hover': { bgcolor: '#059669' } }}
-                      >
-                        View Existing Treatment
-                      </Button>
-                    ) : (
-                      <Button
-                        fullWidth
-                        variant="contained"
-                        startIcon={<MedicalServicesRoundedIcon />}
-                        onClick={() => setTxDialog(true)}
-                        sx={{ borderRadius: '10px', bgcolor: '#1D4ED8', fontWeight: 700, fontSize: '0.82rem', py: 1, '&:hover': { bgcolor: '#1E40AF' } }}
-                      >
-                        Create Treatment Plan
-                      </Button>
-                    )}
-                  </Box>
-
-                </Box>
-              )}
-
-            </CardContent>
-          </Card>
-
-        </Grid>
-
-      </Grid>
-
-      {/* Bottom Section: Recent Predictions History (Latest 10) */}
-      <Card sx={{ borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', mt: 3 }}>
-        <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <HistoryRoundedIcon sx={{ color: '#1D4ED8', fontSize: 20 }} />
-              <Typography sx={{ fontWeight: 800, fontSize: '1rem', color: '#0F172A' }}>
-                Recent Predictions (Latest 10)
-              </Typography>
-            </Box>
-            <Button
-              variant="outlined"
+              </Box>
+            );
+          }}
+          renderInput={params => (
+            <TextField
+              {...params}
+              placeholder="Search patient by name or ID..."
               size="small"
-              onClick={() => setHistoryModalOpen(true)}
-              sx={{ borderRadius: '8px', fontSize: '0.78rem', fontWeight: 700, borderColor: '#E2E8F0', color: '#475569' }}
-            >
-              View All ({predictionsHistory.length})
-            </Button>
-          </Box>
-
-          {loadingHistory ? (
-            <Box sx={{ py: 4, textAlign: 'center' }}><CircularProgress size={28} /></Box>
-          ) : recentPredictions.length === 0 ? (
-            <Box sx={{ py: 4, textAlign: 'center', color: '#94A3B8' }}>
-              <Typography sx={{ fontSize: '0.85rem' }}>No prediction history stored yet.</Typography>
-            </Box>
-          ) : (
-            <TableContainer component={Paper} elevation={0} sx={{ borderRadius: '10px', border: '1px solid #F1F5F9' }}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow sx={{ bgcolor: '#F8FAFC' }}>
-                    {['Patient ID', 'Model 1 (Risk)', 'Model 2 (Readmission)', 'Risk Level', 'Date', 'Actions'].map(h => (
-                      <TableCell key={h} sx={{ fontWeight: 700, fontSize: '0.68rem', color: '#64748B', textTransform: 'uppercase', py: 1.2, px: 2 }}>
-                        {h}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {recentPredictions.map((row, idx) => {
-                    const rowId = row._id || row.id || idx;
-                    const m1Score = row.model1_probability !== undefined ? (row.model1_probability * 100).toFixed(1) + '%' : '—';
-                    const m2Score = row.model2_probability !== undefined ? (row.model2_probability * 100).toFixed(1) + '%' : '—';
-                    const dt = row.prediction_date ? new Date(row.prediction_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
-
-                    return (
-                      <TableRow key={rowId} sx={{ '&:hover': { bgcolor: '#FAFBFC' } }}>
-                        <TableCell sx={{ py: 1.2, px: 2 }}>
-                          <Typography sx={{ fontWeight: 700, fontSize: '0.82rem', color: '#0F172A' }}>{row.patient_id}</Typography>
-                        </TableCell>
-                        <TableCell sx={{ py: 1.2, px: 2 }}>
-                          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155' }}>{m1Score}</Typography>
-                        </TableCell>
-                        <TableCell sx={{ py: 1.2, px: 2 }}>
-                          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155' }}>{m2Score}</Typography>
-                        </TableCell>
-                        <TableCell sx={{ py: 1.2, px: 2 }}>
-                          <RiskBadge level={row.risk_level || 'Low'} />
-                        </TableCell>
-                        <TableCell sx={{ py: 1.2, px: 2 }}>
-                          <Typography sx={{ fontSize: '0.78rem', color: '#64748B' }}>{dt}</Typography>
-                        </TableCell>
-                        <TableCell sx={{ py: 1.2, px: 2 }}>
-                          <Tooltip title="Delete Record">
-                            <IconButton size="small" onClick={() => handleDeletePredictionClick(rowId)} sx={{ color: '#EF4444', '&:hover': { bgcolor: '#FEF2F2' } }}>
-                              <DeleteOutlineRoundedIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </TableContainer>
+              InputProps={{
+                ...params?.InputProps,
+                startAdornment: (
+                  <>
+                    <SearchRoundedIcon sx={{ color: '#94A3B8', fontSize: 20, mr: 0.5 }} />
+                    {params?.InputProps?.startAdornment}
+                  </>
+                ),
+                endAdornment: (
+                  <>
+                    {patientsLoading ? <CircularProgress size={18} /> : null}
+                    {params?.InputProps?.endAdornment}
+                  </>
+                ),
+              }}
+              sx={{ '& .MuiInputBase-root': { borderRadius: '12px' } }}
+            />
           )}
-        </CardContent>
-      </Card>
+        />
 
-      {/* Complete Prediction History Dialog */}
-      <Dialog open={historyModalOpen} onClose={() => setHistoryModalOpen(false)} maxWidth="md" fullWidth
-        PaperProps={{ sx: { borderRadius: '16px', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' } }}>
-        <DialogTitle sx={{ pb: 1, borderBottom: '1px solid #F1F5F9' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <HistoryRoundedIcon sx={{ color: '#1D4ED8', fontSize: 22 }} />
-              <Typography sx={{ fontWeight: 800, fontSize: '1rem', color: '#0F172A' }}>
-                Complete Prediction History ({predictionsHistory.length})
-              </Typography>
+        {/* Patient info strip */}
+        {selectedPatient && (
+          <Box sx={{ mt: 2, p: 1.8, borderRadius: '10px', bgcolor: '#F0F9FF', border: '1px solid #BAE6FD', display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+            <Box>
+              <Typography sx={{ fontSize: '0.68rem', color: '#0369A1', fontWeight: 600, textTransform: 'uppercase' }}>Patient</Typography>
+              <Typography sx={{ fontSize: '0.88rem', fontWeight: 700, color: '#0F172A' }}>{selectedPatient.first_name} {selectedPatient.last_name}</Typography>
             </Box>
-            <IconButton size="small" onClick={() => setHistoryModalOpen(false)} sx={{ color: '#94A3B8' }}>
-              <CloseRoundedIcon fontSize="small" />
-            </IconButton>
+            <Box>
+              <Typography sx={{ fontSize: '0.68rem', color: '#0369A1', fontWeight: 600, textTransform: 'uppercase' }}>ID</Typography>
+              <Typography sx={{ fontSize: '0.88rem', fontWeight: 700, color: '#0F172A' }}>{selectedPatient.patient_id}</Typography>
+            </Box>
+            {patientAge !== null && (
+              <Box>
+                <Typography sx={{ fontSize: '0.68rem', color: '#0369A1', fontWeight: 600, textTransform: 'uppercase' }}>Age</Typography>
+                <Typography sx={{ fontSize: '0.88rem', fontWeight: 700, color: '#0F172A' }}>{patientAge} yrs</Typography>
+              </Box>
+            )}
+            <Box>
+              <Typography sx={{ fontSize: '0.68rem', color: '#0369A1', fontWeight: 600, textTransform: 'uppercase' }}>Gender</Typography>
+              <Typography sx={{ fontSize: '0.88rem', fontWeight: 700, color: '#0F172A' }}>{selectedPatient.gender}</Typography>
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: '0.68rem', color: '#0369A1', fontWeight: 600, textTransform: 'uppercase' }}>Hospital</Typography>
+              <Typography sx={{ fontSize: '0.88rem', fontWeight: 700, color: '#0F172A' }}>{selectedPatient.hospital}</Typography>
+            </Box>
           </Box>
-        </DialogTitle>
-        <DialogContent sx={{ py: 2.5 }}>
-          <TextField
-            fullWidth
-            size="small"
-            placeholder="Filter history by Patient ID or Risk..."
-            value={historySearch}
-            onChange={e => setHistorySearch(e.target.value)}
-            sx={{ mb: 2, '& .MuiOutlinedInput-root': { borderRadius: '9px', fontSize: '0.85rem' } }}
-          />
+        )}
+      </SectionCard>
 
-          <TableContainer component={Paper} elevation={0} sx={{ maxHeight: 400, borderRadius: '10px', border: '1px solid #F1F5F9' }}>
-            <Table stickyHeader size="small">
-              <TableHead>
-                <TableRow>
-                  {['Patient ID', 'Model 1 (Risk)', 'Model 2 (Readmission)', 'Risk Level', 'Date', 'Actions'].map(h => (
-                    <TableCell key={h} sx={{ fontWeight: 700, fontSize: '0.68rem', color: '#64748B', textTransform: 'uppercase', py: 1.2 }}>
-                      {h}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredHistory.map((row, idx) => {
-                  const rowId = row._id || row.id || idx;
-                  const m1Score = row.model1_probability !== undefined ? (row.model1_probability * 100).toFixed(1) + '%' : '—';
-                  const m2Score = row.model2_probability !== undefined ? (row.model2_probability * 100).toFixed(1) + '%' : '—';
-                  const dt = row.prediction_date ? new Date(row.prediction_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+      {/* ─── 2. Medical Vitals ─────────────────────────────────────────── */}
+      <SectionCard icon={<MonitorHeartRoundedIcon sx={{ fontSize: 20 }} />} title="Medical Vitals">
+        <Typography sx={{ fontSize: '0.78rem', color: '#64748B', mb: 2 }}>
+          Enter available vitals. Unfilled fields use clinical defaults for the AI model.
+        </Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={6} sm={4} md={3}>
+            <VitalField label="Systolic BP" value={vitals.bp_systolic} onChange={v => setVitals(p => ({...p, bp_systolic: v}))} unit="mmHg" min={60} max={250} />
+          </Grid>
+          <Grid item xs={6} sm={4} md={3}>
+            <VitalField label="Diastolic BP" value={vitals.bp_diastolic} onChange={v => setVitals(p => ({...p, bp_diastolic: v}))} unit="mmHg" min={40} max={150} />
+          </Grid>
+          <Grid item xs={6} sm={4} md={3}>
+            <VitalField label="Blood Glucose" value={vitals.blood_glucose} onChange={v => setVitals(p => ({...p, blood_glucose: v}))} unit="mg/dL" />
+          </Grid>
+          <Grid item xs={6} sm={4} md={3}>
+            <VitalField label="HbA1c" value={vitals.hba1c} onChange={v => setVitals(p => ({...p, hba1c: v}))} unit="%" />
+          </Grid>
+          <Grid item xs={6} sm={4} md={3}>
+            <VitalField label="Heart Rate" value={vitals.heart_rate} onChange={v => setVitals(p => ({...p, heart_rate: v}))} unit="bpm" min={30} max={250} />
+          </Grid>
+          <Grid item xs={6} sm={4} md={3}>
+            <VitalField label="SpO2" value={vitals.spo2} onChange={v => setVitals(p => ({...p, spo2: v}))} unit="%" min={60} max={100} />
+          </Grid>
+          <Grid item xs={6} sm={4} md={3}>
+            <VitalField label="Body Temperature" value={vitals.body_temperature} onChange={v => setVitals(p => ({...p, body_temperature: v}))} unit="°C" />
+          </Grid>
+          <Grid item xs={6} sm={4} md={3}>
+            <VitalField label="BMI" value={vitals.bmi} onChange={v => setVitals(p => ({...p, bmi: v}))} unit="kg/m²" />
+          </Grid>
+          <Grid item xs={6} sm={4} md={3}>
+            <VitalField label="Cholesterol" value={vitals.cholesterol} onChange={v => setVitals(p => ({...p, cholesterol: v}))} unit="mg/dL" />
+          </Grid>
+        </Grid>
+      </SectionCard>
 
-                  return (
-                    <TableRow key={rowId} sx={{ '&:hover': { bgcolor: '#FAFBFC' } }}>
-                      <TableCell><Typography sx={{ fontWeight: 700, fontSize: '0.82rem', color: '#0F172A' }}>{row.patient_id}</Typography></TableCell>
-                      <TableCell><Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155' }}>{m1Score}</Typography></TableCell>
-                      <TableCell><Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155' }}>{m2Score}</Typography></TableCell>
-                      <TableCell><RiskBadge level={row.risk_level || 'Low'} /></TableCell>
-                      <TableCell><Typography sx={{ fontSize: '0.78rem', color: '#64748B' }}>{dt}</Typography></TableCell>
-                      <TableCell>
-                        <IconButton size="small" onClick={() => handleDeletePredictionClick(rowId)} sx={{ color: '#EF4444', '&:hover': { bgcolor: '#FEF2F2' } }}>
-                          <DeleteOutlineRoundedIcon fontSize="small" />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2, borderTop: '1px solid #F1F5F9' }}>
-          <Button onClick={() => setHistoryModalOpen(false)} sx={{ borderRadius: '8px', color: '#64748B' }}>Close</Button>
-        </DialogActions>
-      </Dialog>
+      {/* ─── 3. Medical Conditions ─────────────────────────────────────── */}
+      <SectionCard icon={<MedicalServicesRoundedIcon sx={{ fontSize: 20 }} />} title="Medical Conditions">
+        <Grid container spacing={1.5} sx={{ mb: 2 }}>
+          <Grid item xs={12} sm={4}>
+            <ConditionToggle label="Diabetes" value={conditions.has_diabetes} onChange={v => setConditions(p => ({...p, has_diabetes: v}))} />
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <ConditionToggle label="Hypertension" value={conditions.has_hypertension} onChange={v => setConditions(p => ({...p, has_hypertension: v}))} />
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <ConditionToggle label="Heart Disease" value={conditions.has_heart_disease} onChange={v => setConditions(p => ({...p, has_heart_disease: v}))} />
+          </Grid>
+        </Grid>
+        <TextField
+          label="Other Conditions / Diagnoses"
+          placeholder="e.g. CKD stage 3, COPD, Anemia..."
+          size="small"
+          fullWidth
+          multiline
+          minRows={2}
+          value={conditions.other}
+          onChange={e => setConditions(p => ({...p, other: e.target.value}))}
+          sx={{ '& .MuiInputBase-root': { borderRadius: '10px', fontSize: '0.85rem' } }}
+        />
+      </SectionCard>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialog} onClose={() => setDeleteDialog(false)} maxWidth="xs" fullWidth
-        PaperProps={{ sx: { borderRadius: '14px', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' } }}>
-        <DialogTitle sx={{ pb: 1 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: '#0F172A' }}>Delete Prediction Record?</Typography>
-        </DialogTitle>
-        <DialogContent>
-          <Typography sx={{ fontSize: '0.85rem', color: '#64748B' }}>
-            Are you sure you want to delete this prediction record from the database history? This action cannot be undone.
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-          <Button onClick={() => setDeleteDialog(false)} disabled={deleting} sx={{ borderRadius: '8px', color: '#64748B', fontSize: '0.82rem' }}>Cancel</Button>
-          <Button variant="contained" onClick={handleDeletePredictionConfirm} disabled={deleting}
-            startIcon={deleting ? <CircularProgress size={14} color="inherit" /> : <DeleteOutlineRoundedIcon />}
-            sx={{ borderRadius: '8px', bgcolor: '#EF4444', fontWeight: 700, fontSize: '0.82rem', '&:hover': { bgcolor: '#DC2626' } }}>
-            {deleting ? 'Deleting...' : 'Delete'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* ─── 4. Current Treatment Summary ──────────────────────────────── */}
+      <SectionCard
+        icon={<LocalPharmacyRoundedIcon sx={{ fontSize: 20 }} />}
+        title="Current Treatment"
+        action={
+          selectedPatient ? (
+            <Button size="small" variant="outlined" onClick={() => navigate('/doctor/treatment')}
+              sx={{ fontSize: '0.72rem', fontWeight: 700, borderRadius: '8px' }}>
+              View Treatment
+            </Button>
+          ) : null
+        }
+      >
+        {!selectedPatient ? (
+          <Typography sx={{ fontSize: '0.82rem', color: '#94A3B8' }}>Select a patient to view treatment summary.</Typography>
+        ) : treatmentsLoading ? (
+          <Box sx={{ py: 1 }}><LinearProgress sx={{ borderRadius: 4 }} /></Box>
+        ) : treatments.length === 0 ? (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <LocalPharmacyRoundedIcon sx={{ color: '#CBD5E1', fontSize: 22 }} />
+            <Typography sx={{ fontSize: '0.82rem', color: '#94A3B8' }}>No treatment records found for this patient.</Typography>
+          </Box>
+        ) : (
+          <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Box sx={{ textAlign: 'center', px: 2, py: 1, borderRadius: '10px', bgcolor: '#F0FDF4', border: '1px solid #BBF7D0' }}>
+              <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, color: '#059669', lineHeight: 1 }}>{totalMedCount}</Typography>
+              <Typography sx={{ fontSize: '0.68rem', color: '#065F46', fontWeight: 600, mt: 0.3 }}>Current Medications</Typography>
+            </Box>
+            <Box sx={{ textAlign: 'center', px: 2, py: 1, borderRadius: '10px', bgcolor: '#EFF6FF', border: '1px solid #BFDBFE' }}>
+              <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, color: '#0F6CBD', lineHeight: 1 }}>{treatments.filter(t => t.status === 'Active').length}</Typography>
+              <Typography sx={{ fontSize: '0.68rem', color: '#1D4ED8', fontWeight: 600, mt: 0.3 }}>Active Plans</Typography>
+            </Box>
+            <Box sx={{ flex: 1, minWidth: 180 }}>
+              {activeMeds.slice(0, 3).map((m, i) => (
+                <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.4 }}>
+                  <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#0F6CBD', flexShrink: 0 }} />
+                  <Typography sx={{ fontSize: '0.78rem', color: '#475569' }}>{m.name} {m.dosage && `— ${m.dosage}`} {m.frequency && `(${m.frequency})`}</Typography>
+                </Box>
+              ))}
+              {activeMeds.length > 3 && (
+                <Typography sx={{ fontSize: '0.72rem', color: '#94A3B8', mt: 0.3 }}>+{activeMeds.length - 3} more medications</Typography>
+              )}
+            </Box>
+          </Box>
+        )}
+        <Typography sx={{ fontSize: '0.72rem', color: '#94A3B8', mt: 1.5 }}>
+          💡 The AI model automatically uses treatment data from MongoDB. Manage medications in the Treatment page.
+        </Typography>
+      </SectionCard>
 
-      {/* Create Treatment Dialog */}
-      <CreateTreatmentDialog
-        open={txDialog}
-        patient={patient || { patient_id: selectedPatientId, first_name: '', last_name: '' }}
-        result={predResult}
-        user={null}
-        onClose={() => setTxDialog(false)}
-        onCreated={() => {
-          setSnackbar({ open: true, message: 'Treatment plan created successfully.', severity: 'success' });
-          checkExistingTreatment(selectedPatientId);
+      {/* ─── 5. Symptoms / Clinical Notes ──────────────────────────────── */}
+      <SectionCard icon={<AssignmentRoundedIcon sx={{ fontSize: 20 }} />} title="Symptoms / Clinical Notes">
+        <TextField
+          placeholder="Enter relevant symptoms, clinical observations, or notes for the AI assessment..."
+          size="small"
+          fullWidth
+          multiline
+          minRows={3}
+          value={symptomsNotes}
+          onChange={e => setSymptomsNotes(e.target.value)}
+          sx={{ '& .MuiInputBase-root': { borderRadius: '10px', fontSize: '0.85rem' } }}
+        />
+      </SectionCard>
+
+      {/* ─── Error ───────────────────────────────────────────────────────── */}
+      {predError && <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>{predError}</Alert>}
+
+      {/* ─── Run AI Prediction Button ─────────────────────────────────── */}
+      <Button
+        fullWidth
+        variant="contained"
+        size="large"
+        disabled={!selectedPatient || predicting}
+        onClick={handleRunPrediction}
+        startIcon={predicting ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : <PsychologyRoundedIcon />}
+        sx={{
+          py: 1.6, borderRadius: '14px', fontWeight: 800, fontSize: '1rem',
+          background: 'linear-gradient(135deg, #0F6CBD 0%, #18A999 100%)',
+          boxShadow: '0 4px 16px rgba(15,108,189,0.3)',
+          '&:hover': { boxShadow: '0 6px 20px rgba(15,108,189,0.4)', transform: 'translateY(-1px)' },
+          transition: 'all 0.2s ease', mb: 3,
         }}
+      >
+        {predicting ? 'Analyzing Patient Medical Data...' : 'RUN AI PREDICTION'}
+      </Button>
+
+      {/* ─── Prediction Result ────────────────────────────────────────── */}
+      {predictionResult && rc && (
+        <Card elevation={0} sx={{ borderRadius: '16px', border: `2px solid ${rc.border}`, bgcolor: rc.bg, overflow: 'hidden' }}>
+          <Box sx={{ px: 3, py: 2, bgcolor: rc.color, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Box sx={{ color: '#fff', display: 'flex' }}>{rc.icon}</Box>
+            <Typography sx={{ fontWeight: 800, fontSize: '1rem', color: '#fff' }}>AI PREDICTION RESULT</Typography>
+            <Chip
+              label={predictionResult.risk_level + ' Risk'}
+              size="small"
+              sx={{ bgcolor: 'rgba(255,255,255,0.25)', color: '#fff', fontWeight: 800, fontSize: '0.72rem', ml: 'auto' }}
+            />
+          </Box>
+          <CardContent sx={{ p: 3 }}>
+            {/* Patient info */}
+            <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mb: 2.5 }}>
+              <Box>
+                <Typography sx={{ fontSize: '0.68rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>Patient Name</Typography>
+                <Typography sx={{ fontWeight: 700, color: '#0F172A' }}>{predictionResult.patient_name || selectedPatient?.first_name + ' ' + selectedPatient?.last_name}</Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontSize: '0.68rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>Patient ID</Typography>
+                <Typography sx={{ fontWeight: 700, color: '#0F172A' }}>{predictionResult.patient_id}</Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontSize: '0.68rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>Prediction Date / Time</Typography>
+                <Typography sx={{ fontWeight: 700, color: '#0F172A' }}>
+                  {predictionResult.prediction_date ? new Date(predictionResult.prediction_date).toLocaleString() : new Date().toLocaleString()}
+                </Typography>
+              </Box>
+            </Box>
+
+            <Divider sx={{ my: 2 }} />
+
+            {/* Risk metrics */}
+            <Grid container spacing={2} sx={{ mb: 2.5 }}>
+              <Grid item xs={12} sm={4}>
+                <Box sx={{ textAlign: 'center', p: 2, borderRadius: '12px', bgcolor: '#fff', border: '1px solid #E2E8F0' }}>
+                  <Typography sx={{ fontSize: '2rem', fontWeight: 800, color: rc.color, lineHeight: 1 }}>
+                    {predictionResult.risk_level}
+                  </Typography>
+                  <Typography sx={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600, mt: 0.5 }}>Risk Level</Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Box sx={{ textAlign: 'center', p: 2, borderRadius: '12px', bgcolor: '#fff', border: '1px solid #E2E8F0' }}>
+                  <Typography sx={{ fontSize: '2rem', fontWeight: 800, color: rc.color, lineHeight: 1 }}>
+                    {Math.round((predictionResult.readmission_risk_score || predictionResult.model1_probability || 0) * 100)}%
+                  </Typography>
+                  <Typography sx={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600, mt: 0.5 }}>Probability</Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Box sx={{ textAlign: 'center', p: 2, borderRadius: '12px', bgcolor: '#fff', border: '1px solid #E2E8F0' }}>
+                  <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: '#0F172A', lineHeight: 1.3 }}>
+                    {predictionResult.model2_prediction || predictionResult.model1_prediction || 'Readmission Forecast'}
+                  </Typography>
+                  <Typography sx={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600, mt: 0.5 }}>Actual Model Prediction</Typography>
+                </Box>
+              </Grid>
+            </Grid>
+
+            {/* Clinical interpretation */}
+            {predictionResult.clinical_interpretation && (
+              <Box sx={{ p: 2, borderRadius: '10px', bgcolor: '#fff', border: '1px solid #E2E8F0', mb: 2.5 }}>
+                <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', mb: 0.5 }}>Clinical Interpretation</Typography>
+                <Typography sx={{ fontSize: '0.85rem', color: '#1E293B', lineHeight: 1.6 }}>{predictionResult.clinical_interpretation}</Typography>
+              </Box>
+            )}
+
+            {/* Action Buttons */}
+            <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
+              {predId && (
+                <Button
+                  variant="outlined"
+                  startIcon={<OpenInNewRoundedIcon />}
+                  onClick={() => navigate(`/doctor/prediction/result/${predId}`, { state: { prediction: predictionResult } })}
+                  sx={{ fontWeight: 700, borderRadius: '10px' }}
+                >
+                  View Assessment
+                </Button>
+              )}
+              <Button
+                variant="contained"
+                startIcon={downloadingPDF ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : <DownloadRoundedIcon />}
+                onClick={handleDownloadPDF}
+                disabled={downloadingPDF || !predId}
+                sx={{ fontWeight: 700, borderRadius: '10px', bgcolor: '#0F6CBD' }}
+              >
+                {downloadingPDF ? 'Downloading...' : 'Download PDF'}
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<HistoryRoundedIcon />}
+                onClick={() => navigate('/doctor/predictions')}
+                sx={{ fontWeight: 700, borderRadius: '10px' }}
+              >
+                Prediction History
+              </Button>
+
+              {/* ─── ADD TO TREATMENT Button (Doctor Only) ──────────────── */}
+              {isDoctor && (
+                alreadyHasTreatment ? (
+                  <Button
+                    variant="contained"
+                    startIcon={<MedicalServicesRoundedIcon />}
+                    onClick={() => navigate('/doctor/treatment')}
+                    sx={{ fontWeight: 800, borderRadius: '10px', bgcolor: '#10B981', '&:hover': { bgcolor: '#059669' } }}
+                  >
+                    View Treatment
+                  </Button>
+                ) : (
+                  <Button
+                    variant="contained"
+                    startIcon={<MedicalServicesRoundedIcon />}
+                    onClick={() => setOpenAddTreatmentModal(true)}
+                    sx={{ fontWeight: 800, borderRadius: '10px', bgcolor: '#D97706', '&:hover': { bgcolor: '#B45309' } }}
+                  >
+                    ADD TO TREATMENT
+                  </Button>
+                )
+              )}
+            </Box>
+
+            {alreadyHasTreatment && (
+              <Typography sx={{ fontSize: '0.75rem', color: '#10B981', fontWeight: 600, mt: 1.5 }}>
+                ✓ Treatment already created for this prediction.
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ─── Add Treatment Modal ─────────────────────────────────────── */}
+      <AddTreatmentModal
+        open={openAddTreatmentModal}
+        patient={selectedPatient}
+        prediction={predictionResult}
+        onClose={() => setOpenAddTreatmentModal(false)}
+        onCreated={handleTreatmentCreated}
       />
 
-      {/* Snackbar Notifications */}
-      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar(s => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar(s => ({ ...s, open: false }))} sx={{ borderRadius: '10px', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-
+      {/* ─── Snackbar ─────────────────────────────────────────────────── */}
+      <Snackbar
+        open={snack.open}
+        autoHideDuration={4000}
+        onClose={() => setSnack(p => ({ ...p, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        message={snack.msg}
+      />
     </Box>
   );
 }

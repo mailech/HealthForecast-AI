@@ -6,6 +6,24 @@ from app.utils.security import decode_access_token
 # Define OAuth2 login endpoint path
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
 
+ROLE_MAP = {
+    "hospital administrator": "admin",
+    "healthcare researcher": "researcher",
+    "system administrator": "sysadmin",
+    "hospital admin": "admin",
+    "system admin": "sysadmin",
+    "admin": "admin",
+    "doctor": "doctor",
+    "researcher": "researcher",
+    "sysadmin": "sysadmin"
+}
+
+def normalize_role(r: str) -> str:
+    if not r:
+        return ""
+    clean = r.strip().lower()
+    return ROLE_MAP.get(clean, clean.replace(" ", "_"))
+
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
     """
     Decodes JWT token and returns the active user from the database.
@@ -31,8 +49,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
         
     if not user.get("is_active", True):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Inactive user account",
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is deactivated. Please contact your System Administrator.",
         )
         
     return user
@@ -40,25 +58,26 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
 class RoleChecker:
     """
     Enforces role-based permissions (RBAC) on API routes.
-    Supports exact role titles and normalized snake_case strings.
+    Supports Doctor, Researcher, Admin, SysAdmin and legacy strings.
     """
     def __init__(self, allowed_roles: list[str]):
         self.allowed_roles = allowed_roles
         self.normalized_allowed = set()
         for role in allowed_roles:
-            self.normalized_allowed.add(role)
+            norm = normalize_role(role)
+            self.normalized_allowed.add(norm)
             self.normalized_allowed.add(role.lower())
-            self.normalized_allowed.add(role.lower().replace(" ", "_"))
+            self.normalized_allowed.add(role)
 
     def __call__(self, current_user: dict = Depends(get_current_user)) -> dict:
         user_role = current_user.get("role", "")
-        normalized_user_role = user_role.lower().replace(" ", "_") if user_role else ""
+        norm_user_role = normalize_role(user_role)
         
-        if (user_role not in self.normalized_allowed and 
-            user_role.lower() not in self.normalized_allowed and 
-            normalized_user_role not in self.normalized_allowed):
+        if (norm_user_role not in self.normalized_allowed and 
+            user_role not in self.normalized_allowed and 
+            user_role.lower() not in self.normalized_allowed):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Operation forbidden. Required role in {self.allowed_roles}. Current role: '{user_role}'"
+                detail=f"Operation forbidden. Allowed roles: {self.allowed_roles}. Current role: '{user_role}'"
             )
         return current_user

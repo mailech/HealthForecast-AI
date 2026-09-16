@@ -10,6 +10,8 @@ import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 
+import ProfileModal from './ProfileModal';
+
 const PAGE_TITLES = {
   '/': 'Dashboard',
   '/patients': 'Patients',
@@ -26,13 +28,16 @@ export default function Navbar({ onMenuClick }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [anchorEl, setAnchorEl] = useState(null);
+  const [profileOpen, setProfileOpen] = useState(false);
 
-  const pageTitle = PAGE_TITLES[location.pathname] || 'Health Forecast AI';
+  const pageTitle = PAGE_TITLES[location.pathname] || 'HM Hospital';
   const today = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
   const handleLogout = () => { setAnchorEl(null); logout(); navigate('/login'); };
+  const handleOpenProfile = () => { setAnchorEl(null); setProfileOpen(true); };
 
   return (
+    <>
     <AppBar position="fixed" elevation={0} sx={{
       zIndex: (t) => t.zIndex.drawer + 1,
       bgcolor: '#FFFFFF',
@@ -77,8 +82,11 @@ export default function Navbar({ onMenuClick }) {
                 '&:hover': { bgcolor: '#F8FAFC', borderColor: '#CBD5E1' },
               }}
             >
-              <Avatar sx={{ width: 28, height: 28, bgcolor: '#1D4ED8', fontSize: '0.72rem', fontWeight: 700 }}>
-                {user.email?.charAt(0).toUpperCase()}
+              <Avatar
+                src={user.profile_picture || undefined}
+                sx={{ width: 28, height: 28, bgcolor: '#1D4ED8', fontSize: '0.72rem', fontWeight: 700 }}
+              >
+                {!user.profile_picture && (user.full_name?.charAt(0) || user.email?.charAt(0))?.toUpperCase()}
               </Avatar>
               <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
                 <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#0F172A', lineHeight: 1.2 }}>
@@ -101,7 +109,7 @@ export default function Navbar({ onMenuClick }) {
                 <Chip label={user.role} size="small" sx={{ mt: 0.5, bgcolor: '#EFF6FF', color: '#1D4ED8', fontWeight: 600, fontSize: '0.65rem' }} />
               </Box>
               <Divider sx={{ borderColor: '#F1F5F9' }} />
-              <MenuItem onClick={() => setAnchorEl(null)} sx={{ borderRadius: '8px', mx: 0.5, my: 0.3, fontSize: '0.82rem' }}>
+              <MenuItem onClick={handleOpenProfile} sx={{ borderRadius: '8px', mx: 0.5, my: 0.3, fontSize: '0.82rem' }}>
                 <ListItemIcon><PersonOutlineRoundedIcon fontSize="small" sx={{ color: '#64748B' }} /></ListItemIcon>
                 Profile
               </MenuItem>
@@ -115,5 +123,7 @@ export default function Navbar({ onMenuClick }) {
         )}
       </Toolbar>
     </AppBar>
+    <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
+    </>
   );
 }

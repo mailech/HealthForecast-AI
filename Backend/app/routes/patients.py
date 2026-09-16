@@ -7,8 +7,8 @@ from app.dependencies import RoleChecker
 router = APIRouter(prefix="/patients", tags=["Patients Management"])
 
 # RBAC permission groups
-read_dependency = Depends(RoleChecker(allowed_roles=["Doctor", "Hospital Administrator", "Healthcare Researcher", "System Administrator"]))
-write_dependency = Depends(RoleChecker(allowed_roles=["Doctor", "Hospital Administrator", "System Administrator"]))
+read_dependency = Depends(RoleChecker(allowed_roles=["Doctor", "Researcher", "Admin", "SysAdmin", "Hospital Administrator", "Healthcare Researcher", "System Administrator"]))
+write_dependency = Depends(RoleChecker(allowed_roles=["Doctor", "Admin", "SysAdmin", "Hospital Administrator", "System Administrator"]))
 
 @router.post("", response_model=PatientResponse, status_code=status.HTTP_201_CREATED, dependencies=[write_dependency])
 def create_patient(patient_in: PatientCreate):
@@ -19,16 +19,21 @@ def create_patient(patient_in: PatientCreate):
     if not patient:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Patient with this patient_id already exists."
+            detail=f"Patient with ID '{patient_in.patient_id}' already exists."
         )
     return patient
 
 @router.get("", response_model=List[PatientResponse], dependencies=[read_dependency])
-def list_patients(skip: int = 0, limit: int = 100):
+def list_patients(skip: int = 0, limit: int = 200):
     """
     Lists patients in the hospital registry.
     """
-    return PatientService.get_patients(skip=skip, limit=limit)
+    import logging
+    logger = logging.getLogger("app.routes.patients")
+    patients = PatientService.get_patients(skip=skip, limit=limit)
+    logger.info(f"PATIENT API ENDPOINT RETURNED {len(patients)} PATIENTS FROM MONGODB.")
+    print(f"PATIENT API ENDPOINT RETURNED {len(patients)} PATIENTS FROM MONGODB.")
+    return patients
 
 @router.get("/{patient_id}", response_model=PatientResponse, dependencies=[read_dependency])
 def get_patient(patient_id: str):

@@ -10,7 +10,7 @@ import SaveRoundedIcon from '@mui/icons-material/SaveRounded';
 
 export default function Settings() {
   const [config, setConfig] = useState({
-    systemName: 'Health Forecast AI',
+    systemName: 'HM Hospital',
     maintenanceMode: false,
     auditLogging: true,
     autoBackup: true,

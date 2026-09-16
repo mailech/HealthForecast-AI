@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText,
   Box, Typography, useMediaQuery, useTheme, Avatar, Chip
@@ -12,21 +13,18 @@ import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import FormatListNumberedRoundedIcon from '@mui/icons-material/FormatListNumberedRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import MonitorHeartRoundedIcon from '@mui/icons-material/MonitorHeartRounded';
+import PersonAddRoundedIcon from '@mui/icons-material/PersonAddRounded';
+import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
+import AnalyticsRoundedIcon from '@mui/icons-material/AnalyticsRounded';
+import SecurityRoundedIcon from '@mui/icons-material/SecurityRounded';
+import AccountCircleRoundedIcon from '@mui/icons-material/AccountCircleRounded';
+import BadgeRoundedIcon from '@mui/icons-material/BadgeRounded';
+import ScienceRoundedIcon from '@mui/icons-material/ScienceRounded';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import ProfileModal from './ProfileModal';
 
-const DRAWER_WIDTH = 220;
-
-const ALL_NAV_ITEMS = [
-  { label: 'Dashboard',   icon: <DashboardRoundedIcon />,        path: '/',         roles: ['Doctor', 'Hospital Administrator', 'Healthcare Researcher', 'System Administrator'] },
-  { label: 'Patients',    icon: <PeopleRoundedIcon />,           path: '/patients', roles: ['Doctor', 'Hospital Administrator', 'Healthcare Researcher', 'System Administrator'] },
-  { label: 'Prediction',  icon: <PsychologyRoundedIcon />,       path: '/prediction', roles: ['Doctor', 'Healthcare Researcher'] },
-  { label: 'Treatments',  icon: <MedicalServicesRoundedIcon />,  path: '/treatments', roles: ['Doctor', 'Hospital Administrator', 'System Administrator'] },
-  { label: 'Reports',     icon: <AssessmentRoundedIcon />,       path: '/reports',  roles: ['Doctor', 'Hospital Administrator', 'Healthcare Researcher', 'System Administrator'] },
-  { label: 'User Management', icon: <ManageAccountsRoundedIcon />, path: '/users',   roles: ['System Administrator'] },
-  { label: 'System Settings', icon: <SettingsRoundedIcon />,       path: '/settings', roles: ['System Administrator'] },
-  { label: 'System Logs',     icon: <FormatListNumberedRoundedIcon />, path: '/logs', roles: ['System Administrator'] },
-];
+const DRAWER_WIDTH = 230;
 
 export default function Sidebar({ mobileOpen, onClose }) {
   const navigate = useNavigate();
@@ -34,16 +32,47 @@ export default function Sidebar({ mobileOpen, onClose }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { logout, role, user } = useAuth();
+  const [profileOpen, setProfileOpen] = useState(false);
 
-  // Normalize role string comparison
-  const normalizedUserRole = (role || '').toLowerCase().replace(/ /g, '_');
+  const normRole = (role || '').toLowerCase().replace(/ /g, '');
 
-  const navItems = ALL_NAV_ITEMS.filter(item => {
-    return item.roles.some(r => {
-      const norm = r.toLowerCase().replace(/ /g, '_');
-      return r === role || norm === normalizedUserRole;
-    });
-  });
+  let navItems = [];
+
+  if (normRole === 'doctor') {
+    navItems = [
+      { label: 'Dashboard', icon: <DashboardRoundedIcon />, path: '/doctor/dashboard' },
+      { label: 'Patients', icon: <PeopleRoundedIcon />, path: '/doctor/patients' },
+      { label: 'Treatment', icon: <MedicalServicesRoundedIcon />, path: '/doctor/treatment' },
+      { label: 'AI Prediction', icon: <PsychologyRoundedIcon />, path: '/doctor/prediction' },
+      { label: 'Prediction History', icon: <HistoryRoundedIcon />, path: '/doctor/predictions' },
+      { label: 'Reports', icon: <AssessmentRoundedIcon />, path: '/doctor/reports' },
+    ];
+  } else if (normRole === 'researcher' || normRole === 'healthcareresearcher') {
+    navItems = [
+      { label: 'Dashboard', icon: <DashboardRoundedIcon />, path: '/researcher/dashboard' },
+      { label: 'Patients / Data', icon: <PeopleRoundedIcon />, path: '/researcher/patients' },
+      { label: 'Prediction History', icon: <HistoryRoundedIcon />, path: '/researcher/predictions' },
+    ];
+  } else if (normRole === 'admin' || normRole === 'hospitaladministrator' || normRole === 'hospitaladmin') {
+    navItems = [
+      { label: 'Dashboard', icon: <DashboardRoundedIcon />, path: '/admin/dashboard' },
+      { label: 'Patients / Data', icon: <PeopleRoundedIcon />, path: '/admin/patients' },
+      { label: 'Predictions', icon: <PsychologyRoundedIcon />, path: '/admin/predictions' },
+    ];
+  } else if (normRole === 'sysadmin' || normRole === 'systemadministrator') {
+    navItems = [
+      { label: 'Dashboard', icon: <DashboardRoundedIcon />, path: '/sysadmin/dashboard' },
+      { label: 'Members', icon: <ManageAccountsRoundedIcon />, path: '/sysadmin/members' },
+      { label: 'Add Member', icon: <PersonAddRoundedIcon />, path: '/sysadmin/members/add' },
+      { label: 'Role Management', icon: <SecurityRoundedIcon />, path: '/sysadmin/roles' },
+      { label: 'System Config', icon: <SettingsRoundedIcon />, path: '/sysadmin/system-config' },
+      { label: 'Audit Logs', icon: <FormatListNumberedRoundedIcon />, path: '/sysadmin/logs' },
+    ];
+  } else {
+    navItems = [
+      { label: 'Dashboard', icon: <DashboardRoundedIcon />, path: '/doctor/dashboard' },
+    ];
+  }
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
@@ -52,18 +81,19 @@ export default function Sidebar({ mobileOpen, onClose }) {
       {/* Brand */}
       <Box sx={{ px: 2.5, py: 2.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <Box sx={{
-          width: 34, height: 34, borderRadius: '10px',
-          background: 'linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%)',
+          width: 36, height: 36, borderRadius: '10px',
+          background: 'linear-gradient(135deg, #0F6CBD 0%, #18A999 100%)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          boxShadow: '0 4px 12px rgba(15,108,189,0.25)'
         }}>
-          <MonitorHeartRoundedIcon sx={{ color: '#fff', fontSize: 18 }} />
+          <MonitorHeartRoundedIcon sx={{ color: '#fff', fontSize: 20 }} />
         </Box>
         <Box>
-          <Typography sx={{ fontWeight: 700, color: '#0F172A', fontSize: '0.82rem', lineHeight: 1.2 }}>
+          <Typography sx={{ fontWeight: 800, color: '#0F172A', fontSize: '0.85rem', lineHeight: 1.2 }}>
             Health Forecast AI
           </Typography>
-          <Typography sx={{ color: '#94A3B8', fontSize: '0.62rem', fontWeight: 500, lineHeight: 1.3 }}>
-            Risk Intelligence System
+          <Typography sx={{ color: '#64748B', fontSize: '0.65rem', fontWeight: 600, lineHeight: 1.3 }}>
+            {user?.role || 'Clinical Intelligence'}
           </Typography>
         </Box>
       </Box>
@@ -72,9 +102,8 @@ export default function Sidebar({ mobileOpen, onClose }) {
 
       {/* Nav */}
       <List sx={{ flex: 1, px: 1.5, pt: 1.5 }} dense>
-        {navItems.map(({ label, icon, path }) => {
-          const active = location.pathname === path;
-          const isViewOnlyPatients = path === '/patients' && role === 'Healthcare Researcher';
+        {navItems.map(({ label, icon, path, chip }) => {
+          const active = location.pathname === path || (path !== '/' && location.pathname.startsWith(path + '/'));
 
           return (
             <ListItem key={path} disablePadding sx={{ mb: 0.5 }}>
@@ -93,25 +122,25 @@ export default function Sidebar({ mobileOpen, onClose }) {
               >
                 <ListItemIcon sx={{
                   minWidth: 32,
-                  color: active ? '#2563EB' : '#94A3B8',
-                  '& .MuiSvgIcon-root': { fontSize: 18 },
+                  color: active ? '#0F6CBD' : '#94A3B8',
+                  '& .MuiSvgIcon-root': { fontSize: 19 },
                 }}>
                   {icon}
                 </ListItemIcon>
                 <ListItemText
                   primary={
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Typography sx={{ fontSize: '0.82rem', fontWeight: active ? 600 : 500, color: active ? '#1D4ED8' : '#475569' }}>
+                      <Typography sx={{ fontSize: '0.82rem', fontWeight: active ? 700 : 500, color: active ? '#0F6CBD' : '#475569' }}>
                         {label}
                       </Typography>
-                      {isViewOnlyPatients && (
-                        <Chip label="Read-only" size="small" sx={{ height: 16, fontSize: '0.55rem', fontWeight: 700, bgcolor: '#F1F5F9', color: '#64748B' }} />
+                      {chip && (
+                        <Chip label={chip} size="small" sx={{ height: 16, fontSize: '0.55rem', fontWeight: 700, bgcolor: '#F1F5F9', color: '#64748B' }} />
                       )}
                     </Box>
                   }
                 />
                 {active && (
-                  <Box sx={{ width: 3, height: 16, borderRadius: 2, bgcolor: '#3B82F6', ml: 0.5 }} />
+                  <Box sx={{ width: 3.5, height: 18, borderRadius: 2, bgcolor: '#0F6CBD', ml: 0.5 }} />
                 )}
               </ListItemButton>
             </ListItem>
@@ -119,28 +148,45 @@ export default function Sidebar({ mobileOpen, onClose }) {
         })}
       </List>
 
-      {/* User + Logout */}
+      {/* User + Profile + Logout */}
       <Box sx={{ px: 1.5, pb: 2 }}>
         <Box sx={{ mx: 0, borderBottom: '1px solid #F1F5F9', mb: 1.5 }} />
         {user && (
           <Box sx={{ px: 1.5, py: 1, mb: 1, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Avatar sx={{ width: 30, height: 30, bgcolor: '#1D4ED8', fontSize: '0.72rem', fontWeight: 700, color: '#fff' }}>
-              {user.email?.charAt(0).toUpperCase()}
+            <Avatar
+              src={user.profile_picture || undefined}
+              sx={{ width: 32, height: 32, bgcolor: '#0F6CBD', fontSize: '0.78rem', fontWeight: 700, color: '#fff' }}
+            >
+              {!user.profile_picture && (user.full_name?.charAt(0) || user.email?.charAt(0))?.toUpperCase()}
             </Avatar>
-            <Box sx={{ overflow: 'hidden' }}>
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <Box sx={{ overflow: 'hidden', flex: 1 }}>
+              <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {user.full_name || user.email}
               </Typography>
-              <Typography sx={{ fontSize: '0.62rem', fontWeight: 600, color: '#2563EB' }}>
+              <Typography sx={{ fontSize: '0.64rem', fontWeight: 600, color: '#0F6CBD' }}>
                 {user.role}
               </Typography>
             </Box>
           </Box>
         )}
+
+        <ListItemButton
+          onClick={() => setProfileOpen(true)}
+          sx={{
+            borderRadius: '9px', py: 0.8, px: 1.5, mb: 0.5,
+            '&:hover': { bgcolor: '#F1F5F9' },
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: 32, color: '#64748B', '& .MuiSvgIcon-root': { fontSize: 18 } }}>
+            <AccountCircleRoundedIcon />
+          </ListItemIcon>
+          <ListItemText primary="Profile" primaryTypographyProps={{ fontSize: '0.82rem', fontWeight: 500, color: '#475569' }} />
+        </ListItemButton>
+
         <ListItemButton
           onClick={handleLogout}
           sx={{
-            borderRadius: '9px', py: 1, px: 1.5,
+            borderRadius: '9px', py: 0.8, px: 1.5,
             '&:hover': { bgcolor: '#FEF2F2' },
           }}
         >
@@ -150,6 +196,9 @@ export default function Sidebar({ mobileOpen, onClose }) {
           <ListItemText primary="Logout" primaryTypographyProps={{ fontSize: '0.82rem', fontWeight: 600, color: '#EF4444' }} />
         </ListItemButton>
       </Box>
+
+      {/* Profile Modal */}
+      <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
     </Box>
   );
 

@@ -9,11 +9,15 @@ export default function RoleRoute({ allowedRoles, children }) {
     return <ProtectedRoute>{children}</ProtectedRoute>;
   }
 
-  // Support exact title case or normalized strings
-  const normalizedUserRole = (role || '').toLowerCase().replace(/ /g, '_');
+  const normUserRole = (role || '').toLowerCase().replace(/ /g, '');
+
   const isAllowed = allowedRoles.some(r => {
-    const norm = r.toLowerCase().replace(/ /g, '_');
-    return r === role || norm === normalizedUserRole;
+    const norm = r.toLowerCase().replace(/ /g, '');
+    if (r === role || norm === normUserRole) return true;
+    if (norm === 'admin' && (normUserRole === 'admin' || normUserRole === 'hospitaladministrator')) return true;
+    if (norm === 'researcher' && (normUserRole === 'researcher' || normUserRole === 'healthcareresearcher')) return true;
+    if (norm === 'sysadmin' && (normUserRole === 'sysadmin' || normUserRole === 'systemadministrator')) return true;
+    return false;
   });
 
   if (!isAllowed) {
