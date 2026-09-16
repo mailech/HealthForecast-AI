@@ -197,7 +197,7 @@ export const AIModelManagementPage = () => {
           <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 text-center">
             <div className="text-[11px] font-semibold text-slate-400 uppercase">Recall / Sensitivity</div>
             <div className="text-xl font-extrabold text-emerald-400 mt-1">
-              {currentMetrics.recall_sensitivity ? `${(currentMetrics.recall_sensitivity * 100).toFixed(2)}%` : 'N/A'}
+              {(currentMetrics.recall_sensitivity ?? currentMetrics.recall) ? `${((currentMetrics.recall_sensitivity ?? currentMetrics.recall) * 100).toFixed(2)}%` : 'N/A'}
             </div>
           </div>
 
@@ -211,7 +211,7 @@ export const AIModelManagementPage = () => {
           <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 text-center">
             <div className="text-[11px] font-semibold text-slate-400 uppercase">F1-Score</div>
             <div className="text-xl font-extrabold text-purple-400 mt-1">
-              {currentMetrics.f1_score ? currentMetrics.f1_score.toFixed(4) : 'N/A'}
+              {(currentMetrics.f1_score ?? currentMetrics.f1) ? `${((currentMetrics.f1_score ?? currentMetrics.f1) * 100).toFixed(2)}%` : 'N/A'}
             </div>
           </div>
 

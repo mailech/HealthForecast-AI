@@ -4,10 +4,8 @@ import {
   Download,
   ShieldCheck,
   AlertCircle,
-  BarChart3,
   TrendingUp,
   Users,
-  Heart,
   Pill,
   RefreshCw
 } from "lucide-react";
@@ -15,39 +13,25 @@ import api from "../../services/api";
 
 const REPORT_TYPES = [
   {
-    id: "Treatment Effectiveness",
+    id: "treatment_effectiveness",
     title: "Treatment Effectiveness Report",
-    description: "Aggregated treatment outcomes, medication usage efficacy, and clinical stability metrics across therapeutic categories.",
+    description: "Aggregated treatment outcomes, medication usage and treatment effectiveness statistics.",
     icon: Pill,
     badgeColor: "text-purple-400 bg-purple-500/20 border-purple-500/30"
   },
   {
-    id: "Readmission Trends",
-    title: "Readmission Trend Analysis Report",
-    description: "Macro historical patterns of early (<30d), late (>30d), and non-readmission distribution across admission contexts.",
+    id: "readmission_trends",
+    title: "Readmission Trends Report",
+    description: "Aggregate early (<30 days), late (>30 days) and no-readmission trends across the approved dataset.",
     icon: TrendingUp,
     badgeColor: "text-red-400 bg-red-500/20 border-red-500/30"
   },
   {
-    id: "Population Health",
-    title: "Population Health & Demographics Report",
-    description: "Epidemiological cohort summaries by age groups, admission types, diagnosis count distributions, and utilization profiles.",
+    id: "population_health",
+    title: "Population Health Report",
+    description: "Aggregate demographic, population health and utilization statistics.",
     icon: Users,
     badgeColor: "text-emerald-400 bg-emerald-500/20 border-emerald-500/30"
-  },
-  {
-    id: "Patient Outcomes",
-    title: "Patient Outcome Analytics Report",
-    description: "Aggregate length-of-stay metrics, inpatient mortality proxies, discharge disposition breakdowns, and complexity scores.",
-    icon: Heart,
-    badgeColor: "text-amber-400 bg-amber-500/20 border-amber-500/30"
-  },
-  {
-    id: "Aggregated Healthcare Analytics",
-    title: "Aggregated Healthcare Analytics Executive Report",
-    description: "Comprehensive multi-dimensional healthcare metrics summary covering total encounters, overall readmission distributions, and utilization benchmarks.",
-    icon: BarChart3,
-    badgeColor: "text-blue-400 bg-blue-500/20 border-blue-500/30"
   }
 ];
 
@@ -55,17 +39,17 @@ const AnalyticalReportsPage = () => {
   const [downloadingCategory, setDownloadingCategory] = useState(null);
   const [error, setError] = useState(null);
 
-  const handleExportReport = async (category) => {
-    setDownloadingCategory(category);
+  const handleExportReport = async (reportId) => {
+    setDownloadingCategory(reportId);
     setError(null);
     try {
       const response = await api.post(
-        "/api/v1/researcher/analytical-report/export",
-        { category },
+        "/researcher/analytical-report/export",
+        { report_type: reportId },
         { responseType: "blob" }
       );
 
-      const filename = `${category.toLowerCase().replace(/\s+/g, "_")}_report_${Date.now()}.csv`;
+      const filename = `${reportId}_report_${Date.now()}.csv`;
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
@@ -75,8 +59,8 @@ const AnalyticalReportsPage = () => {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      console.error(`Error exporting ${category} report:`, err);
-      setError(`Failed to export ${category} report CSV.`);
+      console.error(`Error exporting ${reportId} report:`, err);
+      setError(`Failed to export ${reportId} report CSV.`);
     } finally {
       setDownloadingCategory(null);
     }
@@ -94,10 +78,10 @@ const AnalyticalReportsPage = () => {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-white tracking-wide">
-                  Analytical Report Export
+                  Analytical Reports
                 </h1>
                 <p className="text-emerald-200/80 text-sm mt-1">
-                  Export PDF-compliant aggregated analytical reports in CSV format
+                  Export PDF-compliant aggregated research analytics, treatment outcomes, and population health statistics in CSV format
                 </p>
               </div>
             </div>
@@ -110,13 +94,13 @@ const AnalyticalReportsPage = () => {
       </div>
 
       {/* Safety Banner */}
-      <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-4 flex items-start gap-3 text-slate-300 text-sm">
+      <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-4 flex items-start gap-3 text-slate-300 text-sm shadow-md">
         <ShieldCheck className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
         <div>
           <p className="font-semibold text-emerald-300">Compliant Research Reporting</p>
           <p className="text-xs text-slate-400 mt-0.5">
             All analytical reports contain macro-level aggregated metrics derived directly from approved dataset attributes.
-            No individual patient record numbers or personal identifiers are included.
+            No individual patient record numbers or personal identifiers (patient_nbr, encounter_id, PII) are included.
           </p>
         </div>
       </div>
@@ -128,8 +112,8 @@ const AnalyticalReportsPage = () => {
         </div>
       )}
 
-      {/* Report Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* 3 Report Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {REPORT_TYPES.map((report) => {
           const IconComponent = report.icon;
           const isDownloading = downloadingCategory === report.id;
@@ -184,3 +168,4 @@ const AnalyticalReportsPage = () => {
 };
 
 export default AnalyticalReportsPage;
+

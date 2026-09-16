@@ -49,8 +49,22 @@ async def get_model_info(
     import os, json
     from app.models.prediction import ReadmissionPrediction
 
-    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-    models_dir = os.path.join(base_dir, "ml", "models")
+    possible_models_dirs = [
+        os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "ml", "models"),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), "ml", "models"),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), "backend", "ml", "models"),
+        os.path.join(os.getcwd(), "ml", "models"),
+        os.path.join(os.getcwd(), "backend", "ml", "models")
+    ]
+    
+    models_dir = None
+    for d in possible_models_dirs:
+        if os.path.exists(os.path.join(d, "model_metadata.json")):
+            models_dir = d
+            break
+    if not models_dir:
+        models_dir = possible_models_dirs[0]
+
     metadata_path = os.path.join(models_dir, "model_metadata.json")
     xgb_path = os.path.join(models_dir, "xgboost_model.joblib")
     prep_path = os.path.join(models_dir, "preprocessor.joblib")
@@ -67,6 +81,16 @@ async def get_model_info(
     latest_pred_time = latest_pred_res.scalar_one_or_none()
     latest_pred_str = latest_pred_time.isoformat() + "Z" if latest_pred_time else None
 
+    xgb_metrics = dict(metadata.get("xgboost", {}))
+    if xgb_metrics:
+        xgb_metrics["recall"] = xgb_metrics.get("recall_sensitivity", xgb_metrics.get("recall"))
+        xgb_metrics["f1"] = xgb_metrics.get("f1_score", xgb_metrics.get("f1"))
+
+    rf_metrics = dict(metadata.get("random_forest", {}))
+    if rf_metrics:
+        rf_metrics["recall"] = rf_metrics.get("recall_sensitivity", rf_metrics.get("recall"))
+        rf_metrics["f1"] = rf_metrics.get("f1_score", rf_metrics.get("f1"))
+
     return {
         "model_name": "XGBoost Readmission Classifier",
         "algorithm": "XGBoost (Extreme Gradient Boosting)",
@@ -79,8 +103,8 @@ async def get_model_info(
         "test_samples": metadata.get("test_samples", 19802),
         "feature_count": metadata.get("features_count", 187),
         "evaluation_metrics": {
-            "xgboost": metadata.get("xgboost", {}),
-            "random_forest": metadata.get("random_forest", {})
+            "xgboost": xgb_metrics,
+            "random_forest": rf_metrics
         },
         "top_features": metadata.get("top_features_xgboost", {}),
         "prediction_monitoring": {

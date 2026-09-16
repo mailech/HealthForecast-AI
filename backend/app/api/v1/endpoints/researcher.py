@@ -4,6 +4,7 @@ from typing import Dict, Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from pydantic import BaseModel, Field
 import pandas as pd
+import numpy as np
 
 from app.api.deps import require_roles
 from app.models.user import User
@@ -131,9 +132,19 @@ async def generate_research_dataset(
     cohort_name = "Filtered Research Cohort"
     metrics = calculate_cohort_metrics(filtered, len(df), cohort_name)
 
+    # Safely extract anonymized sample data (top 5 rows) without direct identifiers and sanitize NaNs for JSON
+    if len(filtered) > 0:
+        safe_cols = [c for c in filtered.columns if c.lower() not in PROHIBITED_IDENTIFIER_COLUMNS]
+        sample_df = filtered[safe_cols].head(5).replace({np.nan: None})
+        sample_data = sample_df.to_dict(orient='records')
+    else:
+        sample_data = []
+
     return {
         "filter_applied": request.model_dump(),
+        "record_count": len(filtered),
         "cohort_metrics": metrics,
+        "sample_data": sample_data,
         "privacy_guarantee": "Filtered cohort contains ZERO patient_nbr or encounter_id direct identifiers.",
         "disclaimer": ANALYTICS_DISCLAIMER
     }
