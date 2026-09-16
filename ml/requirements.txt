@@ -1,0 +1,8 @@
+fastapi>=0.110.0
+uvicorn>=0.28.0
+pydantic>=2.6.0
+xgboost>=2.0.0
+scikit-learn>=1.4.0
+pandas>=2.1.0
+numpy>=1.26.0
+imbalanced-learn>=0.12.0

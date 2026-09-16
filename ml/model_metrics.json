@@ -1,0 +1,27 @@
+{
+  "model_name": "XGBoost - 30-Day Readmission Risk Engine v3.0",
+  "imbalance_strategy": "scale_pos_weight",
+  "scale_pos_weight": 7.96,
+  "primary_metric": "ROC-AUC & Recall",
+  "roc_auc": 0.6854,
+  "recall": 59.97,
+  "precision": 18.42,
+  "f1_score": 28.18,
+  "accuracy": 65.9,
+  "pr_auc": 0.2297,
+  "confusion_matrix": [
+    [
+      12051,
+      6032
+    ],
+    [
+      909,
+      1362
+    ]
+  ],
+  "imputation": {
+    "weight": "Numeric Midpoint + Missingness Indicator + Median/KNN Imputation",
+    "payer_code": "Mode Imputation ('MC')",
+    "medical_specialty": "Mode Imputation ('InternalMedicine') + Clinical Grouping"
+  }
+}
