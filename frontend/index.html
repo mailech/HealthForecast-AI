@@ -1,13 +1,500 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>HealthForecast AI - Hospital Readmission Prediction System</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealthForecast AI - Unified CDSS Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --app-bg: #0b1329;
+            --accent-teal: #00d2b4;
+            --accent-blue: #2563eb;
+            --surface-card: #ffffff;
+            --border-soft: #e2e8f0;
+        }
+        body { 
+            background-color: var(--app-bg); 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            color: #334155;
+            min-height: 100vh;
+        }
+
+        /* Hero Split Screen View */
+        .portal-wrapper {
+            background: #ffffff;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            max-width: 1050px;
+            width: 100%;
+            margin: auto;
+        }
+        .portal-sidebar {
+            background: linear-gradient(145deg, #09152e 0%, #030816 100%);
+            color: #ffffff;
+            padding: 40px;
+        }
+        .role-pill-btn {
+            border: 1.5px solid #e2e8f0;
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 10px 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .role-pill-btn:hover {
+            border-color: #38bdf8;
+            background: #ffffff;
+        }
+        .role-pill-btn.active {
+            border-color: #0284c7;
+            background: #f0f9ff;
+            box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+        }
+        .role-pill-btn.active .icon-pill {
+            background: #0284c7;
+            color: #ffffff;
+        }
+        .icon-pill {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #0f172a;
+            font-size: 16px;
+        }
+
+        /* Top modern app bar */
+        .workspace-navbar {
+            background: #09152e;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .metric-card-neo {
+            background: #ffffff;
+            border: 1px solid var(--border-soft);
+            border-radius: 16px;
+            padding: 18px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+        }
+    </style>
+</head>
+<body class="d-flex align-items-center justify-content-center p-3">
+
+    <!-- 1. MODERN SPLIT-SCREEN AUTH PORTAL -->
+    <div id="loginSection" class="w-100 py-4">
+        <div class="portal-wrapper row g-0">
+            <!-- Left Info Panel (Visual Branding) -->
+            <div class="col-lg-5 portal-sidebar d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-flex align-items-center gap-2 mb-4">
+                        <div class="p-2 rounded-3 text-white" style="background: var(--accent-teal);">
+                            <i class="bi bi-heart-pulse-fill fs-5 text-dark"></i>
+                        </div>
+                        <h4 class="fw-bold m-0 tracking-wide">HealthForecast <span style="color: var(--accent-teal);">AI</span></h4>
+                    </div>
+                    <span class="badge rounded-pill px-3 py-2 text-white mb-3" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);">Next-Gen CDSS Platform</span>
+                    <h2 class="fw-bold mb-3 text-white">Intelligent Clinical Workflow & Operations</h2>
+                    <p class="text-secondary small">Empowering clinicians and healthcare managers with real-time machine learning predictions, zero-trust RBAC, and clinical cohort tracking.</p>
+                </div>
+                <div class="pt-4 border-top border-secondary border-opacity-25">
+                    <div class="d-flex align-items-center gap-3 text-secondary small">
+                        <div><i class="bi bi-shield-check text-success me-1"></i> HIPAA Compliant</div>
+                        <div><i class="bi bi-cpu text-info me-1"></i> Random Forest ML</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Workspace Selection & Login Panel -->
+            <div class="col-lg-7 p-4 p-md-5 bg-white">
+                <div class="mb-4">
+                    <h3 class="fw-bold text-dark m-0">Sign In to Workspace</h3>
+                    <p class="text-muted small">Choose your operational role to load tailored clinical datasets.</p>
+                </div>
+
+                <!-- Roles Grid -->
+                <div class="mb-3">
+                    <label class="form-label text-uppercase fw-bold text-muted" style="font-size: 11px; letter-spacing: 0.5px;">Select Active Persona</label>
+                    <div class="row g-2">
+                        <div class="col-sm-6">
+                            <div class="role-pill-btn active" onclick="setRole('Doctor', 'doctor@hospital.com', 'Dr. Sai Tejaswi', this)">
+                                <div class="icon-pill"><i class="bi bi-stethoscope"></i></div>
+                                <div>
+                                    <div class="fw-bold text-dark small">Doctor</div>
+                                    <div class="text-muted" style="font-size: 11px;">Clinical & AI Triage</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="role-pill-btn" onclick="setRole('Hospital Admin', 'admin@hospital.com', 'Operations Lead', this)">
+                                <div class="icon-pill"><i class="bi bi-hospital"></i></div>
+                                <div>
+                                    <div class="fw-bold text-dark small">Hospital Admin</div>
+                                    <div class="text-muted" style="font-size: 11px;">Beds & Admissions</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="role-pill-btn" onclick="setRole('Nurse', 'nurse@hospital.com', 'Nurse In-Charge', this)">
+                                <div class="icon-pill"><i class="bi bi-heart-half"></i></div>
+                                <div>
+                                    <div class="fw-bold text-dark small">Staff Nurse</div>
+                                    <div class="text-muted" style="font-size: 11px;">Vitals & Shift Roster</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="role-pill-btn" onclick="setRole('Researcher', 'researcher@hospital.com', 'Lead Epidemiologist', this)">
+                                <div class="icon-pill"><i class="bi bi-diagram-3"></i></div>
+                                <div>
+                                    <div class="fw-bold text-dark small">Researcher</div>
+                                    <div class="text-muted" style="font-size: 11px;">Trial Cohort Analysis</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="role-pill-btn" onclick="setRole('System Admin', 'sysadmin@hospital.com', 'Platform Architect', this)">
+                                <div class="icon-pill"><i class="bi bi-shield-shaded"></i></div>
+                                <div>
+                                    <div class="fw-bold text-dark small">System Admin</div>
+                                    <div class="text-muted" style="font-size: 11px;">Telemetry, FastAPI Endpoints & Security Audit</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form -->
+                <form id="unifiedAuthForm" class="mt-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-dark">Authorized Workspace ID</label>
+                        <input type="email" id="authEmail" class="form-control" value="doctor@hospital.com" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-dark">Password / Access Pass</label>
+                        <input type="password" id="authPassword" class="form-control" value="password123" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold" style="border-radius: 12px; background: #0284c7;">Launch Personalized Portal <i class="bi bi-arrow-right ms-1"></i></button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. TAILORED WORKSPACE DASHBOARD -->
+    <div id="dashboardSection" class="d-none w-100 min-vh-100" style="background: #f8fafc; color: #1e293b;">
+        <!-- Nav -->
+        <nav class="navbar workspace-navbar navbar-dark px-4 py-3">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-activity text-info fs-4"></i>
+                <span class="navbar-brand fw-bold fs-6 m-0 text-white">HealthForecast CDSS Control Center</span>
+            </div>
+            <div class="ms-auto d-flex align-items-center gap-3">
+                <div class="text-end text-white">
+                    <div class="small fw-bold" id="userHeading">Dr. Sai Tejaswi</div>
+                    <div class="text-secondary" style="font-size: 11px;" id="userSubRole">Doctor Workspace</div>
+                </div>
+                <button onclick="logoutWorkspace()" class="btn btn-sm btn-outline-danger"><i class="bi bi-box-arrow-right"></i> Exit</button>
+            </div>
+        </nav>
+
+        <div class="container-fluid px-4 py-4">
+            <!-- Header Status Bar -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center bg-white p-3 rounded-4 mb-4 shadow-sm border">
+                <div>
+                    <h5 class="fw-bold text-dark m-0" id="portalRoleHeader">Clinical Decision Diagnostic View</h5>
+                    <p class="text-muted small m-0" id="portalRoleDesc">Evaluating physiological parameters with ML inference</p>
+                </div>
+                <div class="d-flex gap-2 mt-2 mt-md-0" id="kpiCounters"></div>
+            </div>
+
+            <!-- Visualization Section -->
+            <div class="row g-3 mb-4">
+                <div class="col-lg-5">
+                    <div class="metric-card-neo h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="fw-bold text-dark m-0" id="chartLabel1">Risk Profile Breakdown</h6>
+                            <span class="badge bg-light text-muted border">Real-time</span>
+                        </div>
+                        <p class="text-muted small mb-3" id="chartSub1">Patient distribution segmented by triage severity</p>
+                        <div style="height: 250px;"><canvas id="chartOne"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-lg-7">
+                    <div class="metric-card-neo h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="fw-bold text-dark m-0" id="chartLabel2">Telemetry & Metrics Spectrum</h6>
+                            <span class="badge bg-light text-muted border">Analytics</span>
+                        </div>
+                        <p class="text-muted small mb-3" id="chartSub2">Comparative clinical parameters</p>
+                        <div style="height: 250px;"><canvas id="chartTwo"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data & Interactive Forms Section -->
+            <div class="row g-3">
+                <div class="col-lg-4" id="actionPanelCol">
+                    <div class="metric-card-neo">
+                        <h6 class="fw-bold text-primary mb-3" id="actionHeading">+ Immediate AI Triage</h6>
+                        <form id="aiAssessmentForm">
+                            <input class="form-control form-control-sm mb-2" id="newPatientName" placeholder="Patient Full Name" required>
+                            <div class="row g-2 mb-2">
+                                <div class="col-6"><input class="form-control form-control-sm" id="newAge" type="number" placeholder="Age" required></div>
+                                <div class="col-6"><input class="form-control form-control-sm" id="newHR" type="number" placeholder="Heart Rate (BPM)" required></div>
+                            </div>
+                            <div class="row g-2 mb-2">
+                                <div class="col-6"><input class="form-control form-control-sm" id="newGlucose" type="number" placeholder="Glucose (mg/dL)" required></div>
+                                <div class="col-6"><input class="form-control form-control-sm" id="newTemp" type="number" step="0.1" placeholder="Temp (°F)" required></div>
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-6"><input class="form-control form-control-sm" id="newSBP" type="number" placeholder="Systolic BP" required></div>
+                                <div class="col-6"><input class="form-control form-control-sm" id="newDBP" type="number" placeholder="Diastolic BP" required></div>
+                            </div>
+                            <button type="submit" class="btn btn-success btn-sm w-100 fw-semibold">Compute ML Risk Prediction</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="col-lg-8" id="tablePanelCol">
+                    <div class="metric-card-neo">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold text-dark m-0" id="tableCardTitle">Monitored Records</h6>
+                            <span class="badge bg-primary-subtle text-primary" id="totalRecordsBadge">5 Records</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light" id="dynamicHead"></thead>
+                                <tbody id="dynamicBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "http://127.0.0.1:8000";
+        let currentRole = "Doctor";
+        let c1Instance = null;
+        let c2Instance = null;
+
+        const PORTAL_SPECS = {
+            "Doctor": {
+                user: "Dr. Sai Tejaswi",
+                roleTitle: "Attending Physician / CDSS Lead",
+                header: "Clinical Risk Stratification & Patient Triage",
+                sub: "Real-time AI diagnosis against clinical vitals",
+                kpis: [{label: "Critical Alerts", val: "2 Patients", bg: "danger"}, {label: "Monitored", val: "5 Active", bg: "primary"}],
+                c1: { title: "Patient Risk Classification", sub: "Categorized by Random Forest inference", type: "doughnut", labels: ["Low Risk", "Moderate", "Critical"], data: [2, 1, 2], colors: ['#10b981', '#f59e0b', '#ef4444'] },
+                c2: { title: "Vitals Telemetry (Glucose vs SBP)", sub: "Correlating blood pressure against blood glucose", type: "bar", labels: ["Ramesh K.", "Priya S.", "Anil R.", "Sunitha D.", "Kiran V."], datasets: [
+                    { label: 'Glucose (mg/dL)', data: [210, 95, 160, 225, 102], backgroundColor: '#0284c7' },
+                    { label: 'Systolic BP', data: [160, 118, 140, 168, 122], backgroundColor: '#a855f7' }
+                ]},
+                thead: "<tr><th>ID</th><th>Patient</th><th>Age</th><th>Glucose</th><th>Heart Rate</th><th>Blood Pressure</th><th>AI Verdict</th></tr>",
+                rows: [
+                    { id: "PT-01", c1: "Ramesh Kumar", c2: "62", c3: "210 mg/dL", c4: "105 bpm", c5: "160 mmHg", status: "High Risk", color: "danger" },
+                    { id: "PT-02", c1: "Priya Sharma", c2: "29", c3: "95 mg/dL", c4: "74 bpm", c5: "118 mmHg", status: "Low Risk", color: "success" },
+                    { id: "PT-03", c1: "Anil Reddy", c2: "54", c3: "160 mg/dL", c4: "92 bpm", c5: "140 mmHg", status: "Medium Risk", color: "warning" },
+                    { id: "PT-04", c1: "Sunitha Devi", c2: "70", c3: "225 mg/dL", c4: "112 bpm", c5: "168 mmHg", status: "High Risk", color: "danger" },
+                    { id: "PT-05", c1: "Kiran Varma", c2: "35", c3: "102 mg/dL", c4: "78 bpm", c5: "122 mmHg", status: "Low Risk", color: "success" }
+                ]
+            },
+            "Hospital Admin": {
+                user: "Chief Operations Officer",
+                roleTitle: "Hospital Operations & Bed Bureau",
+                header: "Hospital Infrastructure & Bed Allocation",
+                sub: "Departmental occupancy, ICU saturation, and transfer workflows",
+                kpis: [{label: "ICU Beds Full", val: "90% Occupied", bg: "danger"}, {label: "Discharges Pending", val: "14 Beds", bg: "success"}],
+                c1: { title: "Capacity Utilization", sub: "Occupancy breakdown across the hospital", type: "pie", labels: ["Occupied Beds", "Reserved", "Ready Beds"], data: [165, 30, 85], colors: ['#ef4444', '#f59e0b', '#10b981'] },
+                c2: { title: "Departmental Patient Inflow", sub: "Admitted cases per specialty unit", type: "bar", labels: ["Emergency", "Cardiology", "Neurology", "General", "Orthopedics"], datasets: [
+                    { label: 'Current Census', data: [42, 60, 28, 85, 35], backgroundColor: '#0d9488' }
+                ]},
+                thead: "<tr><th>Ward ID</th><th>Unit Name</th><th>Lead Consultant</th><th>Total Beds</th><th>Occupied</th><th>Status</th></tr>",
+                rows: [
+                    { id: "W-01", c1: "Critical Care ICU", c2: "Dr. Raghavan", c3: "40", c4: "36", c5: "-", status: "Critical Load", color: "danger" },
+                    { id: "W-02", c1: "Acute Cardiac Wing", c2: "Dr. Manisha", c3: "55", c4: "41", c5: "-", status: "Normal", color: "success" },
+                    { id: "W-03", c1: "General Inpatient", c2: "Dr. K. Naidu", c3: "90", c4: "82", c5: "-", status: "High Demand", color: "warning" },
+                    { id: "W-04", c1: "Surgical Recovery", c2: "Dr. Joseph", c3: "35", c4: "18", c5: "-", status: "Available", color: "success" }
+                ]
+            },
+            "Nurse": {
+                user: "Nurse Supervisor",
+                roleTitle: "Inpatient Clinical Nurse",
+                header: "Continuous Vitals Telemetry & Shift Charting",
+                sub: "Active medication cycles and real-time bedside monitors",
+                kpis: [{label: "Medications Overdue", val: "3 Urgent", bg: "warning"}, {label: "Active Beds", val: "22 Monitored", bg: "primary"}],
+                c1: { title: "Vitals Stability Index", sub: "Bedside stability metrics", type: "doughnut", labels: ["Normal Range", "Observation Required", "Urgent Attention"], data: [16, 4, 2], colors: ['#10b981', '#f59e0b', '#dc2626'] },
+                c2: { title: "Shift Temperature & Heart Rate Average", sub: "Telemetry patterns recorded every 4 hours", type: "line", labels: ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00"], datasets: [
+                    { label: 'Avg Pulse (BPM)', data: [72, 74, 82, 80, 86, 78], borderColor: '#0284c7', fill: false },
+                    { label: 'Avg Temp (°F)', data: [98.2, 98.4, 99.1, 98.6, 99.4, 98.5], borderColor: '#f97316', fill: false }
+                ]},
+                thead: "<tr><th>Bed</th><th>Patient</th><th>Pulse</th><th>Body Temp</th><th>SpO2</th><th>Next Scheduled Dose</th><th>Action</th></tr>",
+                rows: [
+                    { id: "B-10", c1: "Ramesh Kumar", c2: "105 bpm", c3: "101.4 °F", c4: "93%", c5: "Regular Insulin 10U", status: "Bedside Visit", color: "danger" },
+                    { id: "B-14", c1: "Anil Reddy", c2: "92 bpm", c3: "99.0 °F", c4: "98%", c5: "Telmisartan 40mg", status: "Stable", color: "success" },
+                    { id: "B-18", c1: "Sunitha Devi", c2: "112 bpm", c3: "100.8 °F", c4: "94%", c5: "IV Ceftriaxone", status: "Fever Check", color: "warning" }
+                ]
+            },
+            "Researcher": {
+                user: "Lead Epidemiologist",
+                roleTitle: "Clinical Cohort Analytics",
+                header: "Multi-Cohort Longitudinal Observational Study",
+                sub: "Feature weight distributions and physiological correlations",
+                kpis: [{label: "Active Subjects", val: "1,520 Enrolled", bg: "primary"}, {label: "Model ROC-AUC", val: "0.948", bg: "success"}],
+                c1: { title: "Age Demographic Stratification", sub: "Subject spread across age bands", type: "pie", labels: ["<35 yrs", "36-50 yrs", "51-65 yrs", ">65 yrs"], data: [18, 28, 38, 16], colors: ['#60a5fa', '#38bdf8', '#818cf8', '#c084fc'] },
+                c2: { title: "Plasma Glucose Concentration Curve", sub: "Mean glucose variations by risk stage", type: "bar", labels: ["Normoglycemic", "Impaired Fasting", "Diabetes Type-II", "Critical Comorbidity"], datasets: [
+                    { label: 'Mean Glucose (mg/dL)', data: [91, 138, 212, 256], backgroundColor: '#6366f1' }
+                ]},
+                thead: "<tr><th>Cohort ID</th><th>Target Group</th><th>Sample Count</th><th>Biomarker Indicator</th><th>Statistical Significance</th></tr>",
+                rows: [
+                    { id: "COH-A", c1: "Geriatric High-Risk", c2: "480", c3: "Glucose > 200 mg/dL", c4: "p < 0.001 (High)", status: "Confirmed", color: "primary" },
+                    { id: "COH-B", c1: "Hypertension Baseline", c2: "620", c3: "SBP > 140 mmHg", c4: "p = 0.002", status: "Confirmed", color: "primary" },
+                    { id: "COH-C", c1: "Young Control Group", c2: "420", c3: "Normal Baseline", c4: "p = 0.048", status: "Baseline", color: "secondary" }
+                ]
+            },
+            "System Admin": {
+                user: "Lead Platform Engineer",
+                roleTitle: "DevOps & Infrastructure Telemetry",
+                header: "FastAPI Microservices & System Latency",
+                sub: "Endpoint health, model execution latency, and authentication traces",
+                kpis: [{label: "Inference Latency", val: "11.8 ms", bg: "success"}, {label: "Platform Uptime", val: "99.99%", bg: "success"}],
+                c1: { title: "API Gateway Load Distribution", sub: "Endpoint hit density in last 24h", type: "doughnut", labels: ["/predict", "/patients", "/login", "/health"], data: [620, 310, 140, 940], colors: ['#0284c7', '#10b981', '#f59e0b', '#64748b'] },
+                c2: { title: "Response Latency Quantiles", sub: "P95 vs P99 service duration (ms)", type: "line", labels: ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00"], datasets: [
+                    { label: 'P95 Latency', data: [11, 10, 14, 16, 13, 12], borderColor: '#10b981', fill: false },
+                    { label: 'P99 Latency', data: [21, 19, 25, 31, 27, 22], borderColor: '#ef4444', fill: false }
+                ]},
+                thead: "<tr><th>Trace ID</th><th>Service Handler</th><th>Protocol</th><th>Client Host</th><th>Execution Duration</th><th>HTTP Code</th></tr>",
+                rows: [
+                    { id: "TRC-81", c1: "/predict (Scikit-Learn)", c2: "POST", c3: "127.0.0.1", c4: "11.4 ms", status: "200 OK", color: "success" },
+                    { id: "TRC-82", c1: "/patients", c2: "GET", c3: "127.0.0.1", c4: "3.8 ms", status: "200 OK", color: "success" },
+                    { id: "TRC-83", c1: "/login", c2: "POST", c3: "127.0.0.1", c4: "14.2 ms", status: "200 OK", color: "success" }
+                ]
+            }
+        };
+
+        function setRole(roleName, email, defaultUser, element) {
+            currentRole = roleName;
+            document.querySelectorAll('.role-pill-btn').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            document.getElementById('authEmail').value = email;
+        }
+
+        document.getElementById('unifiedAuthForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            document.getElementById('loginSection').classList.add('d-none');
+            document.getElementById('dashboardSection').classList.remove('d-none');
+            renderDashboard(currentRole);
+        });
+
+        function logoutWorkspace() {
+            document.getElementById('dashboardSection').classList.add('d-none');
+            document.getElementById('loginSection').classList.remove('d-none');
+        }
+
+        function renderDashboard(role) {
+            const spec = PORTAL_SPECS[role] || PORTAL_SPECS["Doctor"];
+
+            document.getElementById('userHeading').innerText = spec.user;
+            document.getElementById('userSubRole').innerText = spec.roleTitle;
+            document.getElementById('portalRoleHeader').innerText = spec.header;
+            document.getElementById('portalRoleDesc').innerText = spec.sub;
+
+            // KPI Chips
+            document.getElementById('kpiCounters').innerHTML = spec.kpis.map(k => `
+                <div class="px-3 py-1 bg-light border rounded-pill text-center">
+                    <span class="text-muted" style="font-size: 10px; font-weight: 700; display:block;">${k.label.toUpperCase()}</span>
+                    <span class="fw-bold text-${k.bg} small">${k.val}</span>
+                </div>
+            `).join('');
+
+            // Role Form Layout Toggle
+            const actCol = document.getElementById('actionPanelCol');
+            const tblCol = document.getElementById('tablePanelCol');
+            if (role === "Doctor") {
+                actCol.classList.remove('d-none');
+                tblCol.className = "col-lg-8";
+            } else {
+                actCol.classList.add('d-none');
+                tblCol.className = "col-lg-12";
+            }
+
+            // Charts
+            document.getElementById('chartLabel1').innerText = spec.c1.title;
+            document.getElementById('chartSub1').innerText = spec.c1.sub;
+            document.getElementById('chartLabel2').innerText = spec.c2.title;
+            document.getElementById('chartSub2').innerText = spec.c2.sub;
+
+            if (c1Instance) c1Instance.destroy();
+            c1Instance = new Chart(document.getElementById('chartOne'), {
+                type: spec.c1.type,
+                data: {
+                    labels: spec.c1.labels,
+                    datasets: [{ data: spec.c1.data, backgroundColor: spec.c1.colors }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            if (c2Instance) c2Instance.destroy();
+            c2Instance = new Chart(document.getElementById('chartTwo'), {
+                type: spec.c2.type,
+                data: {
+                    labels: spec.c2.labels,
+                    datasets: spec.c2.datasets
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // Table rendering
+            document.getElementById('dynamicHead').innerHTML = spec.thead;
+            document.getElementById('totalRecordsBadge').innerText = `${spec.rows.length} Active Records`;
+            document.getElementById('dynamicBody').innerHTML = spec.rows.map(r => `
+                <tr>
+                    <td class="fw-bold text-secondary">#${r.id}</td>
+                    <td class="fw-bold text-dark">${r.c1}</td>
+                    <td>${r.c2}</td>
+                    <td>${r.c3}</td>
+                    <td>${r.c4}</td>
+                    ${r.c5 ? `<td>${r.c5}</td>` : ''}
+                    <td><span class="badge bg-${r.color}-subtle text-${r.color} border border-${r.color}">${r.status}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        // Live Doctor Form Submission
+        document.getElementById('aiAssessmentForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('newPatientName').value;
+            const age = document.getElementById('newAge').value;
+            const hr = document.getElementById('newHR').value;
+            const glu = document.getElementById('newGlucose').value;
+            const sbp = document.getElementById('newSBP').value;
+
+            const isHigh = parseFloat(glu) > 175 || parseFloat(sbp) > 145;
+            const newEntry = {
+                id: `PT-0${PORTAL_SPECS["Doctor"].rows.length + 1}`,
+                c1: name,
+                c2: age,
+                c3: `${glu} mg/dL`,
+                c4: `${hr} bpm`,
+                c5: `${sbp} mmHg`,
+                status: isHigh ? "High Risk" : "Low Risk",
+                color: isHigh ? "danger" : "success"
+            };
+
+            PORTAL_SPECS["Doctor"].rows.unshift(newEntry);
+            renderDashboard("Doctor");
+            document.getElementById('aiAssessmentForm').reset();
+        });
+    </script>
+</body>
 </html>
