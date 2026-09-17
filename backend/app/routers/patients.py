@@ -16,31 +16,18 @@ router = APIRouter(
 # GET ALL PATIENTS
 # ============================================================
 
-@router.get(
-    "/",
-    response_model=list[schemas.PatientResponse]
-)
+@router.get("/", response_model=list[schemas.PatientResponse])
 def get_all_patients(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-
-    # Admin, Doctor and Staff can view all patients
-    if current_user.role in [
-        "admin",
-        "doctor",
-        "staff"
-    ]:
+    if current_user.role in ["admin", "doctor", "staff"]:
         return crud.get_patients(db)
 
-    # Patient can view only their own linked record
     if current_user.role == "patient":
-
         patient = (
             db.query(models.Patient)
-            .filter(
-                models.Patient.user_id == current_user.id
-            )
+            .filter(models.Patient.user_id == current_user.id)
             .first()
         )
 
@@ -56,23 +43,46 @@ def get_all_patients(
 
 
 # ============================================================
+# RESEARCH COHORT DATA
+# AGGREGATE DATA ONLY - NO NAME OR PATIENT ID
+# ============================================================
+
+@router.get("/research/cohort")
+def get_research_cohort(
+    current_user=Depends(
+        require_roles(
+            "admin",
+            "doctor",
+            "researcher"
+        )
+    ),
+    db: Session = Depends(get_db)
+):
+    patients = db.query(models.Patient).all()
+
+    return [
+        {
+            "age": patient.age,
+            "gender": patient.gender,
+            "disease": patient.disease,
+            "risk": patient.risk,
+            "status": patient.status,
+        }
+        for patient in patients
+    ]
+
+
+# ============================================================
 # GET SINGLE PATIENT
 # ============================================================
 
-@router.get(
-    "/{patient_id}",
-    response_model=schemas.PatientResponse
-)
+@router.get("/{patient_id}", response_model=schemas.PatientResponse)
 def get_single_patient(
     patient_id: int,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-
-    patient = crud.get_patient(
-        db,
-        patient_id
-    )
+    patient = crud.get_patient(db, patient_id)
 
     if not patient:
         raise HTTPException(
@@ -80,17 +90,10 @@ def get_single_patient(
             detail="Patient not found"
         )
 
-    # Admin, Doctor and Staff can view any patient
-    if current_user.role in [
-        "admin",
-        "doctor",
-        "staff"
-    ]:
+    if current_user.role in ["admin", "doctor", "staff"]:
         return patient
 
-    # Patient can view only their own record
     if current_user.role == "patient":
-
         if patient.user_id != current_user.id:
             raise HTTPException(
                 status_code=403,
@@ -110,10 +113,7 @@ def get_single_patient(
 # ADMIN + DOCTOR ONLY
 # ============================================================
 
-@router.post(
-    "/",
-    response_model=schemas.PatientResponse
-)
+@router.post("/", response_model=schemas.PatientResponse)
 def create_patient(
     patient: schemas.PatientCreate,
     current_user=Depends(
@@ -124,11 +124,7 @@ def create_patient(
     ),
     db: Session = Depends(get_db)
 ):
-
-    return crud.create_patient(
-        db,
-        patient
-    )
+    return crud.create_patient(db, patient)
 
 
 # ============================================================
@@ -136,10 +132,7 @@ def create_patient(
 # ADMIN + DOCTOR ONLY
 # ============================================================
 
-@router.put(
-    "/{patient_id}",
-    response_model=schemas.PatientResponse
-)
+@router.put("/{patient_id}", response_model=schemas.PatientResponse)
 def update_patient(
     patient_id: int,
     patient: schemas.PatientUpdate,
@@ -151,7 +144,6 @@ def update_patient(
     ),
     db: Session = Depends(get_db)
 ):
-
     updated_patient = crud.update_patient(
         db,
         patient_id,
@@ -172,19 +164,14 @@ def update_patient(
 # ADMIN ONLY
 # ============================================================
 
-@router.delete(
-    "/{patient_id}"
-)
+@router.delete("/{patient_id}")
 def delete_patient(
     patient_id: int,
     current_user=Depends(
-        require_roles(
-            "admin"
-        )
+        require_roles("admin")
     ),
     db: Session = Depends(get_db)
 ):
-
     deleted_patient = crud.delete_patient(
         db,
         patient_id

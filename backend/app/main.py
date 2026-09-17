@@ -14,6 +14,7 @@ from .routers import (
     clinical,
     research,
     optimization,
+    reports,
 )
 
 from ml.model_service import load_model
@@ -95,6 +96,8 @@ app.include_router(clinical.router)
 app.include_router(research.router)
 
 app.include_router(optimization.router)
+
+app.include_router(reports.router)
 
 
 # =========================

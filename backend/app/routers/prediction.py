@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+import pandas as pd
 
 from ..database import get_db
 from .. import models, schemas
@@ -8,9 +9,7 @@ from ..auth import (
     require_roles,
 )
 
-from ml.model_service import (
-    predict_readmission,
-)
+from ml.model_service import predict_readmission
 
 
 router = APIRouter(
@@ -39,15 +38,11 @@ def create_prediction(
     db: Session = Depends(get_db)
 ):
 
-    # ========================================================
-    # GET PATIENT
-    # ========================================================
-
+    # Get patient
     patient = (
         db.query(models.Patient)
         .filter(
-            models.Patient.id ==
-            request.patient_id
+            models.Patient.id == request.patient_id
         )
         .first()
     )
@@ -58,18 +53,35 @@ def create_prediction(
             detail="Patient not found"
         )
 
-
     # ========================================================
     # ML PREDICTION
     # ========================================================
 
     try:
 
-        result = predict_readmission(
-            age=patient.age,
-            gender=patient.gender,
-            disease=patient.disease,
-        )
+        data = pd.DataFrame([{
+            "race": "Caucasian",
+            "gender": patient.gender or "Female",
+            "age": "[40-50)",
+            "admission_type_id": 1,
+            "discharge_disposition_id": 1,
+            "admission_source_id": 7,
+            "time_in_hospital": 4,
+            "num_lab_procedures": 40,
+            "num_procedures": 1,
+            "num_medications": 10,
+            "number_outpatient": 0,
+            "number_emergency": 0,
+            "number_inpatient": 0,
+            "number_diagnoses": 3,
+            "max_glu_serum": "None",
+            "A1Cresult": "None",
+            "insulin": "No",
+            "change": "No",
+            "diabetesMed": "Yes",
+        }])
+
+        result = predict_readmission(data)
 
     except FileNotFoundError as error:
 
@@ -87,9 +99,8 @@ def create_prediction(
 
         raise HTTPException(
             status_code=500,
-            detail="Unable to generate ML prediction"
+            detail=f"Unable to generate ML prediction: {error}"
         )
-
 
     # ========================================================
     # SAVE PREDICTION
@@ -107,7 +118,6 @@ def create_prediction(
     db.commit()
 
     db.refresh(prediction)
-
 
     return prediction
 
@@ -131,46 +141,22 @@ def get_patient_predictions(
     patient = (
         db.query(models.Patient)
         .filter(
-            models.Patient.id ==
-            patient_id
+            models.Patient.id == patient_id
         )
         .first()
     )
 
     if not patient:
-
         raise HTTPException(
             status_code=404,
             detail="Patient not found"
         )
 
-
-    # ========================================================
-    # PATIENT CAN SEE ONLY THEIR OWN PREDICTIONS
-    # ========================================================
-
-    if current_user.role == "patient":
-
-        if patient.user_id != current_user.id:
-
-            raise HTTPException(
-                status_code=403,
-                detail=(
-                    "You can only access "
-                    "your own predictions"
-                )
-            )
-
-
-    # ========================================================
-    # RETURN HISTORY
-    # ========================================================
-
+    # Return prediction history
     return (
         db.query(models.Prediction)
         .filter(
-            models.Prediction.patient_id ==
-            patient_id
+            models.Prediction.patient_id == patient_id
         )
         .order_by(
             models.Prediction.created_at.desc()

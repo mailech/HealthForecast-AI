@@ -4,894 +4,383 @@ import {
   AlertTriangle,
   BrainCircuit,
   Activity,
-  ShieldCheck,
-  Lock,
-  BarChart3,
-  Database,
+  RefreshCw,
   Download,
-  Target,
+  ShieldCheck,
+  Database,
+  FlaskConical,
   TrendingUp,
-  FileText,
 } from "lucide-react";
-
 import {
   BarChart,
   Bar,
-  CartesianGrid,
   XAxis,
   YAxis,
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-
 import api from "../api/api";
 
-function Research() {
+export default function Research() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+  const [updated, setUpdated] = useState("");
+
+  const loadData = async () => {
+    try {
+      setRefreshing(true);
+
+      const res = await api.get(`/research/summary?_=${Date.now()}`);
+      setData(res.data);
+
+      setUpdated(
+        new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      );
+    } catch (error) {
+      console.error("Research data error:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchResearchData = async () => {
-      try {
-        const response = await api.get("/research/summary");
-        setData(response.data);
-      } catch (err) {
-        console.error("Research data error:", err);
-
-        setError(
-          err.response?.data?.detail ||
-            "Unable to load research data."
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchResearchData();
+    loadData();
   }, []);
 
-  const exportSummary = () => {
+  const exportCSV = () => {
     if (!data) return;
 
-    const csv = [
-      "HealthForecast AI - Research Summary",
-      "",
-      "Metric,Value",
-      `Total Patients,${data.total_patients ?? 0}`,
-      `High Risk Patients,${data.high_risk_patients ?? 0}`,
-      `Total Predictions,${data.total_predictions ?? 0}`,
-      `Average Risk Score,${data.average_risk_score ?? 0}`,
-      "",
-      "ML Model",
-      "Model,Logistic Regression",
-      "Recall,88.11%",
-      "ROC-AUC,64.62%",
-      "Accuracy,32.56%",
-      "False Negatives,270",
-      "True Positives,2001",
-      "",
-      "Dataset",
-      "Dataset,Diabetes 130-US Hospitals",
-      "Records,101766",
-      "Features,50",
-    ].join("\n");
+    const rows = [
+      ["Research Metric", "Value"],
+      ["Total Patients", data.total_patients],
+      ["High Risk Patients", data.high_risk_patients],
+      ["Total Predictions", data.total_predictions],
+      ["Average Risk Score", data.average_risk_score],
+    ];
 
-    const blob = new Blob([csv], {
-      type: "text/csv;charset=utf-8;",
-    });
-
+    const csv = rows.map(row => row.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
 
     const link = document.createElement("a");
     link.href = url;
-    link.download = "HealthForecast_Research_Summary.csv";
-
-    document.body.appendChild(link);
+    link.download = "research-summary.csv";
     link.click();
-    document.body.removeChild(link);
 
     URL.revokeObjectURL(url);
   };
 
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-10 text-center">
-          <BrainCircuit
-            size={35}
-            className="text-blue-600 mx-auto mb-3"
-          />
-
-          <p className="text-gray-500">
-            Loading research analytics...
-          </p>
-        </div>
+      <div className="min-h-screen bg-[#F5F7F9] p-6 text-slate-500">
+        Loading research workspace...
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="p-6">
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-          <h2 className="font-semibold text-red-700">
-            Unable to load research data
-          </h2>
+  const total = data?.total_patients || 0;
+  const highRisk = data?.high_risk_patients || 0;
+  const predictions = data?.total_predictions || 0;
+  const averageRisk = data?.average_risk_score || 0;
 
-          <p className="text-sm text-red-600 mt-2">
-            {error}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  const totalPatients = data?.total_patients ?? 0;
-  const highRiskPatients = data?.high_risk_patients ?? 0;
-  const totalPredictions = data?.total_predictions ?? 0;
-  const averageRisk = data?.average_risk_score ?? 0;
-
-  const riskChartData = [
-    {
-      name: "Patients",
-      value: totalPatients,
-    },
-    {
-      name: "High Risk",
-      value: highRiskPatients,
-    },
-    {
-      name: "Predictions",
-      value: totalPredictions,
-    },
-  ];
-
-  const cards = [
-    {
-      title: "Total Patients",
-      value: totalPatients,
-      icon: Users,
-      bg: "bg-blue-100",
-      color: "text-blue-600",
-    },
-    {
-      title: "High Risk Patients",
-      value: highRiskPatients,
-      icon: AlertTriangle,
-      bg: "bg-red-100",
-      color: "text-red-600",
-      valueColor: "text-red-600",
-    },
-    {
-      title: "Total Predictions",
-      value: totalPredictions,
-      icon: Activity,
-      bg: "bg-purple-100",
-      color: "text-purple-600",
-    },
-    {
-      title: "Average Risk Score",
-      value: averageRisk.toFixed(4),
-      icon: BarChart3,
-      bg: "bg-green-100",
-      color: "text-green-600",
-      valueColor: "text-blue-600",
-    },
+  const chartData = [
+    { name: "High Risk", value: highRisk },
+    { name: "Other", value: Math.max(0, total - highRisk) },
   ];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="min-h-screen bg-[#F5F7F9] p-5 lg:p-6">
 
-      {/* HEADER */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      {/* Header */}
+      <div className="mb-5 overflow-hidden rounded-2xl bg-[#0B1F33] text-white">
 
-        <div className="flex items-center gap-3">
-
-          <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
-            <BrainCircuit
-              size={26}
-              className="text-blue-600"
-            />
-          </div>
+        <div className="flex flex-col gap-5 p-6 md:flex-row md:items-center md:justify-between">
 
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">
-              Research & Analytics
+            <div className="mb-2 flex items-center gap-2 text-xs font-medium text-[#E7B8A8]">
+              <FlaskConical size={16} />
+              RESEARCH WORKSPACE
+            </div>
+
+            <h1 className="text-2xl font-semibold">
+              Research Overview
             </h1>
 
-            <p className="text-sm text-gray-500 mt-1">
-              Privacy-safe healthcare research workspace
+            <p className="mt-1 text-sm text-slate-300">
+              Aggregate healthcare intelligence for research analysis.
             </p>
           </div>
 
-        </div>
+          <div className="flex gap-2">
 
-        <button
-          onClick={exportSummary}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition"
-        >
-          <Download size={18} />
-          Export Research Summary
-        </button>
-
-      </div>
-
-
-      {/* OVERVIEW CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-
-        {cards.map((card) => {
-          const Icon = card.icon;
-
-          return (
-            <div
-              key={card.title}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 p-5"
+            <button
+              onClick={loadData}
+              disabled={refreshing}
+              className="flex items-center gap-2 rounded-lg border border-white/15 bg-white/10 px-4 py-2.5 text-sm transition hover:bg-white/15 disabled:opacity-60"
             >
-
-              <div className="flex items-center justify-between">
-
-                <div>
-                  <p className="text-sm text-gray-500">
-                    {card.title}
-                  </p>
-
-                  <h2
-                    className={`text-2xl font-bold mt-2 ${
-                      card.valueColor ||
-                      "text-slate-900"
-                    }`}
-                  >
-                    {card.value}
-                  </h2>
-                </div>
-
-                <div
-                  className={`w-11 h-11 rounded-lg ${card.bg} flex items-center justify-center`}
-                >
-                  <Icon
-                    size={22}
-                    className={card.color}
-                  />
-                </div>
-
-              </div>
-
-              <p className="text-xs text-gray-400 mt-3">
-                Aggregate research data
-              </p>
-
-            </div>
-          );
-        })}
-
-      </div>
-
-
-      {/* CHART + READMISSION ANALYSIS */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* RISK DISTRIBUTION */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-
-          <div className="flex items-center gap-3 mb-5">
-
-            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-              <BarChart3
-                size={21}
-                className="text-blue-600"
+              <RefreshCw
+                size={16}
+                className={refreshing ? "animate-spin" : ""}
               />
-            </div>
+              Refresh
+            </button>
 
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900">
-                Research Overview
-              </h2>
-
-              <p className="text-sm text-gray-500">
-                Aggregate healthcare activity
-              </p>
-            </div>
-
-          </div>
-
-          <ResponsiveContainer
-            width="100%"
-            height={280}
-          >
-            <BarChart
-              data={riskChartData}
-              margin={{
-                top: 10,
-                right: 20,
-                left: 0,
-                bottom: 5,
-              }}
+            <button
+              onClick={exportCSV}
+              className="flex items-center gap-2 rounded-lg bg-[#C8755B] px-4 py-2.5 text-sm font-medium transition hover:bg-[#B5654C]"
             >
-
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="#e5e7eb"
-              />
-
-              <XAxis
-                dataKey="name"
-                tick={{
-                  fill: "#64748b",
-                  fontSize: 12,
-                }}
-              />
-
-              <YAxis
-                allowDecimals={false}
-                tick={{
-                  fill: "#64748b",
-                }}
-              />
-
-              <Tooltip />
-
-              <Bar
-                dataKey="value"
-                fill="#2563eb"
-                radius={[6, 6, 0, 0]}
-              />
-
-            </BarChart>
-          </ResponsiveContainer>
-
-        </div>
-
-
-        {/* READMISSION ANALYSIS */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-
-          <div className="flex items-center gap-3 mb-6">
-
-            <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-              <TrendingUp
-                size={21}
-                className="text-purple-600"
-              />
-            </div>
-
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900">
-                Readmission Analysis
-              </h2>
-
-              <p className="text-sm text-gray-500">
-                Current aggregate prediction activity
-              </p>
-            </div>
+              <Download size={16} />
+              Export
+            </button>
 
           </div>
-
-          <div className="space-y-4">
-
-            <AnalysisRow
-              label="Patients Analyzed"
-              value={totalPatients}
-            />
-
-            <AnalysisRow
-              label="Predictions Generated"
-              value={totalPredictions}
-            />
-
-            <AnalysisRow
-              label="High-Risk Patients"
-              value={highRiskPatients}
-            />
-
-            <AnalysisRow
-              label="Average Risk Score"
-              value={averageRisk.toFixed(4)}
-            />
-
-          </div>
-
         </div>
+
+        {updated && (
+          <div className="border-t border-white/10 px-6 py-3 text-[11px] text-slate-400">
+            Last updated at {updated}
+          </div>
+        )}
+      </div>
+
+      {/* Stats */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+        <Stat
+          icon={Users}
+          title="Patients Analyzed"
+          value={total}
+        />
+
+        <Stat
+          icon={AlertTriangle}
+          title="High Risk"
+          value={highRisk}
+          accent
+        />
+
+        <Stat
+          icon={BrainCircuit}
+          title="Predictions"
+          value={predictions}
+        />
+
+        <Stat
+          icon={Activity}
+          title="Average Risk"
+          value={`${(averageRisk * 100).toFixed(1)}%`}
+        />
 
       </div>
 
+      {/* Main analysis */}
+      <div className="mt-5 grid gap-5 lg:grid-cols-3">
 
-      {/* ML PERFORMANCE */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 lg:col-span-2">
 
-        <div className="flex items-center gap-3 mb-6">
-
-          <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-            <Target
-              size={21}
-              className="text-green-600"
-            />
-          </div>
-
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900">
-              ML Model Performance
-            </h2>
-
-            <p className="text-sm text-gray-500">
-              Readmission prediction evaluation metrics
-            </p>
-          </div>
-
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-
-          <MetricCard
-            title="Recall"
-            value="88.11%"
-            description="High-risk detection"
-          />
-
-          <MetricCard
-            title="ROC-AUC"
-            value="64.62%"
-            description="Ranking performance"
-          />
-
-          <MetricCard
-            title="Accuracy"
-            value="32.56%"
-            description="Overall predictions"
-          />
-
-          <MetricCard
-            title="False Negatives"
-            value="270"
-            description="Missed positive cases"
-          />
-
-          <MetricCard
-            title="True Positives"
-            value="2,001"
-            description="Correct positive cases"
-          />
-
-          <MetricCard
-            title="Model"
-            value="LR"
-            description="Logistic Regression"
-          />
-
-        </div>
-
-      </div>
-
-
-      {/* DATASET + INSIGHTS */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* DATASET */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-
-          <div className="flex items-center gap-3 mb-5">
-
-            <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
-              <Database
-                size={21}
-                className="text-indigo-600"
-              />
-            </div>
+          <div className="mb-4 flex items-center justify-between">
 
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">
-                Dataset Information
+              <h2 className="font-semibold text-[#0B1F33]">
+                Cohort Risk Distribution
               </h2>
 
-              <p className="text-sm text-gray-500">
-                Training dataset used by HealthForecast AI
+              <p className="mt-1 text-xs text-slate-500">
+                Current aggregate patient risk profile
               </p>
             </div>
 
-          </div>
-
-          <div className="space-y-4">
-
-            <InfoRow
-              label="Dataset"
-              value="Diabetes 130-US Hospitals"
-            />
-
-            <InfoRow
-              label="Records"
-              value="101,766"
-            />
-
-            <InfoRow
-              label="Features"
-              value="50"
-            />
-
-            <InfoRow
-              label="Prediction Target"
-              value="Readmission"
-            />
-
-            <InfoRow
-              label="Model"
-              value="Logistic Regression"
-            />
-
-          </div>
-
-        </div>
-
-
-        {/* INSIGHTS */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-
-          <div className="flex items-center gap-3 mb-5">
-
-            <div className="w-10 h-10 rounded-lg bg-yellow-100 flex items-center justify-center">
-              <FileText
-                size={21}
-                className="text-yellow-600"
-              />
-            </div>
-
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900">
-                Research Insights
-              </h2>
-
-              <p className="text-sm text-gray-500">
-                Aggregate observations from the system
-              </p>
+            <div className="rounded-xl bg-[#F1E1DB] p-2.5 text-[#C8755B]">
+              <TrendingUp size={18} />
             </div>
 
           </div>
 
-          <div className="space-y-4">
+          <div className="h-[260px]">
 
-            <Insight
-              text={`${totalPatients} patients are currently represented in the research summary.`}
-            />
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData}>
 
-            <Insight
-              text={`${highRiskPatients} patient(s) are currently classified as high risk in the aggregate data.`}
-            />
+                <XAxis
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
+                />
 
-            <Insight
-              text={`${totalPredictions} readmission prediction(s) have been generated.`}
-            />
+                <YAxis
+                  allowDecimals={false}
+                  axisLine={false}
+                  tickLine={false}
+                />
 
-            <Insight
-              text="The model evaluation prioritizes recall to reduce missed high-risk cases."
-            />
+                <Tooltip />
+
+                <Bar
+                  dataKey="value"
+                  fill="#C8755B"
+                  radius={[7, 7, 0, 0]}
+                />
+
+              </BarChart>
+            </ResponsiveContainer>
 
           </div>
-
         </div>
 
-      </div>
+        {/* Status */}
+        <div className="rounded-2xl bg-[#12395B] p-5 text-white">
 
+          <div className="flex items-center gap-2 text-[#E7B8A8]">
+            <Database size={18} />
 
-      {/* PRIVACY */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <span className="text-xs font-medium uppercase tracking-wider">
+              Research Status
+            </span>
+          </div>
 
-        {/* ALLOWED */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h2 className="mt-4 text-xl font-semibold">
+            Analysis Active
+          </h2>
 
-          <div className="flex items-center gap-3 mb-5">
+          <p className="mt-2 text-sm leading-6 text-slate-300">
+            The research environment is processing aggregate healthcare
+            information without exposing individual patient identities.
+          </p>
 
-            <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+          <div className="mt-5 rounded-xl bg-white/10 p-4">
+
+            <div className="flex items-center gap-2">
               <ShieldCheck
-                size={21}
-                className="text-green-600"
+                size={17}
+                className="text-[#E7B8A8]"
               />
+
+              <span className="text-sm font-medium">
+                Privacy Protected
+              </span>
             </div>
 
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900">
-                Research Data Access
-              </h2>
-
-              <p className="text-sm text-gray-500">
-                Information available to researchers
-              </p>
-            </div>
+            <p className="mt-2 text-xs leading-5 text-slate-400">
+              Research access is limited to aggregate-level information.
+            </p>
 
           </div>
-
-          <div className="space-y-4">
-
-            <AccessItem
-              title="Aggregated healthcare data"
-              description="Population-level statistics only"
-            />
-
-            <AccessItem
-              title="Anonymized research insights"
-              description="Individual identities are not exposed"
-            />
-
-            <AccessItem
-              title="Research analytics"
-              description="Aggregate healthcare analysis"
-            />
-
-            <AccessItem
-              title="Model performance"
-              description="Evaluation metrics and aggregate results"
-            />
-
-          </div>
-
         </div>
-
-
-        {/* RESTRICTED */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-
-          <div className="flex items-center gap-3 mb-5">
-
-            <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
-              <Lock
-                size={21}
-                className="text-red-600"
-              />
-            </div>
-
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900">
-                Protected Information
-              </h2>
-
-              <p className="text-sm text-gray-500">
-                Restricted from research access
-              </p>
-            </div>
-
-          </div>
-
-          <div className="space-y-4">
-
-            <RestrictedItem text="Patient names" />
-
-            <RestrictedItem text="Email and contact information" />
-
-            <RestrictedItem text="Individual patient records" />
-
-            <RestrictedItem text="Direct clinical decision-making" />
-
-          </div>
-
-        </div>
-
       </div>
 
+      {/* Snapshot */}
+      <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-5">
 
-      {/* PRIVACY NOTICE */}
-      <div className="bg-blue-50 border border-blue-100 rounded-xl p-5">
+        <div className="mb-4">
+          <h2 className="font-semibold text-[#0B1F33]">
+            Research Snapshot
+          </h2>
 
-        <div className="flex gap-3">
+          <p className="mt-1 text-xs text-slate-500">
+            Current system-level observations
+          </p>
+        </div>
 
-          <ShieldCheck
-            size={22}
-            className="text-blue-600 mt-0.5 flex-shrink-0"
+        <div className="grid gap-3 md:grid-cols-3">
+
+          <Snapshot
+            title="Cohort Coverage"
+            value={total}
+            text="patient records available for aggregate analysis"
           />
 
-          <div>
+          <Snapshot
+            title="Risk Monitoring"
+            value={highRisk}
+            text="patients currently classified as high risk"
+          />
 
-            <h3 className="font-semibold text-blue-900">
-              Data Privacy Protection
-            </h3>
+          <Snapshot
+            title="AI Activity"
+            value={predictions}
+            text="readmission predictions recorded"
+          />
 
-            <p className="text-sm text-blue-800 mt-1 leading-relaxed">
-              Research access is limited to aggregated and
-              privacy-safe healthcare information. Personally
-              identifiable patient information is not returned
-              by the research API.
-            </p>
+        </div>
+      </div>
 
-          </div>
+      {/* Privacy */}
+      <div className="mt-5 flex gap-3 rounded-xl border border-[#DFC6BD] bg-[#F4E9E5] p-4">
 
+        <ShieldCheck
+          className="mt-0.5 text-[#C8755B]"
+          size={19}
+        />
+
+        <div>
+          <p className="text-sm font-semibold text-[#0B1F33]">
+            Research Privacy
+          </p>
+
+          <p className="mt-1 text-xs leading-5 text-slate-600">
+            This workspace is designed for aggregate research analysis.
+            Individual patient identifiers are not displayed.
+          </p>
         </div>
 
       </div>
 
+    </div>
+  );
+}
 
-      {/* EXPORT FOOTER */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+function Stat({ icon: Icon, title, value, accent }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
 
-        <div className="flex items-center gap-3">
+      <div className="flex items-start justify-between">
 
-          <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
-            <Download
-              size={20}
-              className="text-gray-600"
-            />
-          </div>
+        <div>
+          <p className="text-xs text-slate-500">
+            {title}
+          </p>
 
-          <div>
-            <h3 className="font-semibold text-slate-900">
-              Research Report
-            </h3>
-
-            <p className="text-sm text-gray-500">
-              Export aggregate research metrics as CSV
-            </p>
-          </div>
-
+          <p className="mt-2 text-2xl font-semibold text-[#0B1F33]">
+            {value}
+          </p>
         </div>
 
-        <button
-          onClick={exportSummary}
-          className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg border border-blue-200 text-blue-600 font-medium text-sm hover:bg-blue-50 transition"
+        <div
+          className={`rounded-xl p-2.5 ${
+            accent
+              ? "bg-[#F1E1DB] text-[#C8755B]"
+              : "bg-[#E8EEF3] text-[#12395B]"
+          }`}
         >
-          <Download size={17} />
-          Export Summary
-        </button>
+          <Icon size={19} />
+        </div>
 
       </div>
-
     </div>
   );
 }
 
-
-/* ============================================================
-   ANALYSIS ROW
-============================================================ */
-
-function AnalysisRow({ label, value }) {
+function Snapshot({ title, value, text }) {
   return (
-    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+    <div className="rounded-xl bg-[#F5F7F9] p-4">
 
-      <span className="text-sm text-gray-600">
-        {label}
-      </span>
-
-      <span className="font-semibold text-slate-900">
-        {value}
-      </span>
-
-    </div>
-  );
-}
-
-
-/* ============================================================
-   METRIC CARD
-============================================================ */
-
-function MetricCard({
-  title,
-  value,
-  description,
-}) {
-  return (
-    <div className="bg-gray-50 rounded-lg p-4">
-
-      <p className="text-xs text-gray-500">
+      <p className="text-xs font-medium text-slate-500">
         {title}
       </p>
 
-      <p className="text-xl font-bold text-blue-600 mt-2">
+      <p className="mt-2 text-xl font-semibold text-[#0B1F33]">
         {value}
       </p>
 
-      <p className="text-xs text-gray-400 mt-1">
-        {description}
-      </p>
-
-    </div>
-  );
-}
-
-
-/* ============================================================
-   INFO ROW
-============================================================ */
-
-function InfoRow({ label, value }) {
-  return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 p-3 bg-gray-50 rounded-lg">
-
-      <span className="text-sm text-gray-500">
-        {label}
-      </span>
-
-      <span className="text-sm font-medium text-slate-900">
-        {value}
-      </span>
-
-    </div>
-  );
-}
-
-
-/* ============================================================
-   INSIGHT
-============================================================ */
-
-function Insight({ text }) {
-  return (
-    <div className="flex gap-3 p-3 bg-gray-50 rounded-lg">
-
-      <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-        <Activity
-          size={14}
-          className="text-blue-600"
-        />
-      </div>
-
-      <p className="text-sm text-gray-600 leading-relaxed">
+      <p className="mt-1 text-xs leading-5 text-slate-500">
         {text}
       </p>
 
     </div>
   );
-}
-
-
-/* ============================================================
-   ACCESS ITEM
-============================================================ */
-
-function AccessItem({
-  title,
-  description,
-}) {
-  return (
-    <div className="flex items-center gap-3">
-
-      <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-
-        <ShieldCheck
-          size={16}
-          className="text-green-600"
-        />
-
-      </div>
-
-      <div>
-
-        <p className="text-sm font-medium text-slate-800">
-          {title}
-        </p>
-
-        <p className="text-xs text-gray-500 mt-0.5">
-          {description}
-        </p>
-
-      </div>
-
-    </div>
-  );
-}
-
-
-/* ============================================================
-   RESTRICTED ITEM
-============================================================ */
-
-function RestrictedItem({ text }) {
-  return (
-    <div className="flex items-center gap-3">
-
-      <div className="w-7 h-7 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-
-        <Lock
-          size={14}
-          className="text-red-600"
-        />
-
-      </div>
-
-      <span className="text-sm text-gray-700">
-        {text}
-      </span>
-
-    </div>
-  );
-}
-
-
-export default Research; 
+} 

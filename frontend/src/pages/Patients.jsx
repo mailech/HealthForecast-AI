@@ -1,667 +1,538 @@
-import { useEffect, useState } from "react";
-import MainLayout from "../layouts/MainLayout";
-import AddPatientModal from "../components/patient/AddPatientModal";
-import EditPatientModal from "../components/patient/EditPatientModal";
-
+import { useEffect, useMemo, useState } from "react";
 import {
-  Search,
-  Plus,
-  Eye,
-  Pencil,
-  Trash2,
-  Users,
+  Users, Search, RefreshCw, UserPlus, Edit3, Trash2,
+  Activity, ShieldCheck, UserCheck, BedDouble, X
 } from "lucide-react";
-
 import api from "../api/api";
 
 function Patients() {
-  const user = JSON.parse(
-    localStorage.getItem("user") || "{}"
-  );
-
-  const role = user.role || "patient";
-
-  const isAdmin = role === "admin";
-  const isDoctor = role === "doctor";
-  const isStaff = role === "staff";
-
-  const canAdd = isAdmin || isDoctor;
-  const canEdit = isAdmin || isDoctor;
-  const canDelete = isAdmin;
-
   const [patients, setPatients] = useState([]);
   const [search, setSearch] = useState("");
-
-  const [isAddOpen, setIsAddOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-
-  const [selectedPatient, setSelectedPatient] =
-    useState(null);
-
+  const [riskFilter, setRiskFilter] = useState("All");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState(null);
 
-  // =========================
-  // FETCH PATIENTS
-  // =========================
+  const [form, setForm] = useState({
+    name: "", age: "", gender: "Female", disease: "", risk: "Low", status: "Stable"
+  });
 
-  const fetchPatients = async () => {
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const role = user.role?.toLowerCase();
+
+  const canEdit = ["admin", "doctor", "staff"].includes(role);
+  const canDelete = ["admin", "staff"].includes(role);
+
+  const loadPatients = async () => {
     try {
       setLoading(true);
-
-      const response = await api.get("/patients");
-
-      setPatients(response.data);
-    } catch (error) {
-      console.error(
-        "Failed to fetch patients:",
-        error
-      );
+      const res = await api.get("/patients");
+      setPatients(res.data || []);
+      setError("");
+    } catch (err) {
+      setError(err.response?.data?.detail || "Unable to load patients.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchPatients();
+    loadPatients();
   }, []);
 
-  // =========================
-  // ADD PATIENT
-  // =========================
+  const filteredPatients = useMemo(() => {
+    const q = search.toLowerCase().trim();
 
-  const handleAddPatient = async (patient) => {
+    return patients.filter(p => {
+      const matchesSearch =
+        !q ||
+        `${p.name} ${p.id} ${p.disease} ${p.gender} ${p.status}`
+          .toLowerCase()
+          .includes(q);
+
+      const matchesRisk =
+        riskFilter === "All" || p.risk === riskFilter;
+
+      return matchesSearch && matchesRisk;
+    });
+  }, [patients, search, riskFilter]);
+
+  const stats = {
+    total: patients.length,
+    high: patients.filter(p => p.risk === "High").length,
+    admitted: patients.filter(p => p.status === "Admitted").length,
+    stable: patients.filter(p => p.status === "Stable").length
+  };
+
+  const openAdd = () => {
+    setEditing(null);
+    setForm({
+      name: "", age: "", gender: "Female",
+      disease: "", risk: "Low", status: "Stable"
+    });
+    setShowModal(true);
+  };
+
+  const openEdit = patient => {
+    setEditing(patient);
+    setForm({
+      name: patient.name || "",
+      age: patient.age || "",
+      gender: patient.gender || "Female",
+      disease: patient.disease || "",
+      risk: patient.risk || "Low",
+      status: patient.status || "Stable"
+    });
+    setShowModal(true);
+  };
+
+  const savePatient = async e => {
+    e.preventDefault();
+
     try {
-      const response = await api.post(
-        "/patients",
-        patient
-      );
+      if (editing) {
+        await api.put(`/patients/${editing.id}`, form);
+      } else {
+        await api.post("/patients", {
+          ...form,
+          age: Number(form.age)
+        });
+      }
 
-      setPatients((prev) => [
-        response.data,
-        ...prev,
-      ]);
-
-      setIsAddOpen(false);
-    } catch (error) {
-      console.error(
-        "Failed to add patient:",
-        error
-      );
-
-      alert(
-        error.response?.data?.detail ||
-          "Failed to add patient"
-      );
-
-      throw error;
+      setShowModal(false);
+      loadPatients();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Unable to save patient.");
     }
   };
 
-  // =========================
-  // EDIT PATIENT
-  // =========================
+  const deletePatient = async id => {
+    if (!window.confirm("Delete this patient record?")) return;
 
-  const handleEditPatient = async (
-    patientId,
-    updatedPatient
-  ) => {
     try {
-      const response = await api.put(
-        `/patients/${patientId}`,
-        updatedPatient
-      );
-
-      setPatients((prev) =>
-        prev.map((patient) =>
-          patient.id === patientId
-            ? response.data
-            : patient
-        )
-      );
-
-      setIsEditOpen(false);
-      setSelectedPatient(null);
-    } catch (error) {
-      console.error(
-        "Failed to update patient:",
-        error
-      );
-
-      alert(
-        error.response?.data?.detail ||
-          "Failed to update patient"
-      );
-
-      throw error;
+      await api.delete(`/patients/${id}`);
+      loadPatients();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Unable to delete patient.");
     }
   };
 
-  // =========================
-  // DELETE PATIENT
-  // =========================
-
-  const handleDeletePatient = async (
-    patientId
-  ) => {
-    if (!canDelete) return;
-
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this patient?"
-    );
-
-    if (!confirmed) return;
-
-    try {
-      await api.delete(
-        `/patients/${patientId}`
-      );
-
-      setPatients((prev) =>
-        prev.filter(
-          (patient) =>
-            patient.id !== patientId
-        )
-      );
-    } catch (error) {
-      console.error(
-        "Failed to delete patient:",
-        error
-      );
-
-      alert(
-        error.response?.data?.detail ||
-          "Failed to delete patient"
-      );
+  const riskStyle = risk => {
+    if (risk === "High") {
+      return "bg-red-50 text-red-700 border-red-100";
     }
+
+    if (risk === "Medium") {
+      return "bg-amber-50 text-amber-700 border-amber-100";
+    }
+
+    return "bg-slate-100 text-slate-600 border-slate-200";
   };
 
-  // =========================
-  // SEARCH
-  // =========================
-
-  const filteredPatients = patients.filter(
-    (patient) => {
-      const query =
-        search.toLowerCase();
-
-      return (
-        patient.name
-          ?.toLowerCase()
-          .includes(query) ||
-
-        patient.disease
-          ?.toLowerCase()
-          .includes(query) ||
-
-        patient.risk
-          ?.toLowerCase()
-          .includes(query) ||
-
-        patient.status
-          ?.toLowerCase()
-          .includes(query)
-      );
+  const statusStyle = status => {
+    if (status === "Admitted") {
+      return "bg-blue-50 text-blue-700 border-blue-100";
     }
-  );
 
-  // =========================
-  // OPEN EDIT
-  // =========================
+    if (status === "Recovered") {
+      return "bg-slate-100 text-slate-600 border-slate-200";
+    }
 
-  const openEdit = (patient) => {
-    if (!canEdit) return;
-
-    setSelectedPatient(patient);
-    setIsEditOpen(true);
+    return "bg-slate-50 text-slate-600 border-slate-200";
   };
 
   return (
-    <MainLayout>
+    <div className="space-y-5">
 
       {/* HEADER */}
-
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-
-        <div>
-
-          <h1 className="text-3xl font-bold text-slate-800">
-            Patients
-          </h1>
-
-          <p className="text-gray-500 mt-1">
-            Manage and monitor patient records
-          </p>
-
-        </div>
-
-        {canAdd && (
-          <button
-            onClick={() =>
-              setIsAddOpen(true)
-            }
-            className="flex items-center justify-center gap-2 bg-blue-600 text-white px-5 py-3 rounded-xl hover:bg-blue-700 transition shadow-sm"
-          >
-            <Plus size={19} />
-
-            Add Patient
-          </button>
-        )}
-
-      </div>
-
-
-      {/* ROLE INFORMATION */}
-
-      <div className="bg-blue-50 border border-blue-100 rounded-xl px-5 py-3 mb-6">
-
-        <p className="text-sm text-blue-700">
-
-          Logged in as{" "}
-
-          <span className="font-semibold">
-            {role.charAt(0).toUpperCase() +
-              role.slice(1)}
-          </span>
-
-          {isAdmin &&
-            " — Full patient management access."}
-
-          {isDoctor &&
-            " — Patient records and clinical management access."}
-
-          {isStaff &&
-            " — Patient records are view-only."}
-
-        </p>
-
-      </div>
-
-
-      {/* SUMMARY */}
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-
-        <div className="bg-white rounded-xl shadow-sm p-5">
-
-          <div className="flex items-center gap-3">
-
-            <div className="w-11 h-11 rounded-lg bg-blue-100 flex items-center justify-center">
-
-              <Users
-                size={21}
-                className="text-blue-600"
-              />
-
-            </div>
-
-            <div>
-
-              <p className="text-sm text-gray-500">
-                Total Patients
-              </p>
-
-              <h2 className="text-2xl font-bold text-slate-800">
-                {patients.length}
-              </h2>
-
-            </div>
-
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-slate-900 flex items-center justify-center">
+            <Users size={21} className="text-blue-300" />
           </div>
 
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Patients</h1>
+            <p className="text-sm text-slate-500">
+              Patient records and clinical monitoring
+            </p>
+          </div>
         </div>
 
+        <div className="flex gap-2">
+          <button
+            onClick={loadPatients}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+            Refresh
+          </button>
 
-        <div className="bg-white rounded-xl shadow-sm p-5">
-
-          <p className="text-sm text-gray-500">
-            High Risk
-          </p>
-
-          <h2 className="text-2xl font-bold text-red-600 mt-1">
-            {
-              patients.filter(
-                (p) => p.risk === "High"
-              ).length
-            }
-          </h2>
-
+          {canEdit && (
+            <button
+              onClick={openAdd}
+              className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-medium hover:bg-slate-800 shadow-sm"
+            >
+              <UserPlus size={16} />
+              Add Patient
+            </button>
+          )}
         </div>
-
-
-        <div className="bg-white rounded-xl shadow-sm p-5">
-
-          <p className="text-sm text-gray-500">
-            Stable
-          </p>
-
-          <h2 className="text-2xl font-bold text-green-600 mt-1">
-            {
-              patients.filter(
-                (p) => p.status === "Stable"
-              ).length
-            }
-          </h2>
-
-        </div>
-
       </div>
 
+      {/* OVERVIEW */}
+      <div className="bg-slate-900 rounded-2xl p-5 text-white">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-sm font-semibold">Patient Overview</p>
+            <p className="text-xs text-slate-400 mt-1">
+              Current clinical record summary
+            </p>
+          </div>
 
-      {/* SEARCH */}
-
-      <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
-
-        <div className="flex items-center bg-slate-100 rounded-xl px-4 py-3">
-
-          <Search
-            size={19}
-            className="text-gray-500"
-          />
-
-          <input
-            type="text"
-            value={search}
-            onChange={(e) =>
-              setSearch(e.target.value)
-            }
-            placeholder="Search by name, disease, risk or status..."
-            className="ml-3 bg-transparent outline-none w-full text-sm"
-          />
-
+          <Activity size={20} className="text-blue-300" />
         </div>
 
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <OverviewCard icon={Users} label="Total Patients" value={stats.total} />
+          <OverviewCard icon={Activity} label="High Risk" value={stats.high} />
+          <OverviewCard icon={BedDouble} label="Admitted" value={stats.admitted} />
+          <OverviewCard icon={UserCheck} label="Stable" value={stats.stable} />
+        </div>
       </div>
 
+      {error && (
+        <div className="bg-white border border-red-100 rounded-xl px-4 py-3 text-sm text-red-600">
+          {error}
+        </div>
+      )}
 
-      {/* TABLE */}
+      {/* PATIENT RECORDS */}
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-slate-200">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
 
+            <div>
+              <h2 className="font-semibold text-slate-900">Patient Records</h2>
+              <p className="text-xs text-slate-400 mt-1">
+                Search and manage registered patients
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2">
+
+              <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 w-full sm:w-72">
+                <Search size={17} className="text-slate-400" />
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search patient..."
+                  className="ml-2 w-full bg-transparent outline-none text-sm text-slate-700"
+                />
+              </div>
+
+              <select
+                value={riskFilter}
+                onChange={e => setRiskFilter(e.target.value)}
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-600 outline-none"
+              >
+                <option>All</option>
+                <option>High</option>
+                <option>Medium</option>
+                <option>Low</option>
+              </select>
+
+            </div>
+          </div>
+        </div>
+
+        {/* TABLE */}
         <div className="overflow-x-auto">
+          <table className="w-full">
 
-          <table className="w-full min-w-[900px]">
-
-            <thead className="bg-slate-50 border-b">
-
+            <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
-
-                <th className="p-4 text-left text-sm font-semibold text-gray-600">
+                <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500">
                   Patient
                 </th>
-
-                <th className="text-center text-sm font-semibold text-gray-600">
-                  Age
+                <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500">
+                  Age / Gender
                 </th>
-
-                <th className="text-center text-sm font-semibold text-gray-600">
-                  Gender
+                <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500">
+                  Condition
                 </th>
-
-                <th className="text-center text-sm font-semibold text-gray-600">
-                  Disease
-                </th>
-
-                <th className="text-center text-sm font-semibold text-gray-600">
+                <th className="px-5 py-3.5 text-center text-xs font-semibold text-slate-500">
                   Risk
                 </th>
-
-                <th className="text-center text-sm font-semibold text-gray-600">
+                <th className="px-5 py-3.5 text-center text-xs font-semibold text-slate-500">
                   Status
                 </th>
-
-                <th className="text-center text-sm font-semibold text-gray-600">
-                  Actions
-                </th>
-
+                {canEdit && (
+                  <th className="px-5 py-3.5 text-center text-xs font-semibold text-slate-500">
+                    Action
+                  </th>
+                )}
               </tr>
-
             </thead>
 
-
             <tbody>
-
-              {loading && (
+              {loading ? (
                 <tr>
-                  <td
-                    colSpan="7"
-                    className="text-center py-12 text-gray-500"
-                  >
-                    Loading patients...
+                  <td colSpan="6" className="py-12 text-center text-sm text-slate-400">
+                    Loading patient records...
                   </td>
                 </tr>
-              )}
+              ) : filteredPatients.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="py-12 text-center text-sm text-slate-400">
+                    No patient records found.
+                  </td>
+                </tr>
+              ) : (
+                filteredPatients.map(patient => (
+                  <tr
+                    key={patient.id}
+                    className="border-b border-slate-100 hover:bg-slate-50/70 transition"
+                  >
 
-
-              {!loading &&
-                filteredPatients.length === 0 && (
-
-                  <tr>
-
-                    <td
-                      colSpan="7"
-                      className="text-center py-12"
-                    >
-
-                      <div className="flex flex-col items-center">
-
-                        <Users
-                          size={40}
-                          className="text-gray-300 mb-3"
-                        />
-
-                        <p className="font-medium text-gray-600">
-                          No patients found
-                        </p>
-
-                        <p className="text-sm text-gray-400 mt-1">
-                          Try another search or add a new patient.
-                        </p>
-
-                      </div>
-
-                    </td>
-
-                  </tr>
-
-                )}
-
-
-              {!loading &&
-                filteredPatients.map(
-                  (patient) => (
-
-                    <tr
-                      key={patient.id}
-                      className="border-b last:border-b-0 hover:bg-slate-50 transition"
-                    >
-
-                      {/* PATIENT */}
-
-                      <td className="p-4">
-
-                        <div className="flex items-center gap-3">
-
-                          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold">
-                            {patient.name
-                              ?.charAt(0)
-                              .toUpperCase()}
-                          </div>
-
-                          <div>
-
-                            <p className="font-medium text-slate-800">
-                              {patient.name}
-                            </p>
-
-                            <p className="text-xs text-gray-400">
-                              ID #{patient.id}
-                            </p>
-
-                          </div>
-
+                    {/* PATIENT */}
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-semibold">
+                          {patient.name?.[0]?.toUpperCase() || "P"}
                         </div>
 
-                      </td>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800">
+                            {patient.name}
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            Patient ID #{patient.id}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
 
+                    {/* AGE / GENDER */}
+                    <td className="px-5 py-4">
+                      <p className="text-sm font-medium text-slate-700">
+                        {patient.age || "—"} years
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {patient.gender || "—"}
+                      </p>
+                    </td>
 
-                      {/* AGE */}
+                    {/* CONDITION */}
+                    <td className="px-5 py-4">
+                      <span className="text-sm text-slate-700">
+                        {patient.disease || "Not specified"}
+                      </span>
+                    </td>
 
-                      <td className="text-center text-gray-600">
-                        {patient.age}
-                      </td>
+                    {/* RISK */}
+                    <td className="px-5 py-4 text-center">
+                      <span className={`inline-flex px-3 py-1 rounded-lg border text-xs font-medium ${riskStyle(patient.risk)}`}>
+                        {patient.risk || "Low"}
+                      </span>
+                    </td>
 
+                    {/* STATUS */}
+                    <td className="px-5 py-4 text-center">
+                      <span className={`inline-flex px-3 py-1 rounded-lg border text-xs font-medium ${statusStyle(patient.status)}`}>
+                        {patient.status || "Stable"}
+                      </span>
+                    </td>
 
-                      {/* GENDER */}
-
-                      <td className="text-center text-gray-600">
-                        {patient.gender}
-                      </td>
-
-
-                      {/* DISEASE */}
-
-                      <td className="text-center text-gray-600">
-                        {patient.disease}
-                      </td>
-
-
-                      {/* RISK */}
-
-                      <td className="text-center">
-
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            patient.risk === "High"
-                              ? "bg-red-100 text-red-600"
-                              : patient.risk === "Medium"
-                              ? "bg-yellow-100 text-yellow-700"
-                              : "bg-green-100 text-green-600"
-                          }`}
-                        >
-                          {patient.risk}
-                        </span>
-
-                      </td>
-
-
-                      {/* STATUS */}
-
-                      <td className="text-center">
-
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            patient.status === "Critical"
-                              ? "bg-red-100 text-red-600"
-                              : patient.status === "Recovered"
-                              ? "bg-green-100 text-green-600"
-                              : patient.status === "Stable"
-                              ? "bg-blue-100 text-blue-600"
-                              : "bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          {patient.status}
-                        </span>
-
-                      </td>
-
-
-                      {/* ACTIONS */}
-
-                      <td>
-
-                        <div className="flex justify-center gap-2">
-
-                          {/* VIEW */}
+                    {/* ACTION */}
+                    {canEdit && (
+                      <td className="px-5 py-4">
+                        <div className="flex justify-center gap-1">
 
                           <button
-                            title="View patient"
-                            className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 transition"
+                            onClick={() => openEdit(patient)}
+                            className="p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                            title="Edit"
                           >
-                            <Eye size={17} />
+                            <Edit3 size={15} />
                           </button>
-
-
-                          {/* EDIT */}
-
-                          {canEdit && (
-                            <button
-                              title="Edit patient"
-                              onClick={() =>
-                                openEdit(patient)
-                              }
-                              className="p-2 rounded-lg text-green-600 hover:bg-green-50 transition"
-                            >
-                              <Pencil size={17} />
-                            </button>
-                          )}
-
-
-                          {/* DELETE */}
 
                           {canDelete && (
                             <button
-                              title="Delete patient"
-                              onClick={() =>
-                                handleDeletePatient(
-                                  patient.id
-                                )
-                              }
-                              className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition"
+                              onClick={() => deletePatient(patient.id)}
+                              className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50"
+                              title="Delete"
                             >
-                              <Trash2 size={17} />
+                              <Trash2 size={15} />
                             </button>
                           )}
 
                         </div>
-
                       </td>
+                    )}
 
-                    </tr>
-
-                  )
-                )}
-
+                  </tr>
+                ))
+              )}
             </tbody>
-
           </table>
-
         </div>
 
+        <div className="px-5 py-3 bg-slate-50 border-t border-slate-200">
+          <p className="text-xs text-slate-400">
+            Showing {filteredPatients.length} of {patients.length} patient records
+          </p>
+        </div>
       </div>
 
+      {/* ACCESS INFO */}
+      <div className="bg-slate-900 rounded-2xl p-4 flex items-center gap-3 text-white">
+        <ShieldCheck size={20} className="text-blue-300" />
+        <div>
+          <p className="text-sm font-medium">Role-based patient access</p>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Your current access level: {role || "User"}
+          </p>
+        </div>
+      </div>
 
-      {/* ADD MODAL */}
+      {/* MODAL */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm flex items-center justify-center p-4">
 
-      {canAdd && (
-        <AddPatientModal
-          isOpen={isAddOpen}
-          onClose={() =>
-            setIsAddOpen(false)
-          }
-          onAddPatient={
-            handleAddPatient
-          }
-        />
+          <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
+
+            <div className="px-5 py-4 bg-slate-900 text-white flex justify-between items-center">
+              <div>
+                <h2 className="font-semibold">
+                  {editing ? "Edit Patient" : "Add Patient"}
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  Patient clinical information
+                </p>
+              </div>
+
+              <button
+                onClick={() => setShowModal(false)}
+                className="p-2 rounded-lg hover:bg-slate-800"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={savePatient} className="p-5 space-y-4">
+
+              <div>
+                <label className="text-xs font-medium text-slate-600">Patient Name</label>
+                <input
+                  required
+                  value={form.name}
+                  onChange={e => setForm({ ...form, name: e.target.value })}
+                  className="mt-1 w-full px-3 py-2.5 border border-slate-200 rounded-xl outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-slate-600">Age</label>
+                  <input
+                    required
+                    type="number"
+                    value={form.age}
+                    onChange={e => setForm({ ...form, age: e.target.value })}
+                    className="mt-1 w-full px-3 py-2.5 border border-slate-200 rounded-xl outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-slate-600">Gender</label>
+                  <select
+                    value={form.gender}
+                    onChange={e => setForm({ ...form, gender: e.target.value })}
+                    className="mt-1 w-full px-3 py-2.5 border border-slate-200 rounded-xl outline-none focus:border-blue-500"
+                  >
+                    <option>Female</option>
+                    <option>Male</option>
+                    <option>Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-slate-600">Disease / Condition</label>
+                <input
+                  required
+                  value={form.disease}
+                  onChange={e => setForm({ ...form, disease: e.target.value })}
+                  className="mt-1 w-full px-3 py-2.5 border border-slate-200 rounded-xl outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-slate-600">Risk Level</label>
+                  <select
+                    value={form.risk}
+                    onChange={e => setForm({ ...form, risk: e.target.value })}
+                    className="mt-1 w-full px-3 py-2.5 border border-slate-200 rounded-xl outline-none focus:border-blue-500"
+                  >
+                    <option>Low</option>
+                    <option>Medium</option>
+                    <option>High</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-slate-600">Status</label>
+                  <select
+                    value={form.status}
+                    onChange={e => setForm({ ...form, status: e.target.value })}
+                    className="mt-1 w-full px-3 py-2.5 border border-slate-200 rounded-xl outline-none focus:border-blue-500"
+                  >
+                    <option>Stable</option>
+                    <option>Admitted</option>
+                    <option>Recovered</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-medium hover:bg-slate-800"
+                >
+                  {editing ? "Update Patient" : "Add Patient"}
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
       )}
 
+    </div>
+  );
+}
 
-      {/* EDIT MODAL */}
-
-      {canEdit && (
-        <EditPatientModal
-          isOpen={isEditOpen}
-          patient={selectedPatient}
-          onClose={() => {
-            setIsEditOpen(false);
-            setSelectedPatient(null);
-          }}
-          onUpdatePatient={
-            handleEditPatient
-          }
-        />
-      )}
-
-    </MainLayout>
+function OverviewCard({ icon: Icon, label, value }) {
+  return (
+    <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
+      <div className="flex items-center justify-between">
+        <Icon size={18} className="text-blue-300" />
+        <span className="text-2xl font-bold">{value}</span>
+      </div>
+      <p className="text-xs text-slate-400 mt-3">{label}</p>
+    </div>
   );
 }
 

@@ -1,164 +1,79 @@
 import { useEffect, useState } from "react";
-import MainLayout from "../layouts/MainLayout";
+import {
+  Activity, Pill, HeartPulse, Plus, RefreshCw,
+  BarChart3, X, Users, TrendingUp, Clock
+} from "lucide-react";
 import api from "../api/api";
 
-import {
-  Activity,
-  Pill,
-  HeartPulse,
-  Plus,
-  RefreshCw,
-  BarChart3,
-} from "lucide-react";
-
 function ClinicalAnalytics() {
-  const user = JSON.parse(
-    localStorage.getItem("user") || "{}"
-  );
-
-  const role = user.role || "patient";
-
-  const canAddRecords =
-    role === "admin" || role === "doctor";
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const role = user.role?.toLowerCase() || "patient";
+  const canAddRecords = ["admin", "doctor"].includes(role);
 
   const [treatments, setTreatments] = useState([]);
   const [medications, setMedications] = useState([]);
   const [recovery, setRecovery] = useState([]);
-
-  const [treatmentAverage, setTreatmentAverage] =
-    useState(0);
-
-  const [medicationAverage, setMedicationAverage] =
-    useState(0);
-
-  const [recoveryAverage, setRecoveryAverage] =
-    useState(0);
-
-  const [recoveryDays, setRecoveryDays] =
-    useState(0);
-
-  const [loading, setLoading] = useState(true);
-
-  const [showTreatmentForm, setShowTreatmentForm] =
-    useState(false);
-
-  const [showMedicationForm, setShowMedicationForm] =
-    useState(false);
-
-  const [showRecoveryForm, setShowRecoveryForm] =
-    useState(false);
-
-  const [treatmentForm, setTreatmentForm] =
-    useState({
-      patient_id: "",
-      treatment_name: "",
-      outcome: "Improved",
-      effectiveness_score: 80,
-      notes: "",
-    });
-
-  const [medicationForm, setMedicationForm] =
-    useState({
-      patient_id: "",
-      medication_name: "",
-      outcome: "Effective",
-      effectiveness_score: 80,
-      notes: "",
-    });
-
-  const [recoveryForm, setRecoveryForm] =
-    useState({
-      patient_id: "",
-      recovery_stage: "Improving",
-      recovery_score: 80,
-      days_to_recovery: "",
-      notes: "",
-    });
-
   const [patients, setPatients] = useState([]);
 
-  const [error, setError] = useState("");
+  const [treatmentAverage, setTreatmentAverage] = useState(0);
+  const [medicationAverage, setMedicationAverage] = useState(0);
+  const [recoveryAverage, setRecoveryAverage] = useState(0);
+  const [recoveryDays, setRecoveryDays] = useState(0);
 
-  // ==========================================================
-  // LOAD ANALYTICS
-  // ==========================================================
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [formType, setFormType] = useState("");
+
+  const [treatmentForm, setTreatmentForm] = useState({
+    patient_id: "", treatment_name: "", outcome: "Improved",
+    effectiveness_score: 80, notes: ""
+  });
+
+  const [medicationForm, setMedicationForm] = useState({
+    patient_id: "", medication_name: "", outcome: "Effective",
+    effectiveness_score: 80, notes: ""
+  });
+
+  const [recoveryForm, setRecoveryForm] = useState({
+    patient_id: "", recovery_stage: "Improving",
+    recovery_score: 80, days_to_recovery: "", notes: ""
+  });
 
   const loadAnalytics = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const [
-        treatmentResponse,
-        medicationResponse,
-        recoveryResponse,
-      ] = await Promise.all([
+      const [t, m, r] = await Promise.all([
         api.get("/clinical/treatments"),
         api.get("/clinical/medications"),
-        api.get("/clinical/recovery"),
+        api.get("/clinical/recovery")
       ]);
 
-      setTreatments(
-        treatmentResponse.data?.records || []
-      );
+      setTreatments(t.data?.records || []);
+      setTreatmentAverage(t.data?.average_effectiveness || 0);
 
-      setTreatmentAverage(
-        treatmentResponse.data?.average_effectiveness || 0
-      );
+      setMedications(m.data?.records || []);
+      setMedicationAverage(m.data?.average_effectiveness || 0);
 
-      setMedications(
-        medicationResponse.data?.records || []
-      );
-
-      setMedicationAverage(
-        medicationResponse.data?.average_effectiveness || 0
-      );
-
-      setRecovery(
-        recoveryResponse.data?.records || []
-      );
-
-      setRecoveryAverage(
-        recoveryResponse.data?.average_recovery_score || 0
-      );
-
-      setRecoveryDays(
-        recoveryResponse.data?.average_days_to_recovery || 0
-      );
+      setRecovery(r.data?.records || []);
+      setRecoveryAverage(r.data?.average_recovery_score || 0);
+      setRecoveryDays(r.data?.average_days_to_recovery || 0);
     } catch (err) {
-      console.error(
-        "Failed to load clinical analytics:",
-        err
-      );
-
-      setError(
-        err.response?.data?.detail ||
-          "Unable to load clinical analytics."
-      );
+      setError(err.response?.data?.detail || "Unable to load clinical analytics.");
     } finally {
       setLoading(false);
     }
   };
 
-  // ==========================================================
-  // LOAD PATIENTS
-  // ==========================================================
-
   const loadPatients = async () => {
-    if (!canAddRecords) {
-      return;
-    }
+    if (!canAddRecords) return;
 
     try {
-      const response =
-        await api.get("/patients");
-
-      setPatients(response.data || []);
+      const res = await api.get("/patients");
+      setPatients(res.data || []);
     } catch (err) {
-      console.error(
-        "Failed to load patients:",
-        err
-      );
+      console.error(err);
     }
   };
 
@@ -167,1052 +82,662 @@ function ClinicalAnalytics() {
     loadPatients();
   }, []);
 
-  // ==========================================================
-  // FORM HANDLERS
-  // ==========================================================
-
-  const handleTreatmentChange = (e) => {
+  const resetForms = () => {
     setTreatmentForm({
-      ...treatmentForm,
-      [e.target.name]: e.target.value,
+      patient_id: "", treatment_name: "", outcome: "Improved",
+      effectiveness_score: 80, notes: ""
     });
-  };
 
-  const handleMedicationChange = (e) => {
     setMedicationForm({
-      ...medicationForm,
-      [e.target.name]: e.target.value,
+      patient_id: "", medication_name: "", outcome: "Effective",
+      effectiveness_score: 80, notes: ""
     });
-  };
 
-  const handleRecoveryChange = (e) => {
     setRecoveryForm({
-      ...recoveryForm,
-      [e.target.name]: e.target.value,
+      patient_id: "", recovery_stage: "Improving",
+      recovery_score: 80, days_to_recovery: "", notes: ""
     });
   };
 
-  // ==========================================================
-  // ADD TREATMENT
-  // ==========================================================
+  const closeForm = () => {
+    setFormType("");
+    resetForms();
+  };
 
-  const handleAddTreatment = async (e) => {
+  const addRecord = async (e, type) => {
     e.preventDefault();
 
     try {
-      await api.post(
-        "/clinical/treatments",
-        {
+      if (type === "treatment") {
+        await api.post("/clinical/treatments", {
           ...treatmentForm,
-          patient_id: Number(
-            treatmentForm.patient_id
-          ),
-          effectiveness_score: Number(
-            treatmentForm.effectiveness_score
-          ),
-        }
-      );
+          patient_id: Number(treatmentForm.patient_id),
+          effectiveness_score: Number(treatmentForm.effectiveness_score)
+        });
+      }
 
-      setShowTreatmentForm(false);
-
-      setTreatmentForm({
-        patient_id: "",
-        treatment_name: "",
-        outcome: "Improved",
-        effectiveness_score: 80,
-        notes: "",
-      });
-
-      await loadAnalytics();
-    } catch (err) {
-      alert(
-        err.response?.data?.detail ||
-          "Unable to add treatment record."
-      );
-    }
-  };
-
-  // ==========================================================
-  // ADD MEDICATION
-  // ==========================================================
-
-  const handleAddMedication = async (e) => {
-    e.preventDefault();
-
-    try {
-      await api.post(
-        "/clinical/medications",
-        {
+      if (type === "medication") {
+        await api.post("/clinical/medications", {
           ...medicationForm,
-          patient_id: Number(
-            medicationForm.patient_id
-          ),
-          effectiveness_score: Number(
-            medicationForm.effectiveness_score
-          ),
-        }
-      );
+          patient_id: Number(medicationForm.patient_id),
+          effectiveness_score: Number(medicationForm.effectiveness_score)
+        });
+      }
 
-      setShowMedicationForm(false);
-
-      setMedicationForm({
-        patient_id: "",
-        medication_name: "",
-        outcome: "Effective",
-        effectiveness_score: 80,
-        notes: "",
-      });
-
-      await loadAnalytics();
-    } catch (err) {
-      alert(
-        err.response?.data?.detail ||
-          "Unable to add medication record."
-      );
-    }
-  };
-
-  // ==========================================================
-  // ADD RECOVERY
-  // ==========================================================
-
-  const handleAddRecovery = async (e) => {
-    e.preventDefault();
-
-    try {
-      await api.post(
-        "/clinical/recovery",
-        {
+      if (type === "recovery") {
+        await api.post("/clinical/recovery", {
           ...recoveryForm,
-          patient_id: Number(
-            recoveryForm.patient_id
-          ),
-          recovery_score: Number(
-            recoveryForm.recovery_score
-          ),
-          days_to_recovery:
-            recoveryForm.days_to_recovery
-              ? Number(
-                  recoveryForm.days_to_recovery
-                )
-              : null,
-        }
-      );
+          patient_id: Number(recoveryForm.patient_id),
+          recovery_score: Number(recoveryForm.recovery_score),
+          days_to_recovery: recoveryForm.days_to_recovery
+            ? Number(recoveryForm.days_to_recovery)
+            : null
+        });
+      }
 
-      setShowRecoveryForm(false);
-
-      setRecoveryForm({
-        patient_id: "",
-        recovery_stage: "Improving",
-        recovery_score: 80,
-        days_to_recovery: "",
-        notes: "",
-      });
-
+      closeForm();
       await loadAnalytics();
     } catch (err) {
-      alert(
-        err.response?.data?.detail ||
-          "Unable to add recovery record."
-      );
+      alert(err.response?.data?.detail || "Unable to save record.");
     }
-  };
-
-  // ==========================================================
-  // SCORE HELPERS
-  // ==========================================================
-
-  const getScoreClass = (score) => {
-    if (score >= 80) {
-      return "text-green-600";
-    }
-
-    if (score >= 50) {
-      return "text-yellow-600";
-    }
-
-    return "text-red-600";
   };
 
   return (
-    <MainLayout>
+    <div className="space-y-5">
 
-      {/* ======================================================
-          HEADER
-      ====================================================== */}
-
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-
-        <div>
-
-          <div className="flex items-center gap-3">
-
-            <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-
-              <BarChart3
-                size={26}
-                className="text-blue-600 dark:text-blue-400"
-              />
-
-            </div>
-
-            <div>
-
-              <h1 className="text-3xl font-bold text-slate-800 dark:text-white">
-                Clinical Analytics
-              </h1>
-
-              <p className="text-gray-500 dark:text-gray-400 mt-1">
-                Treatment, medication and recovery analysis
-              </p>
-
-            </div>
-
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-slate-900 flex items-center justify-center">
+            <BarChart3 size={21} className="text-blue-300" />
           </div>
 
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">
+              Clinical Analytics
+            </h1>
+            <p className="text-sm text-slate-500">
+              Treatment, medication and recovery analysis
+            </p>
+          </div>
         </div>
 
         <button
           onClick={loadAnalytics}
-          className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-slate-700"
+          className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50"
         >
-          <RefreshCw size={18} />
+          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           Refresh
         </button>
-
       </div>
 
-
-      {/* ======================================================
-          ERROR
-      ====================================================== */}
-
+      {/* ERROR */}
       {error && (
-        <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-xl px-5 py-4">
+        <div className="bg-white border border-red-100 rounded-xl px-4 py-3 text-sm text-red-600">
           {error}
         </div>
       )}
 
+      {/* SUMMARY */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
-      {/* ======================================================
-          SUMMARY CARDS
-      ====================================================== */}
+        <SummaryCard
+          icon={Activity}
+          title="Treatment Effectiveness"
+          value={treatmentAverage}
+          records={treatments.length}
+        />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <SummaryCard
+          icon={Pill}
+          title="Medication Effectiveness"
+          value={medicationAverage}
+          records={medications.length}
+        />
 
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-6">
-
-          <div className="flex items-center gap-4">
-
-            <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-
-              <Activity
-                size={24}
-                className="text-blue-600 dark:text-blue-400"
-              />
-
-            </div>
-
-            <div>
-
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Treatment Effectiveness
-              </p>
-
-              <h2
-                className={`text-2xl font-bold ${
-                  getScoreClass(
-                    treatmentAverage
-                  )
-                }`}
-              >
-                {loading
-                  ? "..."
-                  : `${treatmentAverage}%`}
-              </h2>
-
-            </div>
-
-          </div>
-
-        </div>
-
-
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-6">
-
-          <div className="flex items-center gap-4">
-
-            <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-
-              <Pill
-                size={24}
-                className="text-purple-600 dark:text-purple-400"
-              />
-
-            </div>
-
-            <div>
-
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Medication Effectiveness
-              </p>
-
-              <h2
-                className={`text-2xl font-bold ${
-                  getScoreClass(
-                    medicationAverage
-                  )
-                }`}
-              >
-                {loading
-                  ? "..."
-                  : `${medicationAverage}%`}
-              </h2>
-
-            </div>
-
-          </div>
-
-        </div>
-
-
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-6">
-
-          <div className="flex items-center gap-4">
-
-            <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-
-              <HeartPulse
-                size={24}
-                className="text-green-600 dark:text-green-400"
-              />
-
-            </div>
-
-            <div>
-
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Recovery Score
-              </p>
-
-              <h2
-                className={`text-2xl font-bold ${
-                  getScoreClass(
-                    recoveryAverage
-                  )
-                }`}
-              >
-                {loading
-                  ? "..."
-                  : `${recoveryAverage}%`}
-              </h2>
-
-              <p className="text-xs text-gray-400 mt-1">
-                Avg. recovery:{" "}
-                {recoveryDays} days
-              </p>
-
-            </div>
-
-          </div>
-
-        </div>
+        <SummaryCard
+          icon={HeartPulse}
+          title="Recovery Score"
+          value={recoveryAverage}
+          records={recovery.length}
+          extra={`Average recovery: ${recoveryDays} days`}
+        />
 
       </div>
 
-
-      {/* ======================================================
-          TREATMENT EFFECTIVENESS
-      ====================================================== */}
-
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm mb-6 overflow-hidden">
-
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-700">
-
+      {/* CLINICAL OVERVIEW */}
+      <div className="bg-slate-900 rounded-2xl p-5 text-white">
+        <div className="flex items-center justify-between mb-4">
           <div>
-
-            <h2 className="text-xl font-semibold text-slate-800 dark:text-white">
-              Treatment Effectiveness
-            </h2>
-
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Evaluate outcomes of treatments used
+            <h2 className="font-semibold">Clinical Performance</h2>
+            <p className="text-xs text-slate-400 mt-1">
+              Current outcome measurements across clinical records
             </p>
-
           </div>
-
-          {canAddRecords && (
-            <button
-              onClick={() =>
-                setShowTreatmentForm(
-                  !showTreatmentForm
-                )
-              }
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700"
-            >
-              <Plus size={17} />
-              Add Treatment
-            </button>
-          )}
-
+          <TrendingUp size={20} className="text-blue-300" />
         </div>
 
+        <div className="grid md:grid-cols-3 gap-3">
+          <MiniMetric label="Treatment Records" value={treatments.length} />
+          <MiniMetric label="Medication Records" value={medications.length} />
+          <MiniMetric label="Recovery Records" value={recovery.length} />
+        </div>
+      </div>
 
-        {showTreatmentForm && canAddRecords && (
-
-          <form
-            onSubmit={handleAddTreatment}
-            className="p-6 bg-slate-50 dark:bg-slate-700/40 grid grid-cols-1 md:grid-cols-2 gap-4"
-          >
-
-            <select
-              name="patient_id"
-              value={treatmentForm.patient_id}
-              onChange={handleTreatmentChange}
-              required
-              className="border rounded-lg px-4 py-3"
-            >
-              <option value="">
-                Select Patient
-              </option>
-
-              {patients.map((patient) => (
-                <option
-                  key={patient.id}
-                  value={patient.id}
-                >
-                  {patient.name} — #{patient.id}
-                </option>
-              ))}
-            </select>
-
-
-            <input
-              name="treatment_name"
-              value={treatmentForm.treatment_name}
-              onChange={handleTreatmentChange}
-              placeholder="Treatment name"
-              required
-              className="border rounded-lg px-4 py-3"
-            />
-
-
-            <select
-              name="outcome"
-              value={treatmentForm.outcome}
-              onChange={handleTreatmentChange}
-              className="border rounded-lg px-4 py-3"
-            >
-              <option value="Improved">
-                Improved
-              </option>
-
-              <option value="Stable">
-                Stable
-              </option>
-
-              <option value="No Improvement">
-                No Improvement
-              </option>
-            </select>
-
-
-            <input
-              type="number"
-              name="effectiveness_score"
-              min="0"
-              max="100"
-              value={
-                treatmentForm.effectiveness_score
-              }
-              onChange={handleTreatmentChange}
-              placeholder="Effectiveness score"
-              className="border rounded-lg px-4 py-3"
-            />
-
-
-            <input
-              name="notes"
-              value={treatmentForm.notes}
-              onChange={handleTreatmentChange}
-              placeholder="Notes (optional)"
-              className="border rounded-lg px-4 py-3 md:col-span-2"
-            />
-
-
-            <div className="md:col-span-2 flex justify-end gap-3">
-
-              <button
-                type="button"
-                onClick={() =>
-                  setShowTreatmentForm(false)
-                }
-                className="px-5 py-2.5 rounded-lg border"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="submit"
-                className="px-5 py-2.5 rounded-lg bg-blue-600 text-white"
-              >
-                Save Treatment
-              </button>
-
-            </div>
-
-          </form>
-
-        )}
-
-
+      {/* TREATMENT */}
+      <AnalyticsSection
+        title="Treatment Effectiveness"
+        subtitle="Evaluate outcomes of treatments used"
+        icon={Activity}
+        button="Add Treatment"
+        canAdd={canAddRecords}
+        onAdd={() => setFormType("treatment")}
+      >
         <AnalyticsTable
           records={treatments}
           type="treatment"
-          emptyText="No treatment records available."
+          empty="No treatment records available."
         />
+      </AnalyticsSection>
 
-      </div>
-
-
-      {/* ======================================================
-          MEDICATION EFFECTIVENESS
-      ====================================================== */}
-
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm mb-6 overflow-hidden">
-
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-700">
-
-          <div>
-
-            <h2 className="text-xl font-semibold text-slate-800 dark:text-white">
-              Medication Effectiveness
-            </h2>
-
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Evaluate medication outcomes
-            </p>
-
-          </div>
-
-          {canAddRecords && (
-            <button
-              onClick={() =>
-                setShowMedicationForm(
-                  !showMedicationForm
-                )
-              }
-              className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2.5 rounded-lg hover:bg-purple-700"
-            >
-              <Plus size={17} />
-              Add Medication
-            </button>
-          )}
-
-        </div>
-
-
-        {showMedicationForm && canAddRecords && (
-
-          <form
-            onSubmit={handleAddMedication}
-            className="p-6 bg-slate-50 dark:bg-slate-700/40 grid grid-cols-1 md:grid-cols-2 gap-4"
-          >
-
-            <select
-              name="patient_id"
-              value={medicationForm.patient_id}
-              onChange={handleMedicationChange}
-              required
-              className="border rounded-lg px-4 py-3"
-            >
-              <option value="">
-                Select Patient
-              </option>
-
-              {patients.map((patient) => (
-                <option
-                  key={patient.id}
-                  value={patient.id}
-                >
-                  {patient.name} — #{patient.id}
-                </option>
-              ))}
-            </select>
-
-
-            <input
-              name="medication_name"
-              value={
-                medicationForm.medication_name
-              }
-              onChange={handleMedicationChange}
-              placeholder="Medication name"
-              required
-              className="border rounded-lg px-4 py-3"
-            />
-
-
-            <select
-              name="outcome"
-              value={medicationForm.outcome}
-              onChange={handleMedicationChange}
-              className="border rounded-lg px-4 py-3"
-            >
-              <option value="Effective">
-                Effective
-              </option>
-
-              <option value="Partially Effective">
-                Partially Effective
-              </option>
-
-              <option value="Ineffective">
-                Ineffective
-              </option>
-            </select>
-
-
-            <input
-              type="number"
-              name="effectiveness_score"
-              min="0"
-              max="100"
-              value={
-                medicationForm.effectiveness_score
-              }
-              onChange={handleMedicationChange}
-              placeholder="Effectiveness score"
-              className="border rounded-lg px-4 py-3"
-            />
-
-
-            <input
-              name="notes"
-              value={medicationForm.notes}
-              onChange={handleMedicationChange}
-              placeholder="Notes (optional)"
-              className="border rounded-lg px-4 py-3 md:col-span-2"
-            />
-
-
-            <div className="md:col-span-2 flex justify-end gap-3">
-
-              <button
-                type="button"
-                onClick={() =>
-                  setShowMedicationForm(false)
-                }
-                className="px-5 py-2.5 rounded-lg border"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="submit"
-                className="px-5 py-2.5 rounded-lg bg-purple-600 text-white"
-              >
-                Save Medication
-              </button>
-
-            </div>
-
-          </form>
-
-        )}
-
-
+      {/* MEDICATION */}
+      <AnalyticsSection
+        title="Medication Effectiveness"
+        subtitle="Evaluate medication outcomes"
+        icon={Pill}
+        button="Add Medication"
+        canAdd={canAddRecords}
+        onAdd={() => setFormType("medication")}
+      >
         <AnalyticsTable
           records={medications}
           type="medication"
-          emptyText="No medication records available."
+          empty="No medication records available."
         />
+      </AnalyticsSection>
 
-      </div>
+      {/* RECOVERY */}
+      <AnalyticsSection
+        title="Recovery Analysis"
+        subtitle="Track patient recovery progress"
+        icon={HeartPulse}
+        button="Add Recovery"
+        canAdd={canAddRecords}
+        onAdd={() => setFormType("recovery")}
+      >
+        <RecoveryTable records={recovery} />
+      </AnalyticsSection>
 
-
-      {/* ======================================================
-          RECOVERY ANALYSIS
-      ====================================================== */}
-
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm mb-6 overflow-hidden">
-
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-700">
-
-          <div>
-
-            <h2 className="text-xl font-semibold text-slate-800 dark:text-white">
-              Recovery Analysis
-            </h2>
-
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Track patient recovery progress
-            </p>
-
-          </div>
-
-          {canAddRecords && (
-            <button
-              onClick={() =>
-                setShowRecoveryForm(
-                  !showRecoveryForm
-                )
-              }
-              className="flex items-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-lg hover:bg-green-700"
-            >
-              <Plus size={17} />
-              Add Recovery
-            </button>
-          )}
-
-        </div>
-
-
-        {showRecoveryForm && canAddRecords && (
-
-          <form
-            onSubmit={handleAddRecovery}
-            className="p-6 bg-slate-50 dark:bg-slate-700/40 grid grid-cols-1 md:grid-cols-2 gap-4"
-          >
-
-            <select
-              name="patient_id"
-              value={recoveryForm.patient_id}
-              onChange={handleRecoveryChange}
-              required
-              className="border rounded-lg px-4 py-3"
-            >
-              <option value="">
-                Select Patient
-              </option>
-
-              {patients.map((patient) => (
-                <option
-                  key={patient.id}
-                  value={patient.id}
-                >
-                  {patient.name} — #{patient.id}
-                </option>
-              ))}
-            </select>
-
-
-            <select
-              name="recovery_stage"
-              value={
-                recoveryForm.recovery_stage
-              }
-              onChange={handleRecoveryChange}
-              className="border rounded-lg px-4 py-3"
-            >
-              <option value="Initial">
-                Initial
-              </option>
-
-              <option value="Improving">
-                Improving
-              </option>
-
-              <option value="Stable">
-                Stable
-              </option>
-
-              <option value="Recovered">
-                Recovered
-              </option>
-            </select>
-
-
-            <input
-              type="number"
-              name="recovery_score"
-              min="0"
-              max="100"
-              value={
-                recoveryForm.recovery_score
-              }
-              onChange={handleRecoveryChange}
-              placeholder="Recovery score"
-              className="border rounded-lg px-4 py-3"
-            />
-
-
-            <input
-              type="number"
-              name="days_to_recovery"
-              min="0"
-              value={
-                recoveryForm.days_to_recovery
-              }
-              onChange={handleRecoveryChange}
-              placeholder="Days to recovery"
-              className="border rounded-lg px-4 py-3"
-            />
-
-
-            <input
-              name="notes"
-              value={recoveryForm.notes}
-              onChange={handleRecoveryChange}
-              placeholder="Notes (optional)"
-              className="border rounded-lg px-4 py-3 md:col-span-2"
-            />
-
-
-            <div className="md:col-span-2 flex justify-end gap-3">
-
-              <button
-                type="button"
-                onClick={() =>
-                  setShowRecoveryForm(false)
-                }
-                className="px-5 py-2.5 rounded-lg border"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="submit"
-                className="px-5 py-2.5 rounded-lg bg-green-600 text-white"
-              >
-                Save Recovery
-              </button>
-
-            </div>
-
-          </form>
-
-        )}
-
-
-        <RecoveryTable
-          records={recovery}
+      {/* FORM MODAL */}
+      {formType && (
+        <RecordModal
+          type={formType}
+          patients={patients}
+          treatmentForm={treatmentForm}
+          medicationForm={medicationForm}
+          recoveryForm={recoveryForm}
+          setTreatmentForm={setTreatmentForm}
+          setMedicationForm={setMedicationForm}
+          setRecoveryForm={setRecoveryForm}
+          onClose={closeForm}
+          onSubmit={e => addRecord(e, formType)}
         />
-
-      </div>
-
-    </MainLayout>
-  );
-}
-
-
-// ============================================================
-// ANALYTICS TABLE
-// ============================================================
-
-function AnalyticsTable({
-  records,
-  type,
-  emptyText,
-}) {
-  return (
-    <div className="overflow-x-auto">
-
-      <table className="w-full">
-
-        <thead className="bg-slate-50 dark:bg-slate-700">
-
-          <tr>
-
-            <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600 dark:text-gray-200">
-              Patient
-            </th>
-
-            <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600 dark:text-gray-200">
-              {type === "treatment"
-                ? "Treatment"
-                : "Medication"}
-            </th>
-
-            <th className="text-center px-6 py-3 text-sm font-semibold text-gray-600 dark:text-gray-200">
-              Outcome
-            </th>
-
-            <th className="text-center px-6 py-3 text-sm font-semibold text-gray-600 dark:text-gray-200">
-              Effectiveness
-            </th>
-
-            <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600 dark:text-gray-200">
-              Notes
-            </th>
-
-          </tr>
-
-        </thead>
-
-        <tbody>
-
-          {records.length === 0 && (
-            <tr>
-              <td
-                colSpan="5"
-                className="text-center py-10 text-gray-500 dark:text-gray-400"
-              >
-                {emptyText}
-              </td>
-            </tr>
-          )}
-
-          {records.map((record) => (
-
-            <tr
-              key={record.id}
-              className="border-t border-slate-100 dark:border-slate-700"
-            >
-
-              <td className="px-6 py-4 text-slate-800 dark:text-white">
-                P-{String(
-                  record.patient_id
-                ).padStart(4, "0")}
-              </td>
-
-              <td className="px-6 py-4 text-slate-700 dark:text-gray-200">
-                {type === "treatment"
-                  ? record.treatment_name
-                  : record.medication_name}
-              </td>
-
-              <td className="px-6 py-4 text-center text-gray-600 dark:text-gray-300">
-                {record.outcome}
-              </td>
-
-              <td className="px-6 py-4 text-center">
-
-                <span
-                  className={`font-semibold ${
-                    record.effectiveness_score >= 80
-                      ? "text-green-600"
-                      : record.effectiveness_score >= 50
-                      ? "text-yellow-600"
-                      : "text-red-600"
-                  }`}
-                >
-                  {record.effectiveness_score}%
-                </span>
-
-              </td>
-
-              <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
-                {record.notes || "—"}
-              </td>
-
-            </tr>
-
-          ))}
-
-        </tbody>
-
-      </table>
+      )}
 
     </div>
   );
 }
 
+/* SUMMARY CARD */
+function SummaryCard({ icon: Icon, title, value, records, extra }) {
+  return (
+    <div className="bg-white border border-slate-200 rounded-2xl p-5">
+      <div className="flex items-start justify-between">
+        <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
+          <Icon size={19} className="text-slate-700" />
+        </div>
 
-// ============================================================
-// RECOVERY TABLE
-// ============================================================
+        <span className="text-xs bg-slate-100 text-slate-500 px-2.5 py-1 rounded-lg">
+          {records} records
+        </span>
+      </div>
 
+      <p className="text-sm text-slate-500 mt-4">{title}</p>
+
+      <div className="flex items-end gap-2 mt-1">
+        <h2 className="text-2xl font-bold text-slate-900">
+          {value}%
+        </h2>
+        <span className="text-xs text-slate-400 mb-1">average</span>
+      </div>
+
+      {extra && (
+        <p className="text-xs text-slate-400 mt-1">{extra}</p>
+      )}
+    </div>
+  );
+}
+
+/* SECTION */
+function AnalyticsSection({
+  title, subtitle, icon: Icon, button,
+  canAdd, onAdd, children
+}) {
+  return (
+    <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+
+      <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center">
+            <Icon size={17} className="text-slate-700" />
+          </div>
+
+          <div>
+            <h2 className="font-semibold text-slate-900">{title}</h2>
+            <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>
+          </div>
+        </div>
+
+        {canAdd && (
+          <button
+            onClick={onAdd}
+            className="flex items-center gap-2 px-3.5 py-2 bg-slate-900 text-white rounded-lg text-xs font-medium hover:bg-slate-800"
+          >
+            <Plus size={15} />
+            {button}
+          </button>
+        )}
+      </div>
+
+      {children}
+    </div>
+  );
+}
+
+/* MINI METRIC */
+function MiniMetric({ label, value }) {
+  return (
+    <div className="bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 flex items-center justify-between">
+      <span className="text-xs text-slate-400">{label}</span>
+      <span className="text-lg font-bold text-white">{value}</span>
+    </div>
+  );
+}
+
+/* TABLE */
+function AnalyticsTable({ records, type, empty }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full">
+
+        <thead className="bg-slate-50 border-b border-slate-200">
+          <tr>
+            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500">Patient</th>
+            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500">
+              {type === "treatment" ? "Treatment" : "Medication"}
+            </th>
+            <th className="px-5 py-3 text-center text-xs font-semibold text-slate-500">Outcome</th>
+            <th className="px-5 py-3 text-center text-xs font-semibold text-slate-500">Effectiveness</th>
+            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500">Notes</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {!records.length ? (
+            <tr>
+              <td colSpan="5" className="py-10 text-center text-sm text-slate-400">
+                {empty}
+              </td>
+            </tr>
+          ) : (
+            records.map(record => (
+              <tr
+                key={record.id}
+                className="border-b border-slate-100 hover:bg-slate-50/70"
+              >
+                <td className="px-5 py-3.5 text-sm font-semibold text-slate-700">
+                  P-{String(record.patient_id).padStart(4, "0")}
+                </td>
+
+                <td className="px-5 py-3.5 text-sm text-slate-700">
+                  {type === "treatment"
+                    ? record.treatment_name
+                    : record.medication_name}
+                </td>
+
+                <td className="px-5 py-3.5 text-center">
+                  <span className="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 text-xs text-slate-600">
+                    {record.outcome}
+                  </span>
+                </td>
+
+                <td className="px-5 py-3.5 text-center">
+                  <Score value={record.effectiveness_score} />
+                </td>
+
+                <td className="px-5 py-3.5 text-sm text-slate-400">
+                  {record.notes || "—"}
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+
+      </table>
+    </div>
+  );
+}
+
+/* RECOVERY TABLE */
 function RecoveryTable({ records }) {
   return (
     <div className="overflow-x-auto">
-
       <table className="w-full">
 
-        <thead className="bg-slate-50 dark:bg-slate-700">
-
+        <thead className="bg-slate-50 border-b border-slate-200">
           <tr>
-
-            <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600 dark:text-gray-200">
-              Patient
-            </th>
-
-            <th className="text-center px-6 py-3 text-sm font-semibold text-gray-600 dark:text-gray-200">
-              Recovery Stage
-            </th>
-
-            <th className="text-center px-6 py-3 text-sm font-semibold text-gray-600 dark:text-gray-200">
-              Recovery Score
-            </th>
-
-            <th className="text-center px-6 py-3 text-sm font-semibold text-gray-600 dark:text-gray-200">
-              Days
-            </th>
-
-            <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600 dark:text-gray-200">
-              Notes
-            </th>
-
+            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500">Patient</th>
+            <th className="px-5 py-3 text-center text-xs font-semibold text-slate-500">Stage</th>
+            <th className="px-5 py-3 text-center text-xs font-semibold text-slate-500">Recovery Score</th>
+            <th className="px-5 py-3 text-center text-xs font-semibold text-slate-500">Days</th>
+            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500">Notes</th>
           </tr>
-
         </thead>
 
         <tbody>
-
-          {records.length === 0 && (
+          {!records.length ? (
             <tr>
-
-              <td
-                colSpan="5"
-                className="text-center py-10 text-gray-500 dark:text-gray-400"
-              >
+              <td colSpan="5" className="py-10 text-center text-sm text-slate-400">
                 No recovery records available.
               </td>
-
             </tr>
+          ) : (
+            records.map(record => (
+              <tr
+                key={record.id}
+                className="border-b border-slate-100 hover:bg-slate-50/70"
+              >
+                <td className="px-5 py-3.5 text-sm font-semibold text-slate-700">
+                  P-{String(record.patient_id).padStart(4, "0")}
+                </td>
+
+                <td className="px-5 py-3.5 text-center">
+                  <span className="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 text-xs text-slate-600">
+                    {record.recovery_stage}
+                  </span>
+                </td>
+
+                <td className="px-5 py-3.5 text-center">
+                  <Score value={record.recovery_score} />
+                </td>
+
+                <td className="px-5 py-3.5 text-center text-sm text-slate-600">
+                  {record.days_to_recovery ?? "—"}
+                </td>
+
+                <td className="px-5 py-3.5 text-sm text-slate-400">
+                  {record.notes || "—"}
+                </td>
+              </tr>
+            ))
           )}
-
-          {records.map((record) => (
-
-            <tr
-              key={record.id}
-              className="border-t border-slate-100 dark:border-slate-700"
-            >
-
-              <td className="px-6 py-4 text-slate-800 dark:text-white">
-                P-{String(
-                  record.patient_id
-                ).padStart(4, "0")}
-              </td>
-
-              <td className="px-6 py-4 text-center text-gray-600 dark:text-gray-300">
-                {record.recovery_stage}
-              </td>
-
-              <td className="px-6 py-4 text-center">
-
-                <span
-                  className={`font-semibold ${
-                    record.recovery_score >= 80
-                      ? "text-green-600"
-                      : record.recovery_score >= 50
-                      ? "text-yellow-600"
-                      : "text-red-600"
-                  }`}
-                >
-                  {record.recovery_score}%
-                </span>
-
-              </td>
-
-              <td className="px-6 py-4 text-center text-gray-600 dark:text-gray-300">
-                {record.days_to_recovery ?? "—"}
-              </td>
-
-              <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
-                {record.notes || "—"}
-              </td>
-
-            </tr>
-
-          ))}
-
         </tbody>
 
       </table>
-
     </div>
   );
 }
 
-export default ClinicalAnalytics;
+/* SCORE */
+function Score({ value }) {
+  const score = Number(value) || 0;
+
+  return (
+    <div className="inline-flex items-center gap-2">
+      <div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-slate-700 rounded-full"
+          style={{ width: `${Math.min(score, 100)}%` }}
+        />
+      </div>
+      <span className="text-sm font-semibold text-slate-700">
+        {score}%
+      </span>
+    </div>
+  );
+}
+
+/* MODAL */
+function RecordModal({
+  type, patients,
+  treatmentForm, medicationForm, recoveryForm,
+  setTreatmentForm, setMedicationForm, setRecoveryForm,
+  onClose, onSubmit
+}) {
+  const title = {
+    treatment: "Add Treatment Record",
+    medication: "Add Medication Record",
+    recovery: "Add Recovery Record"
+  }[type];
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
+
+        <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+          <div>
+            <h2 className="font-semibold">{title}</h2>
+            <p className="text-xs text-slate-400 mt-1">
+              Enter clinical outcome information
+            </p>
+          </div>
+
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-800">
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={onSubmit} className="p-5 space-y-4">
+
+          <select
+            required
+            value={
+              type === "treatment"
+                ? treatmentForm.patient_id
+                : type === "medication"
+                ? medicationForm.patient_id
+                : recoveryForm.patient_id
+            }
+            onChange={e => {
+              const value = e.target.value;
+
+              if (type === "treatment")
+                setTreatmentForm({ ...treatmentForm, patient_id: value });
+
+              if (type === "medication")
+                setMedicationForm({ ...medicationForm, patient_id: value });
+
+              if (type === "recovery")
+                setRecoveryForm({ ...recoveryForm, patient_id: value });
+            }}
+            className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+          >
+            <option value="">Select Patient</option>
+            {patients.map(patient => (
+              <option key={patient.id} value={patient.id}>
+                {patient.name} — #{patient.id}
+              </option>
+            ))}
+          </select>
+
+          {type === "treatment" && (
+            <>
+              <input
+                required
+                placeholder="Treatment name"
+                value={treatmentForm.treatment_name}
+                onChange={e => setTreatmentForm({
+                  ...treatmentForm, treatment_name: e.target.value
+                })}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+              />
+
+              <select
+                value={treatmentForm.outcome}
+                onChange={e => setTreatmentForm({
+                  ...treatmentForm, outcome: e.target.value
+                })}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm"
+              >
+                <option>Improved</option>
+                <option>Stable</option>
+                <option>No Improvement</option>
+              </select>
+
+              <ScoreInput
+                value={treatmentForm.effectiveness_score}
+                onChange={value => setTreatmentForm({
+                  ...treatmentForm, effectiveness_score: value
+                })}
+              />
+
+              <textarea
+                placeholder="Notes (optional)"
+                value={treatmentForm.notes}
+                onChange={e => setTreatmentForm({
+                  ...treatmentForm, notes: e.target.value
+                })}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm"
+              />
+            </>
+          )}
+
+          {type === "medication" && (
+            <>
+              <input
+                required
+                placeholder="Medication name"
+                value={medicationForm.medication_name}
+                onChange={e => setMedicationForm({
+                  ...medicationForm, medication_name: e.target.value
+                })}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+              />
+
+              <select
+                value={medicationForm.outcome}
+                onChange={e => setMedicationForm({
+                  ...medicationForm, outcome: e.target.value
+                })}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm"
+              >
+                <option>Effective</option>
+                <option>Partially Effective</option>
+                <option>Ineffective</option>
+              </select>
+
+              <ScoreInput
+                value={medicationForm.effectiveness_score}
+                onChange={value => setMedicationForm({
+                  ...medicationForm, effectiveness_score: value
+                })}
+              />
+
+              <textarea
+                placeholder="Notes (optional)"
+                value={medicationForm.notes}
+                onChange={e => setMedicationForm({
+                  ...medicationForm, notes: e.target.value
+                })}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm"
+              />
+            </>
+          )}
+
+          {type === "recovery" && (
+            <>
+              <select
+                value={recoveryForm.recovery_stage}
+                onChange={e => setRecoveryForm({
+                  ...recoveryForm, recovery_stage: e.target.value
+                })}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm"
+              >
+                <option>Initial</option>
+                <option>Improving</option>
+                <option>Stable</option>
+                <option>Recovered</option>
+              </select>
+
+              <ScoreInput
+                value={recoveryForm.recovery_score}
+                onChange={value => setRecoveryForm({
+                  ...recoveryForm, recovery_score: value
+                })}
+                label="Recovery Score"
+              />
+
+              <input
+                type="number"
+                min="0"
+                placeholder="Days to recovery"
+                value={recoveryForm.days_to_recovery}
+                onChange={e => setRecoveryForm({
+                  ...recoveryForm, days_to_recovery: e.target.value
+                })}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm"
+              />
+
+              <textarea
+                placeholder="Notes (optional)"
+                value={recoveryForm.notes}
+                onChange={e => setRecoveryForm({
+                  ...recoveryForm, notes: e.target.value
+                })}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm"
+              />
+            </>
+          )}
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              className="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-medium hover:bg-slate-800"
+            >
+              Save Record
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function ScoreInput({ value, onChange, label = "Effectiveness Score" }) {
+  return (
+    <div>
+      <label className="text-xs font-medium text-slate-600">
+        {label}: {value}%
+      </label>
+      <input
+        type="range"
+        min="0"
+        max="100"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="w-full mt-2 accent-slate-700"
+      />
+    </div>
+  );
+}
+
+export default ClinicalAnalytics; 

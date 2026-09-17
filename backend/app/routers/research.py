@@ -14,22 +14,6 @@ router = APIRouter(
 )
 
 
-# ============================================================
-# RESEARCHER-SAFE RESPONSE MODEL
-# ============================================================
-# IMPORTANT:
-# This response model contains ONLY aggregated information.
-#
-# No patient name
-# No email
-# No phone number
-# No address
-# No patient ID
-# No user ID
-#
-# Therefore, researchers cannot receive PII from this endpoint.
-# ============================================================
-
 class ResearchSummaryResponse(BaseModel):
 
     total_patients: int = Field(
@@ -54,10 +38,6 @@ class ResearchSummaryResponse(BaseModel):
     )
 
 
-# ============================================================
-# RESEARCH SUMMARY
-# ============================================================
-
 @router.get(
     "/summary",
     response_model=ResearchSummaryResponse
@@ -73,18 +53,9 @@ def research_summary(
     db: Session = Depends(get_db)
 ):
 
-    # --------------------------------------------------------
-    # Aggregate patient count
-    # --------------------------------------------------------
-
     total_patients = db.query(
         models.Patient
     ).count()
-
-
-    # --------------------------------------------------------
-    # Aggregate high-risk patient count
-    # --------------------------------------------------------
 
     high_risk = db.query(
         models.Patient
@@ -92,34 +63,15 @@ def research_summary(
         models.Patient.risk.ilike("high")
     ).count()
 
-
-    # --------------------------------------------------------
-    # Aggregate prediction count
-    # --------------------------------------------------------
-
     predictions = db.query(
         models.Prediction
     ).count()
-
-
-    # --------------------------------------------------------
-    # Average prediction risk
-    # --------------------------------------------------------
 
     avg_risk = db.query(
         func.avg(
             models.Prediction.risk_score
         )
     ).scalar()
-
-
-    # --------------------------------------------------------
-    # IMPORTANT PRIVACY RULE
-    # --------------------------------------------------------
-    # Only aggregated values are returned.
-    #
-    # No individual patient information is exposed.
-    # --------------------------------------------------------
 
     return ResearchSummaryResponse(
         total_patients=total_patients,

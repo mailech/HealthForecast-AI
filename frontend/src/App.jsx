@@ -6,17 +6,21 @@ import Dashboard from "./pages/Dashboard";
 import UserManagement from "./pages/UserManagement";
 import Patients from "./pages/Patients";
 import Prediction from "./pages/Prediction";
-import MyHealth from "./pages/MyHealth";
 import Settings from "./pages/Settings";
 import AdmissionHistory from "./pages/AdmissionHistory";
 import ClinicalAnalytics from "./pages/ClinicalAnalytics";
 import Research from "./pages/Research";
+import Reports from "./pages/Reports";
 import Optimization from "./pages/Optimization";
 
+import ResearchCohort from "./pages/ResearchCohort";
+import ResearchInsights from "./pages/ResearchInsights";
+import ResearchDataset from "./pages/ResearchDataset";
+import ResearchMLPerformance from "./pages/ResearchMLPerformance";
+import ResearchObservations from "./pages/ResearchObservations";
 
-// ============================================================
-// BASIC PROTECTED ROUTE
-// ============================================================
+import MainLayout from "./layouts/MainLayout";
+
 
 function ProtectedRoute({ children }) {
   const user = localStorage.getItem("user");
@@ -29,10 +33,6 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
-
-// ============================================================
-// ROLE PROTECTED ROUTE
-// ============================================================
 
 function RoleRoute({ allowedRoles, children }) {
   const userData = localStorage.getItem("user");
@@ -49,11 +49,10 @@ function RoleRoute({ allowedRoles, children }) {
   } catch {
     localStorage.removeItem("user");
     localStorage.removeItem("hf_token");
-
     return <Navigate to="/login" replace />;
   }
 
-  if (!allowedRoles.includes(user.role)) {
+  if (!allowedRoles.includes(user.role?.toLowerCase())) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -61,173 +60,196 @@ function RoleRoute({ allowedRoles, children }) {
 }
 
 
-// ============================================================
-// APP
-// ============================================================
+function AppLayout({ children }) {
+  return (
+    <ProtectedRoute>
+      <MainLayout>{children}</MainLayout>
+    </ProtectedRoute>
+  );
+}
+
 
 function App() {
   return (
     <Routes>
 
-      {/* LOGIN */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
 
-      <Route
-        path="/login"
-        element={<Login />}
-      />
-
-      {/* SIGNUP */}
-
-      <Route
-        path="/signup"
-        element={<Signup />}
-      />
-
-      {/* DASHBOARD - ALL LOGGED-IN USERS */}
 
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute>
+          <AppLayout>
             <Dashboard />
-          </ProtectedRoute>
+          </AppLayout>
         }
       />
 
-      {/* PATIENTS - ADMIN, DOCTOR, STAFF */}
 
       <Route
         path="/patients"
         element={
-          <RoleRoute
-            allowedRoles={[
-              "admin",
-              "doctor",
-              "staff",
-            ]}
-          >
-            <Patients />
+          <RoleRoute allowedRoles={["admin", "doctor", "staff"]}>
+            <MainLayout>
+              <Patients />
+            </MainLayout>
           </RoleRoute>
         }
       />
 
-      {/* PREDICTION - ADMIN, DOCTOR */}
 
       <Route
         path="/prediction"
         element={
-          <RoleRoute
-            allowedRoles={[
-              "admin",
-              "doctor",
-            ]}
-          >
-            <Prediction />
+          <RoleRoute allowedRoles={["admin", "doctor"]}>
+            <MainLayout>
+              <Prediction />
+            </MainLayout>
           </RoleRoute>
         }
       />
 
-      {/* ADMISSION HISTORY */}
 
       <Route
         path="/admission-history"
         element={
-          <ProtectedRoute>
+          <AppLayout>
             <AdmissionHistory />
-          </ProtectedRoute>
+          </AppLayout>
         }
       />
 
-      {/* CLINICAL ANALYTICS */}
 
       <Route
         path="/clinical-analytics"
         element={
-          <ProtectedRoute>
+          <AppLayout>
             <ClinicalAnalytics />
-          </ProtectedRoute>
+          </AppLayout>
         }
       />
 
-      {/* RESEARCH - ADMIN, DOCTOR, RESEARCHER */}
+
+      <Route
+        path="/reports"
+        element={
+          <RoleRoute allowedRoles={["admin", "doctor"]}>
+            <MainLayout>
+              <Reports />
+            </MainLayout>
+          </RoleRoute>
+        }
+      />
+
 
       <Route
         path="/research"
         element={
-          <RoleRoute
-            allowedRoles={[
-              "admin",
-              "doctor",
-              "researcher",
-            ]}
-          >
-            <Research />
+          <RoleRoute allowedRoles={["admin", "doctor", "researcher"]}>
+            <MainLayout>
+              <Research />
+            </MainLayout>
           </RoleRoute>
         }
       />
 
-      {/* OPTIMIZATION */}
+
+      <Route
+        path="/research/cohort"
+        element={
+          <RoleRoute allowedRoles={["researcher"]}>
+            <MainLayout>
+              <ResearchCohort />
+            </MainLayout>
+          </RoleRoute>
+        }
+      />
+
+
+      <Route
+        path="/research/insights"
+        element={
+          <RoleRoute allowedRoles={["researcher"]}>
+            <MainLayout>
+              <ResearchInsights />
+            </MainLayout>
+          </RoleRoute>
+        }
+      />
+
+
+      <Route
+        path="/research/dataset"
+        element={
+          <RoleRoute allowedRoles={["researcher"]}>
+            <MainLayout>
+              <ResearchDataset />
+            </MainLayout>
+          </RoleRoute>
+        }
+      />
+
+
+      <Route
+        path="/research/ml-performance"
+        element={
+          <RoleRoute allowedRoles={["researcher"]}>
+            <MainLayout>
+              <ResearchMLPerformance />
+            </MainLayout>
+          </RoleRoute>
+        }
+      />
+
+
+      <Route
+        path="/research/observations"
+        element={
+          <RoleRoute allowedRoles={["researcher"]}>
+            <MainLayout>
+              <ResearchObservations />
+            </MainLayout>
+          </RoleRoute>
+        }
+      />
+
 
       <Route
         path="/optimization"
         element={
-          <ProtectedRoute>
+          <AppLayout>
             <Optimization />
-          </ProtectedRoute>
+          </AppLayout>
         }
       />
 
-      {/* USER MANAGEMENT - ADMIN ONLY */}
 
       <Route
         path="/users"
         element={
-          <RoleRoute
-            allowedRoles={[
-              "admin",
-            ]}
-          >
-            <UserManagement />
+          <RoleRoute allowedRoles={["admin"]}>
+            <MainLayout>
+              <UserManagement />
+            </MainLayout>
           </RoleRoute>
         }
       />
 
-      {/* MY HEALTH - PATIENT */}
-
-      <Route
-        path="/my-health"
-        element={
-          <RoleRoute
-            allowedRoles={[
-              "patient",
-            ]}
-          >
-            <MyHealth />
-          </RoleRoute>
-        }
-      />
-
-      {/* SETTINGS */}
 
       <Route
         path="/settings"
         element={
-          <ProtectedRoute>
+          <AppLayout>
             <Settings />
-          </ProtectedRoute>
+          </AppLayout>
         }
       />
 
-      {/* DEFAULT */}
 
       <Route
         path="*"
-        element={
-          <Navigate
-            to="/dashboard"
-            replace
-          />
-        }
+        element={<Navigate to="/dashboard" replace />}
       />
 
     </Routes>

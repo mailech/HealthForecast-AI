@@ -1,367 +1,305 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  Bell,
   Search,
+  Bell,
+  ChevronDown,
+  UserRound,
+  Settings,
   LogOut,
-  AlertTriangle,
-  Hospital,
-  X,
+  ShieldCheck,
+  X
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/api";
 
 function Navbar() {
   const navigate = useNavigate();
+  const menuRef = useRef(null);
 
-  const user = JSON.parse(
-    localStorage.getItem("user") || "{}"
-  );
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
 
-  const [notifications, setNotifications] =
-    useState([]);
+  const [search, setSearch] = useState("");
+  const [patients, setPatients] = useState([]);
+  const [showResults, setShowResults] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [notifications, setNotifications] = useState(0);
 
-  const [showNotifications, setShowNotifications] =
-    useState(false);
-
-  const [loadingNotifications, setLoadingNotifications] =
-    useState(false);
-
-  // ==========================================================
-  // FETCH NOTIFICATIONS
-  // ==========================================================
-
-  const fetchNotifications = async () => {
-    try {
-      setLoadingNotifications(true);
-
-      const response = await api.get(
-        "/notifications/"
-      );
-
-      setNotifications(
-        response.data?.notifications || []
-      );
-    } catch (error) {
-      console.error(
-        "Failed to load notifications:",
-        error
-      );
-
-      setNotifications([]);
-    } finally {
-      setLoadingNotifications(false);
-    }
-  };
-
-  // ==========================================================
-  // INITIAL LOAD
-  // ==========================================================
+  const name = user.name || "Healthcare User";
+  const role = user.role || "User";
+  const initial = name.charAt(0).toUpperCase();
 
   useEffect(() => {
-    fetchNotifications();
+    const loadPatients = async () => {
+      try {
+        const res = await api.get("/patients");
+        setPatients(res.data || []);
+      } catch {
+        setPatients([]);
+      }
+    };
 
-    // Refresh notifications every 30 seconds
-    const interval = setInterval(
-      fetchNotifications,
-      30000
-    );
-
-    return () => clearInterval(interval);
+    loadPatients();
   }, []);
 
-  // ==========================================================
-  // LOGOUT
-  // ==========================================================
+  useEffect(() => {
+    const loadNotifications = async () => {
+      try {
+        const res = await api.get("/notifications");
+        const data = res.data || [];
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
+        setNotifications(Array.isArray(data) ? data.length : 0);
+      } catch {
+        setNotifications(0);
+      }
+    };
+
+    loadNotifications();
+  }, []);
+
+  useEffect(() => {
+    const closeMenu = e => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setShowMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", closeMenu);
+
+    return () => {
+      document.removeEventListener("mousedown", closeMenu);
+    };
+  }, []);
+
+  const results = patients.filter(patient => {
+    const q = search.toLowerCase().trim();
+
+    if (!q) return false;
+
+    return `${patient.name} ${patient.id} ${patient.disease}`
+      .toLowerCase()
+      .includes(q);
+  }).slice(0, 5);
+
+  const logout = () => {
     localStorage.removeItem("hf_token");
-
-    navigate("/login", {
-      replace: true,
-    });
-  };
-
-  // ==========================================================
-  // NOTIFICATION ICON
-  // ==========================================================
-
-  const getNotificationIcon = (type) => {
-    if (type === "high_risk") {
-      return (
-        <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-          <AlertTriangle
-            size={18}
-            className="text-red-600 dark:text-red-400"
-          />
-        </div>
-      );
-    }
-
-    return (
-      <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-        <Hospital
-          size={18}
-          className="text-blue-600 dark:text-blue-400"
-        />
-      </div>
-    );
+    localStorage.removeItem("user");
+    navigate("/login");
   };
 
   return (
-    <div className="relative bg-white dark:bg-slate-800 h-20 shadow flex items-center justify-between px-8 border-b border-slate-100 dark:border-slate-700">
+    <header className="h-[72px] bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 px-5 flex items-center justify-between gap-5 sticky top-0 z-40">
 
-      {/* ====================================================
-          SEARCH
-      ==================================================== */}
+      {/* SEARCH */}
+      <div className="relative flex-1 max-w-xl">
+        <div
+          className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border transition ${
+            showResults
+              ? "border-slate-400 bg-white dark:bg-slate-800"
+              : "border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800"
+          }`}
+        >
+          <Search size={17} className="text-slate-400 shrink-0" />
 
-      <div className="flex items-center bg-slate-100 dark:bg-slate-700 rounded-lg px-4 py-2 w-80">
+          <input
+            value={search}
+            onChange={e => {
+              setSearch(e.target.value);
+              setShowResults(true);
+            }}
+            onFocus={() => search && setShowResults(true)}
+            placeholder="Search patients, ID or condition..."
+            className="w-full bg-transparent outline-none text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
+          />
 
-        <Search
-          size={18}
-          className="text-gray-500 dark:text-gray-400"
-        />
+          {search && (
+            <button
+              onClick={() => {
+                setSearch("");
+                setShowResults(false);
+              }}
+              className="text-slate-400 hover:text-slate-700"
+            >
+              <X size={15} />
+            </button>
+          )}
 
-        <input
-          type="text"
-          placeholder="Search patients..."
-          className="bg-transparent outline-none ml-3 w-full text-slate-800 dark:text-white placeholder:text-gray-400"
-        />
+          <span className="hidden md:block text-[10px] text-slate-400 border border-slate-200 dark:border-slate-600 rounded-md px-2 py-1">
+            Search
+          </span>
+        </div>
 
-      </div>
+        {/* SEARCH RESULTS */}
+        {showResults && search && (
+          <div className="absolute top-[52px] left-0 right-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden">
 
-
-      {/* ====================================================
-          RIGHT SIDE
-      ==================================================== */}
-
-      <div className="flex items-center gap-5">
-
-        {/* ==================================================
-            NOTIFICATIONS
-        ================================================== */}
-
-        <div className="relative">
-
-          <button
-            onClick={() =>
-              setShowNotifications(
-                !showNotifications
-              )
-            }
-            className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition"
-            title="Notifications"
-          >
-
-            <Bell
-              size={22}
-              className="text-slate-700 dark:text-gray-200"
-            />
-
-            {notifications.length > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                {notifications.length > 9
-                  ? "9+"
-                  : notifications.length}
-              </span>
-            )}
-
-          </button>
-
-
-          {/* ==================================================
-              NOTIFICATION DROPDOWN
-          ================================================== */}
-
-          {showNotifications && (
-
-            <div className="absolute right-0 top-14 w-96 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 z-50 overflow-hidden">
-
-              {/* HEADER */}
-
-              <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
-
-                <div>
-
-                  <h3 className="font-semibold text-slate-800 dark:text-white">
-                    Notifications
-                  </h3>
-
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {notifications.length} alert
-                    {notifications.length !== 1
-                      ? "s"
-                      : ""}
+            {results.length > 0 ? (
+              <>
+                <div className="px-4 py-2.5 border-b border-slate-100 dark:border-slate-700">
+                  <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">
+                    Patient Records
                   </p>
-
                 </div>
 
+                {results.map(patient => (
+                  <button
+                    key={patient.id}
+                    onClick={() => {
+                      setShowResults(false);
+                      setSearch("");
+                      navigate("/patients");
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700"
+                  >
+                    <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-sm font-semibold text-slate-600 dark:text-slate-200">
+                      {patient.name?.charAt(0).toUpperCase() || "P"}
+                    </div>
+
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-slate-800 dark:text-white">
+                        {patient.name}
+                      </p>
+
+                      <p className="text-[11px] text-slate-400">
+                        ID #{patient.id} · {patient.disease || "No condition"}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </>
+            ) : (
+              <div className="px-4 py-7 text-center">
+                <Search size={20} className="text-slate-300 mx-auto mb-2" />
+
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                  No patients found
+                </p>
+
+                <p className="text-xs text-slate-400 mt-1">
+                  Try a different name, ID or condition.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* RIGHT SIDE */}
+      <div className="flex items-center gap-3">
+
+        {/* NOTIFICATION */}
+        <button
+          onClick={() => navigate("/notifications")}
+          className="relative w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+          title="Notifications"
+        >
+          <Bell size={18} />
+
+          {notifications > 0 && (
+            <span className="absolute top-1.5 right-1.5 min-w-[15px] h-[15px] px-1 rounded-full bg-slate-900 text-white text-[9px] flex items-center justify-center border-2 border-white dark:border-slate-900">
+              {notifications > 9 ? "9+" : notifications}
+            </span>
+          )}
+        </button>
+
+        {/* DIVIDER */}
+        <div className="hidden sm:block h-8 w-px bg-slate-200 dark:bg-slate-700" />
+
+        {/* USER */}
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setShowMenu(!showMenu)}
+            className="flex items-center gap-3 pl-1 pr-2 py-1.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+          >
+            <div className="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center font-semibold text-sm">
+              {initial}
+            </div>
+
+            <div className="hidden md:block text-left max-w-[150px]">
+              <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">
+                {name}
+              </p>
+
+              <p className="text-[10px] text-slate-400 uppercase tracking-wide">
+                {role}
+              </p>
+            </div>
+
+            <ChevronDown
+              size={15}
+              className={`hidden sm:block text-slate-400 transition ${
+                showMenu ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {/* PROFILE MENU */}
+          {showMenu && (
+            <div className="absolute right-0 top-14 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden">
+
+              <div className="p-4 bg-slate-950 text-white">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center font-semibold text-blue-300">
+                    {initial}
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm truncate">
+                      {name}
+                    </p>
+
+                    <p className="text-[10px] text-slate-400 uppercase mt-0.5">
+                      {role}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 mt-3 text-[10px] text-slate-400">
+                  <ShieldCheck size={12} className="text-blue-300" />
+                  Secure healthcare account
+                </div>
+              </div>
+
+              <div className="p-2">
+
                 <button
-                  onClick={() =>
-                    setShowNotifications(false)
-                  }
-                  className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+                  onClick={() => {
+                    setShowMenu(false);
+                    navigate("/settings");
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
                 >
-                  <X
-                    size={18}
-                    className="text-gray-500 dark:text-gray-400"
-                  />
+                  <UserRound size={16} />
+                  My Profile
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowMenu(false);
+                    navigate("/settings");
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+                >
+                  <Settings size={16} />
+                  Settings
+                </button>
+
+                <div className="my-1 border-t border-slate-100 dark:border-slate-700" />
+
+                <button
+                  onClick={logout}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+                >
+                  <LogOut size={16} />
+                  Sign out
                 </button>
 
               </div>
-
-
-              {/* BODY */}
-
-              <div className="max-h-[420px] overflow-y-auto">
-
-                {loadingNotifications && (
-                  <div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                    Loading notifications...
-                  </div>
-                )}
-
-
-                {!loadingNotifications &&
-                  notifications.length === 0 && (
-
-                    <div className="p-8 text-center">
-
-                      <Bell
-                        size={35}
-                        className="mx-auto text-gray-300 dark:text-gray-600 mb-3"
-                      />
-
-                      <p className="font-medium text-gray-600 dark:text-gray-300">
-                        No notifications
-                      </p>
-
-                      <p className="text-sm text-gray-400 mt-1">
-                        You're all caught up.
-                      </p>
-
-                    </div>
-
-                  )}
-
-
-                {!loadingNotifications &&
-                  notifications.map(
-                    (notification) => (
-
-                      <button
-                        key={notification.id}
-                        onClick={() => {
-                          if (
-                            notification.patient_id
-                          ) {
-                            navigate(
-                              `/patients/${notification.patient_id}`
-                            );
-                            setShowNotifications(
-                              false
-                            );
-                          }
-                        }}
-                        className="w-full text-left px-5 py-4 border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition"
-                      >
-
-                        <div className="flex gap-3">
-
-                          {getNotificationIcon(
-                            notification.type
-                          )}
-
-                          <div className="flex-1 min-w-0">
-
-                            <div className="flex items-center justify-between gap-2">
-
-                              <p className="font-semibold text-sm text-slate-800 dark:text-white">
-                                {notification.title}
-                              </p>
-
-                              {notification.type ===
-                                "high_risk" && (
-                                <span className="text-[10px] font-semibold text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 px-2 py-1 rounded-full">
-                                  HIGH RISK
-                                </span>
-                              )}
-
-                            </div>
-
-                            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 leading-5">
-                              {notification.message}
-                            </p>
-
-                          </div>
-
-                        </div>
-
-                      </button>
-
-                    )
-                  )}
-
-              </div>
-
             </div>
-
           )}
-
         </div>
-
-
-        {/* ==================================================
-            USER
-        ================================================== */}
-
-        <div className="text-right">
-
-          <h3 className="font-semibold text-slate-800 dark:text-white">
-            {user.name || "Test User"}
-          </h3>
-
-          <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-            {user.role || "Patient"}
-          </p>
-
-        </div>
-
-
-        {/* ==================================================
-            PROFILE
-        ================================================== */}
-
-        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-700 dark:text-blue-400 font-semibold">
-
-          {(user.name || "T")
-            .charAt(0)
-            .toUpperCase()}
-
-        </div>
-
-
-        {/* ==================================================
-            LOGOUT
-        ================================================== */}
-
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
-          title="Logout"
-        >
-
-          <LogOut size={19} />
-
-          <span className="hidden lg:inline">
-            Logout
-          </span>
-
-        </button>
 
       </div>
-
-    </div>
+    </header>
   );
 }
 

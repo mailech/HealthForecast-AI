@@ -68,4 +68,4 @@ def predict_readmission(data):
         "risk_score": round(risk_score, 4),
         "risk_level": risk_level,
         "recommendation": recommendation,
-    } 
+    }  
