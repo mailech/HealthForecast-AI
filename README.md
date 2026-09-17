@@ -38,17 +38,6 @@ HealthForecast-AI is an AI-assisted healthcare management system designed to hel
 * Threshold-based risk classification
 * Model loaded during backend startup
 
-### Research & Analytics
-
-* Research dashboard
-* Aggregate healthcare statistics
-* High-risk patient analysis
-* Prediction statistics
-* ML model performance metrics
-* Research data export
-* Privacy-protected aggregate data
-* Researcher role access
-
 ## Machine Learning
 
 The project uses the **Diabetes 130-US Hospitals** dataset.
@@ -79,6 +68,22 @@ The trained model is stored at:
 ```text
 backend/ml/readmission_model.joblib
 ```
+
+## Research & Analytics
+
+* Research overview
+* Cohort analysis
+* AI insights
+* Dataset profile
+* ML performance analysis
+* Research observations
+* Aggregate healthcare statistics
+* High-risk patient analysis
+* Prediction statistics
+* ML model performance metrics
+* Research data export
+* Privacy-protected aggregate data
+* Researcher role access
 
 ## Technology Stack
 
@@ -116,6 +121,14 @@ HealthForecast-AI/
 ├── backend/
 │   ├── app/
 │   │   ├── routers/
+│   │   │   ├── users.py
+│   │   │   ├── patients.py
+│   │   │   ├── prediction.py
+│   │   │   ├── clinical.py
+│   │   │   ├── research.py
+│   │   │   ├── optimization.py
+│   │   │   ├── notifications.py
+│   │   │   └── reports.py
 │   │   ├── crud.py
 │   │   ├── database.py
 │   │   ├── main.py
@@ -133,6 +146,7 @@ HealthForecast-AI/
 └── frontend/
     └── src/
         ├── components/
+        ├── layouts/
         ├── pages/
         ├── api/
         └── App.jsx
@@ -140,12 +154,12 @@ HealthForecast-AI/
 
 ## User Roles
 
-| Role           | Access                                                   |
-| -------------- | -------------------------------------------------------- |
-| **Admin**      | Full system access and user management                   |
-| **Doctor**     | Patient management, predictions, analytics, and research |
-| **Staff**      | Patient and healthcare management                        |
-| **Researcher** | Research analytics and aggregate research data           |
+| Role           | Access                                                                        |
+| -------------- | ----------------------------------------------------------------------------- |
+| **Admin**      | Full system access and user management                                        |
+| **Doctor**     | Patient management, predictions, analytics, reports, and research             |
+| **Staff**      | Patient and healthcare management                                             |
+| **Researcher** | Research analytics, cohort analysis, ML insights, and aggregate research data |
 
 ## Data Validation & Security
 
@@ -165,6 +179,8 @@ Research endpoints provide **aggregate statistics only**.
 Patient names, emails, IDs, and other personally identifiable information are not included in research responses or research exports.
 
 Research access is restricted to authorized roles.
+
+Research features include cohort-level analysis, AI insights, ML performance analysis, and research observations without exposing individual patient information.
 
 ## Running the Project
 
@@ -222,7 +238,6 @@ The application uses **PostgreSQL** to store:
 
 * Users
 * Patient records
-* Admissions
 * Predictions
 * Clinical analytics
 * Treatment records
@@ -264,6 +279,8 @@ Aggregate Statistics
 Research Dashboard
      ↓
 Privacy-Protected Export
+```
+ 
 ```
  
  
