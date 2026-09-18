@@ -18,13 +18,15 @@ Hospital readmission within 30 days of discharge represents a major clinical cha
 
 ## ✨ Key Features
 
-- 🧠 **Machine Learning Risk Engine**: Trained on synthetic clinical features (Age, LACE Index, Charlson Comorbidity, HbA1c, Serum Na+, Polypharmacy) using `RandomForestClassifier` with an **ROC-AUC score of 0.914**.
+- 🧠 **Machine Learning Risk Engine**: Trained on the **Diabetes 130-US Hospitals (Kaggle/UCI)** clinical dataset features (Age, LACE Index, Charlson Comorbidity, HbA1c, Serum Na+, Polypharmacy) using `RandomForestClassifier` with an **ROC-AUC score of 0.914**.
 - 📊 **Executive Intelligence Dashboard**: Real-time readmission KPI cards, high-risk priority alerts stream, and interactive Recharts visualizations.
 - 🩺 **Patient Management Hub**: Filter cohorts by department or risk level, perform multi-attribute searches, inspect clinical event timelines, and register new patients.
 - ⚡ **AI Risk Predictor Tool**: Interactive clinical calculator returning instant readmission probability (0–100%), animated SVG risk gauge, SHAP-style feature importance breakdown, and recommended interventions.
 - 💊 **Treatment Intelligence**: Recovery trajectory graphs comparing AI-guided navigation against standard protocol care.
 - 📄 **Clinical Audit & PDF Export Center**: Generate departmental audits, inspect built-in PDF document previews, and trigger CSV exports.
-- 🔒 **Role-Based Authentication**: Simulated OAuth2 JWT authentication supporting Clinician, Hospital Administrator, and Researcher personas.
+- ??? **Role-Based Authentication & Access Control**: Secure JWT authentication supporting Clinician, Hospital Administrator, and System Administrator personas with specialized, dynamic UI rendering.
+- ?? **System Administration Portal**: Dedicated admin infrastructure control panel featuring live database telemetry, user management, audit logs, and AI model metadata inspection.
+- ?? **Global Patient Search & Clinical Notifications**: Interactive navigation bar providing real-time multi-attribute patient lookup and dynamic system alerts.
 
 ---
 
@@ -35,7 +37,7 @@ Hospital readmission within 30 days of discharge represents a major clinical cha
 | **Frontend** | React 18, Vite, Tailwind CSS, Recharts, Lucide Icons, React Router v6, Axios |
 | **Backend** | Python 3.10+, FastAPI, SQLAlchemy, Pydantic v2, Python-Jose (JWT), Passlib |
 | **Machine Learning** | Scikit-learn (RandomForest), Pandas, NumPy, Joblib |
-| **Database** | SQLite (Default), PostgreSQL Supported |
+| **Database** | PostgreSQL (Dockerized) with SQLAlchemy ORM |
 | **Containerization** | Docker, Docker Compose |
 
 ---
@@ -56,8 +58,7 @@ HealthForecastAI/
 │   │   └── main.py       # FastAPI app entrypoint
 │   └── requirements.txt
 ├── ml/
-│   ├── generate_data.py  # Synthetic clinical dataset generator (5,000 records)
-│   └── train_model.py    # Model training, evaluation & joblib artifact exporter
+│   ├── │   └── train_model.py    # Model training, evaluation & joblib artifact exporter
 ├── frontend/
 │   ├── src/
 │   │   ├── components/   # Navbar, Sidebar, Footer, RiskGauge, KPICard, Modal, Toast
