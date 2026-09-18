@@ -153,22 +153,6 @@ docker-compose up --build
 
 ---
 
-## 📤 How to Push Code to GitHub
-
-```bash
-# Initialize git repository
-git init
-git add .
-git commit -m "feat: complete HealthForecast AI full-stack release"
-
-# Push to your GitHub repository
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/HealthForecastAI.git
-git push -u origin main
-```
-
----
-
 ## 📄 License
 
 This project is open-source and released under the [MIT License](LICENSE).
