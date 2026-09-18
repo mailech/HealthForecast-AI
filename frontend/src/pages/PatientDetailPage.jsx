@@ -13,23 +13,23 @@ export const PatientDetailPage = ({ patient, onClose }) => {
       title={`Patient Intelligence Profile: ${patient.first_name} ${patient.last_name} (${patient.patient_code})`}
       maxWidth="max-w-4xl"
     >
-      <div className="space-y-6 text-slate-200">
+      <div className="space-y-6 text-slate-700">
         {/* Top Header Card */}
-        <div className="grid md:grid-cols-3 gap-6 items-center p-6 rounded-2xl bg-navy-900/90 border border-slate-800">
+        <div className="grid md:grid-cols-3 gap-6 items-center p-6 rounded-2xl bg-slate-50 text-slate-800/90 border border-slate-200">
           <div className="md:col-span-2 space-y-2">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-medical-cyan/20 text-medical-cyan">
+              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-500">
                 {patient.patient_code}
               </span>
-              <span className="text-xs text-slate-400">• Admitted: {patient.admission_date}</span>
+              <span className="text-xs text-slate-500">• Admitted: {patient.admission_date}</span>
             </div>
             
-            <h2 className="text-2xl font-extrabold text-white">{patient.first_name} {patient.last_name}</h2>
-            <p className="text-xs text-slate-400">{patient.age} years old • {patient.gender} • Department of {patient.department}</p>
+            <h2 className="text-2xl font-extrabold text-slate-900">{patient.first_name} {patient.last_name}</h2>
+            <p className="text-xs text-slate-500">{patient.age} years old • {patient.gender} • Department of {patient.department}</p>
             
-            <div className="inline-block mt-2 p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-semibold">
-              <span className="text-slate-400">Primary Diagnosis: </span>
-              <span className="text-medical-cyan">{patient.primary_diagnosis}</span>
+            <div className="inline-block mt-2 p-2.5 rounded-xl bg-white border border-slate-200 text-xs font-semibold">
+              <span className="text-slate-500">Primary Diagnosis: </span>
+              <span className="text-blue-500">{patient.primary_diagnosis}</span>
             </div>
           </div>
 
@@ -40,40 +40,40 @@ export const PatientDetailPage = ({ patient, onClose }) => {
 
         {/* Clinical Indexes & Vitals */}
         <div className="grid sm:grid-cols-4 gap-4">
-          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-center">
-            <p className="text-[10px] text-slate-400 uppercase font-bold">LACE Index Score</p>
-            <p className="text-2xl font-extrabold text-white mt-1">{patient.lace_index} <span className="text-xs text-slate-500 font-normal">/ 19</span></p>
+          <div className="p-4 rounded-xl bg-white/60 border border-slate-200 text-center">
+            <p className="text-[10px] text-slate-500 uppercase font-bold">LACE Index Score</p>
+            <p className="text-2xl font-extrabold text-slate-900 mt-1">{patient.lace_index} <span className="text-xs text-slate-500 font-normal">/ 19</span></p>
           </div>
-          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-center">
-            <p className="text-[10px] text-slate-400 uppercase font-bold">Charlson Comorbidity</p>
-            <p className="text-2xl font-extrabold text-white mt-1">{patient.charlson_index}</p>
+          <div className="p-4 rounded-xl bg-white/60 border border-slate-200 text-center">
+            <p className="text-[10px] text-slate-500 uppercase font-bold">Charlson Comorbidity</p>
+            <p className="text-2xl font-extrabold text-slate-900 mt-1">{patient.charlson_index}</p>
           </div>
-          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-center">
-            <p className="text-[10px] text-slate-400 uppercase font-bold">HbA1c Level</p>
+          <div className="p-4 rounded-xl bg-white/60 border border-slate-200 text-center">
+            <p className="text-[10px] text-slate-500 uppercase font-bold">HbA1c Level</p>
             <p className={`text-2xl font-extrabold mt-1 ${patient.hba1c > 8 ? 'text-rose-400' : 'text-emerald-400'}`}>{patient.hba1c}%</p>
           </div>
-          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-center">
-            <p className="text-[10px] text-slate-400 uppercase font-bold">Polypharmacy</p>
-            <p className="text-2xl font-extrabold text-white mt-1">{patient.polypharmacy_count} <span className="text-xs text-slate-500 font-normal">Meds</span></p>
+          <div className="p-4 rounded-xl bg-white/60 border border-slate-200 text-center">
+            <p className="text-[10px] text-slate-500 uppercase font-bold">Polypharmacy</p>
+            <p className="text-2xl font-extrabold text-slate-900 mt-1">{patient.polypharmacy_count} <span className="text-xs text-slate-500 font-normal">Meds</span></p>
           </div>
         </div>
 
         {/* Medical History Timeline */}
-        <div className="p-5 rounded-2xl bg-navy-900/60 border border-slate-800 space-y-3">
-          <h4 className="text-xs font-bold text-white uppercase tracking-wider">Clinical Event Timeline</h4>
+        <div className="p-5 rounded-2xl bg-slate-50 text-slate-800/60 border border-slate-200 space-y-3">
+          <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Clinical Event Timeline</h4>
           <div className="space-y-3">
             <div className="flex gap-3 text-xs">
-              <span className="w-2 h-2 rounded-full bg-medical-cyan mt-1.5"></span>
+              <span className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></span>
               <div>
-                <p className="font-bold text-white">Current Inpatient Admission</p>
-                <p className="text-slate-400 text-[11px]">{patient.admission_date} — Inpatient stay ({patient.length_of_stay} days)</p>
+                <p className="font-bold text-slate-900">Current Inpatient Admission</p>
+                <p className="text-slate-500 text-[11px]">{patient.admission_date} — Inpatient stay ({patient.length_of_stay} days)</p>
               </div>
             </div>
             <div className="flex gap-3 text-xs">
               <span className="w-2 h-2 rounded-full bg-amber-400 mt-1.5"></span>
               <div>
-                <p className="font-bold text-white">Emergency Department Visit</p>
-                <p className="text-slate-400 text-[11px]">{patient.emergency_visits} recorded ED encounters in prior 12 months</p>
+                <p className="font-bold text-slate-900">Emergency Department Visit</p>
+                <p className="text-slate-500 text-[11px]">{patient.emergency_visits} recorded ED encounters in prior 12 months</p>
               </div>
             </div>
           </div>

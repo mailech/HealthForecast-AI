@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.database.database import get_db
-from app.models.models import PatientDB
+from app.models.models import PatientDB, UserDB
 from app.schemas.schemas import DashboardSummary
+from app.auth.auth import get_current_user
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
 @router.get("", response_model=DashboardSummary)
-def get_dashboard_summary(db: Session = Depends(get_db)):
+def get_dashboard_summary(db: Session = Depends(get_db), current_user: UserDB = Depends(get_current_user)):
     patients = db.query(PatientDB).all()
     total_patients = len(patients)
     
@@ -33,10 +34,12 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
         
     recent_alerts = []
     for p in sorted(high_risk, key=lambda x: x.readmission_risk_score, reverse=True)[:5]:
+        alert_name = f"{p.first_name} {p.last_name}" if current_user.role != "Healthcare Researcher" else "ANONYMIZED"
+        alert_code = p.patient_code if current_user.role != "Healthcare Researcher" else "ANON-0000"
         recent_alerts.append({
             "id": p.id,
-            "patient_code": p.patient_code,
-            "name": f"{p.first_name} {p.last_name}",
+            "patient_code": alert_code,
+            "name": alert_name,
             "department": p.department,
             "risk_score": p.readmission_risk_score,
             "primary_diagnosis": p.primary_diagnosis,

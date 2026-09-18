@@ -20,15 +20,15 @@ export const ReportsPage = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="glass-card p-6 rounded-3xl border border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white text-slate-800 shadow-md border-slate-200 p-6 rounded-3xl border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight">Clinical Audit & PDF Export Center</h1>
-          <p className="text-xs text-slate-400">Generate, preview, and download hospital 30-day readmission audit reports.</p>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Clinical Audit & PDF Export Center</h1>
+          <p className="text-xs text-slate-500">Generate, preview, and download hospital 30-day readmission audit reports.</p>
         </div>
 
         <button
           onClick={() => handleDownload({ title: 'New Hospital Cohort Audit', file_format: 'PDF' })}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-medical-cyan to-medical-teal text-slate-950 font-bold text-xs shadow-cyan-glow hover:opacity-90 transition-opacity"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold text-xs shadow-md hover:opacity-90 transition-opacity"
         >
           <Plus className="w-4 h-4" />
           <span>Generate New Audit PDF</span>
@@ -43,9 +43,9 @@ export const ReportsPage = () => {
       )}
 
       {/* Reports Table */}
-      <div className="glass-card rounded-2xl border border-slate-800 overflow-hidden">
-        <table className="w-full text-left text-xs text-slate-300">
-          <thead className="bg-navy-900/80 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+      <div className="bg-white text-slate-800 shadow-md border-slate-200 rounded-2xl border border-slate-200 overflow-hidden">
+        <table className="w-full text-left text-xs text-slate-600">
+          <thead className="bg-slate-50 text-slate-800/80 text-slate-500 uppercase text-[10px] tracking-wider border-b border-slate-200">
             <tr>
               <th className="py-3.5 px-4">Report Title</th>
               <th className="py-3.5 px-4">Type</th>
@@ -58,14 +58,14 @@ export const ReportsPage = () => {
           </thead>
           <tbody className="divide-y divide-slate-800/60">
             {reports.map((report) => (
-              <tr key={report.id} className="hover:bg-slate-800/40 transition-colors">
-                <td className="py-3.5 px-4 font-bold text-white flex items-center gap-2.5">
-                  <FileText className="w-4 h-4 text-medical-cyan" />
+              <tr key={report.id} className="hover:bg-white/40 transition-colors">
+                <td className="py-3.5 px-4 font-bold text-slate-900 flex items-center gap-2.5">
+                  <FileText className="w-4 h-4 text-blue-500" />
                   <span>{report.title}</span>
                 </td>
-                <td className="py-3.5 px-4 text-slate-400">{report.report_type}</td>
+                <td className="py-3.5 px-4 text-slate-500">{report.report_type}</td>
                 <td className="py-3.5 px-4">{report.department}</td>
-                <td className="py-3.5 px-4 text-slate-400">{report.generated_by}</td>
+                <td className="py-3.5 px-4 text-slate-500">{report.generated_by}</td>
                 <td className="py-3.5 px-4">{report.date}</td>
                 <td className="py-3.5 px-4 text-center">
                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
@@ -77,14 +77,14 @@ export const ReportsPage = () => {
                 <td className="py-3.5 px-4 text-right space-x-2">
                   <button
                     onClick={() => setPreviewReport(report)}
-                    className="p-1.5 rounded bg-navy-800 text-slate-300 hover:text-white transition-colors"
+                    className="p-1.5 rounded bg-navy-800 text-slate-600 hover:text-slate-900 transition-colors"
                     title="Preview Layout"
                   >
                     <Eye className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDownload(report)}
-                    className="p-1.5 rounded bg-navy-800 text-medical-cyan hover:bg-medical-cyan hover:text-slate-950 transition-all"
+                    className="p-1.5 rounded bg-navy-800 text-blue-500 hover:bg-blue-500 hover:text-slate-950 transition-all"
                     title="Download File"
                   >
                     <Download className="w-4 h-4" />
@@ -136,7 +136,7 @@ export const ReportsPage = () => {
               <span className="text-slate-500">Authorized by: {previewReport.generated_by}</span>
               <button
                 onClick={() => window.print()}
-                className="flex items-center gap-1 px-3 py-1.5 rounded bg-slate-900 text-white font-bold hover:bg-slate-800"
+                className="flex items-center gap-1 px-3 py-1.5 rounded bg-slate-100 text-slate-900 font-bold hover:bg-white"
               >
                 <Printer className="w-4 h-4" />
                 <span>Print Document</span>

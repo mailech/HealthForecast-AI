@@ -58,7 +58,7 @@ export const RiskGauge = ({ score = 0, size = 180, showLabel = true }) => {
 
         {/* Center score readout */}
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center z-20">
-          <span className="text-3xl font-extrabold text-white tracking-tight leading-none">
+          <span className="text-3xl font-extrabold text-slate-900 tracking-tight leading-none">
             {score.toFixed(1)}%
           </span>
           <span className="text-[10px] uppercase font-bold tracking-widest mt-1" style={{ color }}>
@@ -68,7 +68,7 @@ export const RiskGauge = ({ score = 0, size = 180, showLabel = true }) => {
       </div>
       
       {showLabel && (
-        <div className="mt-3 flex items-center gap-2 text-xs text-slate-400 font-medium">
+        <div className="mt-3 flex items-center gap-2 text-xs text-slate-500 font-medium">
           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }}></span>
           <span>30-Day Readmission Probability</span>
         </div>

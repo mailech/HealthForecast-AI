@@ -14,6 +14,12 @@ class UserLogin(BaseModel):
     email: str
     password: str
 
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    role: Optional[str] = None
+    hospital_name: Optional[str] = None
+
 class UserResponse(BaseModel):
     id: int
     full_name: str
@@ -31,16 +37,14 @@ class TokenResponse(BaseModel):
 
 # Prediction Request & Response Schemas
 class PredictionInput(BaseModel):
-    age: int = Field(..., ge=18, le=110)
-    prior_admissions: int = Field(..., ge=0)
-    emergency_visits: int = Field(..., ge=0)
-    length_of_stay: int = Field(..., ge=1)
-    charlson_index: int = Field(..., ge=0, le=12)
-    lace_index: int = Field(..., ge=0, le=19)
-    hba1c: float = Field(..., ge=3.0, le=20.0)
-    serum_sodium: float = Field(..., ge=110.0, le=160.0)
-    creatinine: float = Field(..., ge=0.2, le=15.0)
-    polypharmacy_count: int = Field(..., ge=0)
+    time_in_hospital: int = Field(..., ge=1, le=14)
+    num_lab_procedures: int = Field(..., ge=1, le=132)
+    num_procedures: int = Field(..., ge=0, le=6)
+    num_medications: int = Field(..., ge=1, le=81)
+    number_outpatient: int = Field(..., ge=0, le=42)
+    number_emergency: int = Field(..., ge=0, le=76)
+    number_inpatient: int = Field(..., ge=0, le=21)
+    number_diagnoses: int = Field(..., ge=1, le=16)
     patient_id: Optional[int] = None
 
 class KeyFactor(BaseModel):
@@ -55,6 +59,7 @@ class PredictionResult(BaseModel):
     confidence: float
     key_factors: List[KeyFactor]
     recommendations: List[str]
+    disclaimer: str = "This prediction is a clinical decision-support aid and is not a medical diagnosis. Final clinical decisions must be made by qualified healthcare professionals."
     created_at: str
 
 # Patient Schemas

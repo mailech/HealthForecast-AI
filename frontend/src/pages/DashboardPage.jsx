@@ -44,16 +44,16 @@ export const DashboardPage = () => {
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="glass-card p-6 rounded-3xl border border-slate-700/80 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative overflow-hidden">
+      <div className="bg-white text-slate-800 shadow-md border-slate-200 p-6 rounded-3xl border border-slate-200/80 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative overflow-hidden">
         <div>
-          <span className="text-[11px] font-bold text-medical-cyan uppercase tracking-wider">Hospital Intelligence Command</span>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight mt-1">Executive Readmission Dashboard</h1>
-          <p className="text-xs text-slate-400 mt-1">Real-time risk scoring, 30-day cohort monitoring, and clinical intervention streams.</p>
+          <span className="text-[11px] font-bold text-blue-500 uppercase tracking-wider">Hospital Intelligence Command</span>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight mt-1">Executive Readmission Dashboard</h1>
+          <p className="text-xs text-slate-500 mt-1">Real-time risk scoring, 30-day cohort monitoring, and clinical intervention streams.</p>
         </div>
         
         <button
           onClick={() => navigate('/predict')}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-medical-cyan to-medical-teal text-slate-950 font-bold text-xs shadow-cyan-glow hover:opacity-90 transition-opacity"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold text-xs shadow-md hover:opacity-90 transition-opacity"
         >
           <Plus className="w-4 h-4" />
           <span>New AI Risk Assessment</span>
@@ -94,10 +94,10 @@ export const DashboardPage = () => {
       {/* Visual Analytics Charts */}
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Pie Chart: Risk Distribution */}
-        <div className="glass-card p-6 rounded-2xl border border-slate-800 space-y-4">
+        <div className="bg-white text-slate-800 shadow-md border-slate-200 p-6 rounded-2xl border border-slate-200 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-white">Cohort Risk Distribution</h3>
-            <span className="text-[10px] text-slate-400">Current Inpatients</span>
+            <h3 className="text-sm font-bold text-slate-900">Cohort Risk Distribution</h3>
+            <span className="text-[10px] text-slate-500">Current Inpatients</span>
           </div>
 
           <div className="h-64">
@@ -119,17 +119,17 @@ export const DashboardPage = () => {
                 <Tooltip
                   contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', fontSize: '12px' }}
                 />
-                <Legend formatter={(value) => <span className="text-xs text-slate-300 font-medium">{value}</span>} />
+                <Legend formatter={(value) => <span className="text-xs text-slate-600 font-medium">{value}</span>} />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Bar Chart: Department Volume */}
-        <div className="glass-card p-6 rounded-2xl border border-slate-800 space-y-4">
+        <div className="bg-white text-slate-800 shadow-md border-slate-200 p-6 rounded-2xl border border-slate-200 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-white">Patient Volume by Department</h3>
-            <span className="text-[10px] text-slate-400">Live Breakdown</span>
+            <h3 className="text-sm font-bold text-slate-900">Patient Volume by Department</h3>
+            <span className="text-[10px] text-slate-500">Live Breakdown</span>
           </div>
 
           <div className="h-64">
@@ -146,15 +146,15 @@ export const DashboardPage = () => {
       </div>
 
       {/* High-Risk Recent Alerts Table */}
-      <div className="glass-card p-6 rounded-2xl border border-slate-800 space-y-4">
+      <div className="bg-white text-slate-800 shadow-md border-slate-200 p-6 rounded-2xl border border-slate-200 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-bold text-white">High-Risk Priority Readmission Stream</h3>
-            <p className="text-xs text-slate-400">Patients requiring immediate care management intervention before discharge</p>
+            <h3 className="text-sm font-bold text-slate-900">High-Risk Priority Readmission Stream</h3>
+            <p className="text-xs text-slate-500">Patients requiring immediate care management intervention before discharge</p>
           </div>
           <button
             onClick={() => navigate('/patients')}
-            className="text-xs text-medical-cyan hover:underline font-semibold flex items-center gap-1"
+            className="text-xs text-blue-500 hover:underline font-semibold flex items-center gap-1"
           >
             <span>View All Patients</span>
             <ArrowUpRight className="w-4 h-4" />
@@ -162,8 +162,8 @@ export const DashboardPage = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-navy-900/80 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+          <table className="w-full text-left text-xs text-slate-600">
+            <thead className="bg-slate-50 text-slate-800/80 text-slate-500 uppercase text-[10px] tracking-wider border-b border-slate-200">
               <tr>
                 <th className="py-3 px-4">Patient Code</th>
                 <th className="py-3 px-4">Name</th>
@@ -175,11 +175,11 @@ export const DashboardPage = () => {
             </thead>
             <tbody className="divide-y divide-slate-800/60">
               {(summary?.recent_alerts || []).map((patient) => (
-                <tr key={patient.id} className="hover:bg-slate-800/40 transition-colors">
-                  <td className="py-3 px-4 font-mono text-medical-cyan font-bold">{patient.patient_code}</td>
-                  <td className="py-3 px-4 font-bold text-white">{patient.name}</td>
+                <tr key={patient.id} className="hover:bg-white/40 transition-colors">
+                  <td className="py-3 px-4 font-mono text-blue-500 font-bold">{patient.patient_code}</td>
+                  <td className="py-3 px-4 font-bold text-slate-900">{patient.name}</td>
                   <td className="py-3 px-4">{patient.department}</td>
-                  <td className="py-3 px-4 text-slate-400">{patient.primary_diagnosis}</td>
+                  <td className="py-3 px-4 text-slate-500">{patient.primary_diagnosis}</td>
                   <td className="py-3 px-4 text-center">
                     <span className="px-2.5 py-1 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold">
                       {patient.risk_score}% High
@@ -188,7 +188,7 @@ export const DashboardPage = () => {
                   <td className="py-3 px-4 text-right">
                     <button
                       onClick={() => navigate(`/patients?search=${patient.patient_code}`)}
-                      className="px-3 py-1 rounded-lg bg-navy-800 hover:bg-medical-cyan hover:text-slate-950 text-slate-300 text-[11px] font-semibold transition-all"
+                      className="px-3 py-1 rounded-lg bg-navy-800 hover:bg-blue-500 hover:text-slate-950 text-slate-600 text-[11px] font-semibold transition-all"
                     >
                       Inspect Profile
                     </button>

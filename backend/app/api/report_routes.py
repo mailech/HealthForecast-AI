@@ -1,10 +1,16 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime
+from sqlalchemy.orm import Session
+from app.database.database import get_db
+from app.auth.auth import get_current_user
+from app.models.models import UserDB
+from app.services.audit_service import log_action
 
 router = APIRouter(prefix="/reports", tags=["Reports & Export"])
 
 @router.get("")
-def get_reports_list():
+def get_reports_list(db: Session = Depends(get_db), current_user: UserDB = Depends(get_current_user)):
+    log_action(db, current_user, "VIEW_REPORTS", "Reports List")
     return [
         {
             "id": 1,
@@ -39,7 +45,8 @@ def get_reports_list():
     ]
 
 @router.post("/generate")
-def generate_report(title: str, report_type: str, department: str = "All Departments"):
+def generate_report(title: str, report_type: str, department: str = "All Departments", db: Session = Depends(get_db), current_user: UserDB = Depends(get_current_user)):
+    log_action(db, current_user, "GENERATE_REPORT", title)
     return {
         "status": "success",
         "message": f"Report '{title}' generated successfully.",

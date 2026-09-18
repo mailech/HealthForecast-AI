@@ -1,38 +1,30 @@
 import React, { useState } from 'react';
-import { BrainCircuit, Sparkles, AlertCircle, CheckCircle, Shield, RefreshCw } from 'lucide-react';
+import { BrainCircuit, Sparkles, AlertCircle, CheckCircle, Shield, RefreshCw, Database } from 'lucide-react';
 import { RiskGauge } from '../components/RiskGauge';
 import { healthApi } from '../services/api';
 
 export const AIRiskPredictionPage = () => {
   const [formData, setFormData] = useState({
-    age: 72,
-    prior_admissions: 3,
-    emergency_visits: 2,
-    length_of_stay: 7,
-    charlson_index: 4,
-    lace_index: 13,
-    hba1c: 8.6,
-    serum_sodium: 132.5,
-    creatinine: 2.1,
-    polypharmacy_count: 11
+    time_in_hospital: 4,
+    num_lab_procedures: 43,
+    num_procedures: 1,
+    num_medications: 12,
+    number_outpatient: 0,
+    number_emergency: 0,
+    number_inpatient: 1,
+    number_diagnoses: 5
   });
 
   const [prediction, setPrediction] = useState({
     risk_score: 78.4,
     risk_level: "High",
-    confidence: 0.91,
+    confidence: 0.65,
     key_factors: [
-      { factor: "High Prior Admission Count", impact: "High", value: "3 visits in last 12 mos" },
-      { factor: "Elevated LACE Clinical Index", impact: "High", value: "LACE = 13/19" },
-      { factor: "Uncontrolled Glycemia (HbA1c)", impact: "High", value: "HbA1c = 8.6%" },
-      { factor: "Hyponatremia", impact: "Moderate", value: "Serum Na = 132.5 mEq/L" },
-      { factor: "Polypharmacy Regimen", impact: "Moderate", value: "11 active medications" }
+      { factor: "High Prior Inpatient Admissions", impact: "High", value: "3 recent inpatient visits" },
+      { factor: "Extended Length of Stay", impact: "Moderate", value: "7 days in hospital" }
     ],
     recommendations: [
-      "Assign dedicated post-discharge care navigator & tele-check within 48h",
-      "Endocrinology consult & insulin regimen adjustment prior to discharge",
-      "Clinical pharmacist medication reconciliation & regimen simplification",
-      "Schedule priority outpatient cardiology visit within 7 days"
+      "Assign dedicated post-discharge care manager."
     ]
   });
 
@@ -60,155 +52,151 @@ export const AIRiskPredictionPage = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="glass-card p-6 rounded-3xl border border-slate-700/80 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <div className="space-y-6 max-w-6xl mx-auto">
+      {/* Disclaimer Alert */}
+      <div className="bg-amber-500/10 border-l-4 border-amber-500 p-4 rounded-r-lg flex items-start gap-3">
+        <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-medical-cyan/20 text-medical-cyan border border-medical-cyan/30 text-xs font-bold uppercase tracking-wider mb-2">
+          <h4 className="text-sm font-bold text-amber-500">Clinical Decision Support Tool</h4>
+          <p className="text-xs text-slate-600 mt-1">This prediction is a clinical decision-support aid based on historical data patterns. It is not a substitute for professional medical judgment. Low, Medium, and High labels represent model probability categories, not definitive medical diagnoses.</p>
+        </div>
+      </div>
+
+      {/* Dataset Context Banner */}
+      <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl flex gap-3 text-sm text-blue-800 shadow-sm">
+        <Database className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+        <div>
+          <p className="font-bold text-blue-900 mb-1">Powered by Real-World Clinical Data (Kaggle / UCI)</p>
+          <p className="text-blue-800 leading-relaxed">
+            This prototype is powered by a machine learning model trained on the <strong>Diabetes 130-US Hospitals Dataset</strong> (1999-2008), 
+            originally hosted on Kaggle and the UCI Machine Learning Repository. The engine evaluates over 100,000 historical clinical encounters 
+            using the exact feature inputs below to compute a statistically grounded 30-day readmission risk.
+          </p>
+        </div>
+      </div>
+
+      {/* Header */}
+      <div className="bg-white p-6 rounded-lg border border-slate-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-semibold mb-3">
             <BrainCircuit className="w-4 h-4" />
-            <span>RandomForest Machine Learning Engine</span>
+            <span>RandomForest Model Engine</span>
           </div>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight">AI Readmission Risk Predictor</h1>
-          <p className="text-xs text-slate-400">Input clinical biomarkers and utilization metrics to compute real-time readmission risk probabilities.</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">AI Readmission Risk Predictor</h1>
+          <p className="text-sm text-slate-500 mt-1">Input patient features to compute the 30-day readmission risk probability.</p>
         </div>
       </div>
 
       <div className="grid lg:grid-cols-12 gap-6">
         {/* Form Column */}
-        <div className="lg:col-span-7 glass-card p-6 rounded-2xl border border-slate-800 space-y-4">
-          <h3 className="text-sm font-bold text-white mb-2">Clinical Assessment Inputs</h3>
+        <div className="lg:col-span-7 bg-white p-6 rounded-lg border border-slate-200 space-y-6">
+          <h3 className="text-base font-semibold text-slate-900 border-b border-slate-200 pb-2">Patient Features</h3>
 
-          <form onSubmit={handlePredict} className="space-y-4 text-xs">
-            <div className="grid grid-cols-2 gap-4">
+          <form onSubmit={handlePredict} className="space-y-5 text-sm">
+            <div className="grid grid-cols-2 gap-5">
               <div>
-                <label className="text-slate-300 font-semibold block mb-1">Patient Age (Years)</label>
+                <label className="text-slate-600 font-medium block mb-1.5">Length of Stay (Days)</label>
                 <input
                   type="number"
-                  name="age"
-                  value={formData.age}
+                  name="time_in_hospital"
+                  value={formData.time_in_hospital}
                   onChange={handleChange}
-                  className="w-full p-2.5 rounded-xl bg-navy-900 border border-slate-700 text-white"
+                  className="w-full p-2.5 rounded bg-slate-50 border border-slate-300 text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
                 />
               </div>
               <div>
-                <label className="text-slate-300 font-semibold block mb-1">Prior Admissions (12 Mos)</label>
+                <label className="text-slate-600 font-medium block mb-1.5">Num Lab Procedures</label>
                 <input
                   type="number"
-                  name="prior_admissions"
-                  value={formData.prior_admissions}
+                  name="num_lab_procedures"
+                  value={formData.num_lab_procedures}
                   onChange={handleChange}
-                  className="w-full p-2.5 rounded-xl bg-navy-900 border border-slate-700 text-white"
+                  className="w-full p-2.5 rounded bg-slate-50 border border-slate-300 text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-5">
               <div>
-                <label className="text-slate-300 font-semibold block mb-1">Emergency Department Visits</label>
+                <label className="text-slate-600 font-medium block mb-1.5">Num Procedures</label>
                 <input
                   type="number"
-                  name="emergency_visits"
-                  value={formData.emergency_visits}
+                  name="num_procedures"
+                  value={formData.num_procedures}
                   onChange={handleChange}
-                  className="w-full p-2.5 rounded-xl bg-navy-900 border border-slate-700 text-white"
+                  className="w-full p-2.5 rounded bg-slate-50 border border-slate-300 text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
                 />
               </div>
               <div>
-                <label className="text-slate-300 font-semibold block mb-1">Current Length of Stay (Days)</label>
+                <label className="text-slate-600 font-medium block mb-1.5">Num Medications</label>
                 <input
                   type="number"
-                  name="length_of_stay"
-                  value={formData.length_of_stay}
+                  name="num_medications"
+                  value={formData.num_medications}
                   onChange={handleChange}
-                  className="w-full p-2.5 rounded-xl bg-navy-900 border border-slate-700 text-white"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-slate-300 font-semibold block mb-1">Charlson Comorbidity Index (0-12)</label>
-                <input
-                  type="number"
-                  name="charlson_index"
-                  value={formData.charlson_index}
-                  onChange={handleChange}
-                  className="w-full p-2.5 rounded-xl bg-navy-900 border border-slate-700 text-white"
-                />
-              </div>
-              <div>
-                <label className="text-slate-300 font-semibold block mb-1">LACE Index Score (0-19)</label>
-                <input
-                  type="number"
-                  name="lace_index"
-                  value={formData.lace_index}
-                  onChange={handleChange}
-                  className="w-full p-2.5 rounded-xl bg-navy-900 border border-slate-700 text-white"
+                  className="w-full p-2.5 rounded bg-slate-50 border border-slate-300 text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-5">
               <div>
-                <label className="text-slate-300 font-semibold block mb-1">HbA1c (%)</label>
+                <label className="text-slate-600 font-medium block mb-1.5">Outpatient Visits</label>
                 <input
                   type="number"
-                  step="0.1"
-                  name="hba1c"
-                  value={formData.hba1c}
+                  name="number_outpatient"
+                  value={formData.number_outpatient}
                   onChange={handleChange}
-                  className="w-full p-2.5 rounded-xl bg-navy-900 border border-slate-700 text-white"
+                  className="w-full p-2.5 rounded bg-slate-50 border border-slate-300 text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
                 />
               </div>
               <div>
-                <label className="text-slate-300 font-semibold block mb-1">Serum Na+ (mEq/L)</label>
+                <label className="text-slate-600 font-medium block mb-1.5">Emergency Visits</label>
                 <input
                   type="number"
-                  step="0.1"
-                  name="serum_sodium"
-                  value={formData.serum_sodium}
+                  name="number_emergency"
+                  value={formData.number_emergency}
                   onChange={handleChange}
-                  className="w-full p-2.5 rounded-xl bg-navy-900 border border-slate-700 text-white"
+                  className="w-full p-2.5 rounded bg-slate-50 border border-slate-300 text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
                 />
               </div>
               <div>
-                <label className="text-slate-300 font-semibold block mb-1">Creatinine (mg/dL)</label>
+                <label className="text-slate-600 font-medium block mb-1.5">Inpatient Visits</label>
                 <input
                   type="number"
-                  step="0.1"
-                  name="creatinine"
-                  value={formData.creatinine}
+                  name="number_inpatient"
+                  value={formData.number_inpatient}
                   onChange={handleChange}
-                  className="w-full p-2.5 rounded-xl bg-navy-900 border border-slate-700 text-white"
+                  className="w-full p-2.5 rounded bg-slate-50 border border-slate-300 text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-slate-300 font-semibold block mb-1">Polypharmacy Medication Count</label>
+              <label className="text-slate-600 font-medium block mb-1.5">Number of Diagnoses</label>
               <input
                 type="number"
-                name="polypharmacy_count"
-                value={formData.polypharmacy_count}
+                name="number_diagnoses"
+                value={formData.number_diagnoses}
                 onChange={handleChange}
-                className="w-full p-2.5 rounded-xl bg-navy-900 border border-slate-700 text-white"
+                className="w-full p-2.5 rounded bg-slate-50 border border-slate-300 text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-medical-cyan to-medical-teal text-slate-950 font-bold text-xs shadow-cyan-glow hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+              className="w-full py-3 rounded bg-blue-600 text-slate-900 font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 mt-4"
             >
               {loading ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Evaluating Clinical ML Pipeline...</span>
+                  <span>Calculating Risk Profile...</span>
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  <span>Run AI Readmission Prediction Model</span>
+                  <span>Run Clinical Prediction</span>
                 </>
               )}
             </button>
@@ -218,26 +206,26 @@ export const AIRiskPredictionPage = () => {
         {/* Prediction Results Column */}
         <div className="lg:col-span-5 space-y-6">
           {/* Risk Score Visual */}
-          <div className="glass-card p-6 rounded-2xl border border-slate-800 flex flex-col items-center justify-center text-center space-y-4">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">30-Day Readmission Risk Output</h3>
-            <RiskGauge score={prediction.risk_score} size={190} />
-            <p className="text-[11px] text-slate-400">
-              Confidence Score: <span className="text-medical-cyan font-bold">{(prediction.confidence * 100).toFixed(0)}%</span>
+          <div className="bg-white p-6 rounded-lg border border-slate-200 flex flex-col items-center justify-center text-center space-y-4">
+            <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wide">30-Day Readmission Risk</h3>
+            <RiskGauge score={prediction.risk_score} size={200} />
+            <p className="text-xs text-slate-500">
+              Model ROC-AUC Confidence: <span className="text-slate-900 font-semibold">{(prediction.confidence * 100).toFixed(0)}%</span>
             </p>
           </div>
 
-          {/* Key Drivers (SHAP Analysis) */}
-          <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-3">
-            <h4 className="text-xs font-bold text-white uppercase tracking-wider">Primary Risk Drivers (SHAP Feature Importance)</h4>
-            <div className="space-y-2 text-xs">
+          {/* Key Drivers */}
+          <div className="bg-white p-6 rounded-lg border border-slate-200 space-y-4">
+            <h4 className="text-sm font-semibold text-slate-900 border-b border-slate-200 pb-2">Primary Risk Drivers</h4>
+            <div className="space-y-3 text-sm">
               {prediction.key_factors.map((kf, i) => (
-                <div key={i} className="flex items-center justify-between p-2.5 rounded-xl bg-navy-900/60 border border-slate-800">
+                <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded bg-slate-50 border border-slate-200 gap-2">
                   <div>
-                    <p className="font-bold text-slate-200">{kf.factor}</p>
-                    <p className="text-[10px] text-slate-400">{kf.value}</p>
+                    <p className="font-medium text-slate-700">{kf.factor}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{kf.value}</p>
                   </div>
-                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded ${
-                    kf.impact === 'High' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${
+                    kf.impact === 'High' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-orange-500/10 text-orange-400 border border-orange-500/20'
                   }`}>
                     {kf.impact} Impact
                   </span>
@@ -247,16 +235,16 @@ export const AIRiskPredictionPage = () => {
           </div>
 
           {/* Recommended Interventions */}
-          <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-3">
-            <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+          <div className="bg-white p-6 rounded-lg border border-slate-200 space-y-4">
+            <h4 className="text-sm font-semibold text-emerald-400 flex items-center gap-2 border-b border-slate-200 pb-2">
               <CheckCircle className="w-4 h-4" />
               <span>Recommended Interventions</span>
             </h4>
-            <ul className="space-y-2 text-xs text-slate-300">
+            <ul className="space-y-3 text-sm text-slate-600">
               {prediction.recommendations.map((rec, i) => (
-                <li key={i} className="flex items-start gap-2">
-                  <span className="text-emerald-400 font-bold">•</span>
-                  <span>{rec}</span>
+                <li key={i} className="flex items-start gap-2.5">
+                  <span className="text-emerald-500 font-bold mt-0.5">•</span>
+                  <span className="leading-relaxed">{rec}</span>
                 </li>
               ))}
             </ul>

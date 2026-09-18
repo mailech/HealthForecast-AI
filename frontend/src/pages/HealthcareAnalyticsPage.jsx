@@ -13,14 +13,14 @@ export const HealthcareAnalyticsPage = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="glass-card p-6 rounded-3xl border border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white text-slate-800 shadow-md border-slate-200 p-6 rounded-3xl border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight">Healthcare Analytics & Hospital Metrics</h1>
-          <p className="text-xs text-slate-400">Institutional readmission rate trends, root cause analysis, and departmental benchmarks.</p>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Healthcare Analytics & Hospital Metrics</h1>
+          <p className="text-xs text-slate-500">Institutional readmission rate trends, root cause analysis, and departmental benchmarks.</p>
         </div>
 
         <div className="flex items-center gap-3">
-          <select className="py-2 px-3 rounded-xl bg-navy-900 border border-slate-700 text-xs text-slate-200">
+          <select className="py-2 px-3 rounded-xl bg-slate-50 text-slate-800 border border-slate-200 text-xs text-slate-700">
             <option>Last 6 Months</option>
             <option>Year 2026 YTD</option>
           </select>
@@ -28,8 +28,8 @@ export const HealthcareAnalyticsPage = () => {
       </div>
 
       {/* Line Chart: Monthly Readmissions Trend */}
-      <div className="glass-card p-6 rounded-2xl border border-slate-800 space-y-4">
-        <h3 className="text-sm font-bold text-white">Monthly Readmissions vs Target Threshold</h3>
+      <div className="bg-white text-slate-800 shadow-md border-slate-200 p-6 rounded-2xl border border-slate-200 space-y-4">
+        <h3 className="text-sm font-bold text-slate-900">Monthly Readmissions vs Target Threshold</h3>
 
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
@@ -37,7 +37,7 @@ export const HealthcareAnalyticsPage = () => {
               <XAxis dataKey="month" stroke="#64748b" fontSize={11} />
               <YAxis stroke="#64748b" fontSize={11} />
               <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', fontSize: '12px' }} />
-              <Legend formatter={(v) => <span className="text-xs text-slate-300 font-medium">{v}</span>} />
+              <Legend formatter={(v) => <span className="text-xs text-slate-600 font-medium">{v}</span>} />
               <Line type="monotone" dataKey="readmissions" stroke="#ef4444" strokeWidth={3} name="Observed Readmissions" />
               <Line type="monotone" dataKey="target" stroke="#10b981" strokeDasharray="5 5" strokeWidth={2} name="CMS Target Benchmark" />
             </LineChart>
@@ -48,8 +48,8 @@ export const HealthcareAnalyticsPage = () => {
       {/* Row 2: Reasons Breakdown & Department Performance */}
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Reasons Pie Chart */}
-        <div className="glass-card p-6 rounded-2xl border border-slate-800 space-y-4">
-          <h3 className="text-sm font-bold text-white">Readmission Root Cause Distribution</h3>
+        <div className="bg-white text-slate-800 shadow-md border-slate-200 p-6 rounded-2xl border border-slate-200 space-y-4">
+          <h3 className="text-sm font-bold text-slate-900">Readmission Root Cause Distribution</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -66,15 +66,15 @@ export const HealthcareAnalyticsPage = () => {
                   ))}
                 </Pie>
                 <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', fontSize: '12px' }} />
-                <Legend formatter={(v) => <span className="text-xs text-slate-300 font-medium">{v}</span>} />
+                <Legend formatter={(v) => <span className="text-xs text-slate-600 font-medium">{v}</span>} />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Department Bar Chart */}
-        <div className="glass-card p-6 rounded-2xl border border-slate-800 space-y-4">
-          <h3 className="text-sm font-bold text-white">Departmental Readmission Rate (%)</h3>
+        <div className="bg-white text-slate-800 shadow-md border-slate-200 p-6 rounded-2xl border border-slate-200 space-y-4">
+          <h3 className="text-sm font-bold text-slate-900">Departmental Readmission Rate (%)</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={analytics?.department_performance || []}>

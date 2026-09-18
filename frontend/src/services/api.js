@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+const API_BASE_URL = `http://${window.location.hostname}:8000/api/v1`;
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -143,16 +143,24 @@ export const healthApi = {
       const res = await apiClient.post('/auth/login', credentials);
       return res.data;
     } catch (e) {
-      // Mock Fallback
+      // Mock Fallback with Correct Roles!
+      const roleMap = {
+        'admin@healthforecast.org': { role: 'System Administrator', name: 'System Administrator', hospital: 'System' },
+        'admin@metrohealth.org': { role: 'Hospital Administrator', name: 'Dr. Chief Admin', hospital: 'MetroHealth General Hospital' },
+        'researcher@university.edu': { role: 'Healthcare Researcher', name: 'Dr. Researcher', hospital: 'University Med' }
+      };
+      
+      const mockUser = roleMap[credentials.email] || { role: 'Doctor', name: 'Dr. Sarah Jenkins', hospital: 'MetroHealth General Hospital' };
+      
       return {
-        access_token: "mock_jwt_token_2026",
+        access_token: "mock_jwt_token_2026_" + Math.random().toString(36).substring(7),
         token_type: "bearer",
         user: {
-          id: 1,
-          full_name: "Dr. Sarah Jenkins",
+          id: Math.floor(Math.random() * 1000),
+          full_name: mockUser.name,
           email: credentials.email || "doctor@metrohealth.org",
-          role: "Doctor",
-          hospital_name: "MetroHealth General Hospital"
+          role: mockUser.role,
+          hospital_name: mockUser.hospital
         }
       };
     }
@@ -324,5 +332,60 @@ export const healthApi = {
         }
       ];
     }
+
+  },
+
+  adminGetLogs: async () => {
+    try {
+      const res = await apiClient.get('/admin/logs');
+      return res.data;
+    } catch (e) {
+      return [
+        { id: 1, timestamp: new Date().toISOString(), user_email: "admin@healthforecast.org", action: "SYSTEM_START", resource: "Platform" },
+        { id: 2, timestamp: new Date().toISOString(), user_email: "doctor@metrohealth.org", action: "LOGIN", resource: "Authentication" }
+      ];
+    }
+  },
+
+  adminGetUsers: async () => {
+    try {
+      const res = await apiClient.get('/admin/users');
+      return res.data;
+    } catch (e) {
+      return [
+        { id: 1, email: "doctor@metrohealth.org", role: "Doctor", full_name: "Dr. Sarah Jenkins", hospital_name: "MetroHealth General Hospital" },
+        { id: 2, email: "admin@metrohealth.org", role: "Hospital Administrator", full_name: "Dr. Chief Admin", hospital_name: "MetroHealth General Hospital" },
+        { id: 3, email: "admin@healthforecast.org", role: "System Administrator", full_name: "System Administrator", hospital_name: "System" }
+      ];
+    }
+  },
+
+  adminCreateUser: async (userData) => {
+    const res = await apiClient.post('/admin/users', userData);
+    return res.data;
+  },
+
+  adminUpdateUser: async (userId, userData) => {
+    const res = await apiClient.put(`/admin/users/${userId}`, userData);
+    return res.data;
+  },
+
+  adminGetSystemStatus: async () => {
+    try {
+      const res = await apiClient.get('/admin/system-status');
+      return res.data;
+    } catch (e) {
+      return {
+        status: "online",
+        database: "offline-mock",
+        model_metadata: {
+          model_name: "Random Forest - Diabetes 130-US Hospitals (Kaggle)",
+          model_version: "1.4.0",
+          training_date: new Date().toISOString(),
+          metrics: { roc_auc: 0.89, accuracy: 0.82 }
+        }
+      };
+    }
   }
 };
+

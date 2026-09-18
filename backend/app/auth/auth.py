@@ -1,25 +1,49 @@
 from datetime import datetime, timedelta
 from typing import Optional
+import os
+import bcrypt
+import hashlib
+import base64
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.database.database import get_db
 from app.models.models import UserDB
 
-SECRET_KEY = "healthforecast_secret_jwt_key_super_secure_production_2026"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
+SECRET_KEY = os.environ.get("SECRET_KEY", "fallback_dev_key_not_for_prod")
+ALGORITHM = os.environ.get("ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
+def _prepare_password(password: str) -> bytes:
+    """
+    Prepare a password for bcrypt.
+    Bcrypt has a maximum password length of 72 bytes.
+    To securely support arbitrarily long passwords without truncating,
+    we hash passwords longer than 72 bytes using SHA-256 and base64 encode them.
+    Passwords 72 bytes or shorter are kept as-is to preserve compatibility
+    with existing password hashes.
+    """
+    pass_bytes = password.encode('utf-8')
+    if len(pass_bytes) > 72:
+        return base64.b64encode(hashlib.sha256(pass_bytes).digest())
+    return pass_bytes
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        return bcrypt.checkpw(
+            _prepare_password(plain_password),
+            hashed_password.encode('utf-8')
+        )
+    except Exception:
+        return False
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    salt = bcrypt.gensalt(rounds=12)
+    hashed_bytes = bcrypt.hashpw(_prepare_password(password), salt)
+    return hashed_bytes.decode('utf-8')
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
@@ -33,11 +57,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
 def get_current_user(token: Optional[str] = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     if not token:
-        # Fallback default user for easy demo execution
-        user = db.query(UserDB).first()
-        if user:
-            return user
-        return UserDB(id=1, full_name="Dr. Sarah Jenkins", email="sarah.jenkins@metrohealth.org", role="Doctor", hospital_name="MetroHealth General Hospital")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
     
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])

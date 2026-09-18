@@ -28,7 +28,7 @@ class PatientDB(Base):
     admission_date = Column(String, nullable=False)
     discharge_date = Column(String, nullable=True)
     status = Column(String, default="Admitted") # Admitted, Discharged, Outpatient
-    
+
     # Clinical Metrics
     prior_admissions = Column(Integer, default=0)
     emergency_visits = Column(Integer, default=0)
@@ -39,12 +39,12 @@ class PatientDB(Base):
     serum_sodium = Column(Float, default=138.0)
     creatinine = Column(Float, default=1.0)
     polypharmacy_count = Column(Integer, default=3)
-    
+
     # Risk Score & Probability
     readmission_risk_score = Column(Float, default=0.0)
     risk_level = Column(String, default="Low") # Low, Medium, High
     last_assessed = Column(DateTime, default=datetime.utcnow)
-    
+
     predictions = relationship("PredictionDB", back_populates="patient", cascade="all, delete-orphan")
 
 class PredictionDB(Base):
@@ -71,3 +71,14 @@ class ReportDB(Base):
     generated_by = Column(String, nullable=False)
     file_format = Column(String, default="PDF")
     created_at = Column(DateTime, default=datetime.utcnow)
+
+class AuditLogDB(Base):
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    user_email = Column(String, nullable=False)
+    role = Column(String, nullable=False)
+    action = Column(String, nullable=False)
+    resource = Column(String, nullable=False)
+    status = Column(String, nullable=False)

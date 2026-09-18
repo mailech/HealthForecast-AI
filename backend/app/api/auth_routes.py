@@ -12,7 +12,7 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
     existing = db.query(UserDB).filter(UserDB.email == user_data.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
-    
+
     hashed_pwd = get_password_hash(user_data.password)
     user = UserDB(
         full_name=user_data.full_name,
@@ -24,7 +24,7 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
-    
+
     token = create_access_token({"sub": user.email})
     return TokenResponse(
         access_token=token,
@@ -36,9 +36,16 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
 def login(login_data: UserLogin, db: Session = Depends(get_db)):
     user = db.query(UserDB).filter(UserDB.email == login_data.email).first()
     if not user or not verify_password(login_data.password, user.hashed_password):
+        if user:
+            from app.services.audit_service import log_action
+            log_action(db, user, "LOGIN_FAILED", "Authentication", "FAILED")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
-    
+
     token = create_access_token({"sub": user.email})
+
+    from app.services.audit_service import log_action
+    log_action(db, user, "LOGIN", "Authentication", "SUCCESS")
+
     return TokenResponse(
         access_token=token,
         token_type="bearer",

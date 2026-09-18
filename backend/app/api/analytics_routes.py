@@ -1,9 +1,16 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from app.database.database import get_db
+from app.models.models import PatientDB, UserDB
+from app.auth.auth import get_current_user
+from app.services.audit_service import log_action
 
 router = APIRouter(prefix="/analytics", tags=["Healthcare Analytics"])
 
 @router.get("")
-def get_analytics_metrics():
+def get_analytics_metrics(db: Session = Depends(get_db), current_user: UserDB = Depends(get_current_user)):
+    log_action(db, current_user, "VIEW_ANALYTICS", "Metrics")
+
     return {
         "monthly_readmissions": [
             {"month": "Jan", "readmissions": 42, "target": 35, "high_risk": 18},
