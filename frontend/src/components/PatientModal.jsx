@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
-import { X, Calendar, Stethoscope, Pill } from "lucide-react";
-import { getTreatments } from "../api/client";
+import { X, Calendar, Stethoscope, Pill, Download } from "lucide-react";
+import { getTreatments, downloadPatientReport } from "../api/client";
 
 function PatientModal({ patient, onClose }) {
   const [treatments, setTreatments] = useState([]);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState("");
 
   useEffect(() => {
     if (!patient) return;
@@ -16,6 +18,18 @@ function PatientModal({ patient, onClose }) {
   }, [patient]);
 
   if (!patient) return null;
+
+  async function handleDownload() {
+    setDownloadError("");
+    setDownloading(true);
+    try {
+      await downloadPatientReport(patient.id);
+    } catch (err) {
+      setDownloadError(err.message);
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   return (
     <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center z-50 px-4" onClick={onClose}>
@@ -40,6 +54,21 @@ function PatientModal({ patient, onClose }) {
             <span>Admitted: {patient.admission_date}</span>
           </div>
         </div>
+
+        {downloadError && (
+          <div className="mt-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-lg px-3 py-2">
+            {downloadError}
+          </div>
+        )}
+
+        <button
+          onClick={handleDownload}
+          disabled={downloading}
+          className="mt-4 w-full flex items-center justify-center gap-2 bg-pista-500 hover:bg-pista-600 disabled:opacity-60 text-white text-sm font-semibold py-2 rounded-lg transition"
+        >
+          <Download size={16} />
+          {downloading ? "Preparing report..." : "Download Health Report"}
+        </button>
 
         <div className="mt-5">
           <p className="text-xs font-semibold text-slate-700 mb-2">Treatment History</p>

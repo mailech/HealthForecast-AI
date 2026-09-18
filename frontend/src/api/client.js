@@ -112,3 +112,86 @@ export async function getPatientRecommendations() {
   }
   return response.json();
 }
+
+export async function getUsers() {
+  const token = localStorage.getItem("hf_token");
+  const response = await fetch(`${API_BASE_URL}/auth/users`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) {
+    throw new Error("Failed to load users.");
+  }
+  return response.json();
+}
+
+export async function createUser(fullName, email, password, role) {
+  const token = localStorage.getItem("hf_token");
+  const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ full_name: fullName, email, password, role }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to create user.");
+  }
+  return response.json();
+}
+
+
+export async function getDoctors() {
+  const token = localStorage.getItem("hf_token");
+  const response = await fetch(`${API_BASE_URL}/patients/doctors`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) {
+    throw new Error("Failed to load doctors.");
+  }
+  return response.json();
+}
+
+export async function createPatient(patientData) {
+  const token = localStorage.getItem("hf_token");
+  const response = await fetch(`${API_BASE_URL}/patients/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(patientData),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to create patient.");
+  }
+  return response.json();
+}
+
+
+export async function downloadPatientReport(patientId) {
+  const token = localStorage.getItem("hf_token");
+  const response = await fetch(`${API_BASE_URL}/patients/${patientId}/report`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) {
+    throw new Error("Failed to download report.");
+  }
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `patient_${patientId}_report.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}

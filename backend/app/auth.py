@@ -3,12 +3,22 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app import models, schemas, security
+from app.security import require_role
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
-
+@router.get("/users", response_model=list[schemas.UserOut])
+def list_users(
+    db: Session = Depends(get_db),
+    current_user=Depends(require_role("system_admin")),
+):
+    return db.query(models.User).all()
 
 @router.post("/signup", response_model=schemas.UserOut)
-def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
+def signup(
+    user: schemas.UserCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_role("system_admin")),
+):
     existing_user = db.query(models.User).filter(models.User.email == user.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")

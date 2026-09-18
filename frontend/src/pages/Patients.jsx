@@ -2,8 +2,19 @@ import { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
 import PatientModal from "../components/PatientModal";
-import { Search, User } from "lucide-react";
+import AddPatientModal from "../components/AddPatientModal";
+import { Search, User, Plus } from "lucide-react";
 import { getPatients } from "../api/client";
+
+function decodeToken() {
+  try {
+    const token = localStorage.getItem("hf_token");
+    if (!token) return null;
+    return JSON.parse(atob(token.split(".")[1]));
+  } catch {
+    return null;
+  }
+}
 
 function Patients() {
   const [selected, setSelected] = useState(null);
@@ -11,12 +22,21 @@ function Patients() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [addOpen, setAddOpen] = useState(false);
 
-  useEffect(() => {
+  const payload = decodeToken();
+  const canAddPatient = payload?.role === "hospital_administrator" || payload?.role === "system_admin";
+
+  function loadPatients() {
+    setLoading(true);
     getPatients()
       .then((data) => setPatients(data))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    loadPatients();
   }, []);
 
   const filtered = patients.filter((p) =>
@@ -27,7 +47,21 @@ function Patients() {
     <div className="flex bg-pista-50 min-h-screen">
       <Sidebar />
       <main className="flex-1 p-8">
-        <Header title="Patient Records" subtitle="Assigned patients under your care" />
+        <div className="flex items-center justify-between mb-0">
+          <Header title="Patient Records" subtitle="Assigned patients under your care" />
+        </div>
+
+        {canAddPatient && (
+          <div className="flex justify-end mb-4 -mt-4">
+            <button
+              onClick={() => setAddOpen(true)}
+              className="flex items-center gap-2 bg-pista-500 hover:bg-pista-600 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+            >
+              <Plus size={16} />
+              Add Patient
+            </button>
+          </div>
+        )}
 
         <div className="bg-white rounded-2xl border border-pista-100 shadow-sm overflow-hidden">
           <div className="flex items-center gap-2 px-5 py-4 border-b border-pista-100 bg-pista-50/40">
@@ -88,6 +122,11 @@ function Patients() {
         </div>
 
         <PatientModal patient={selected} onClose={() => setSelected(null)} />
+        <AddPatientModal
+          open={addOpen}
+          onClose={() => setAddOpen(false)}
+          onCreated={loadPatients}
+        />
       </main>
     </div>
   );

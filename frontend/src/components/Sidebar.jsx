@@ -1,10 +1,22 @@
-import { HeartPulse, LayoutDashboard, Users, Activity, FileBarChart, ClipboardList, LogOut } from "lucide-react";
+import { HeartPulse, LayoutDashboard, Users, Activity, FileBarChart, ClipboardList, LogOut, UserCog } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+
+function decodeToken() {
+  try {
+    const token = localStorage.getItem("hf_token");
+    if (!token) return null;
+    return JSON.parse(atob(token.split(".")[1]));
+  } catch {
+    return null;
+  }
+}
 
 function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const role = localStorage.getItem("hf_role") || "Doctor";
+  const payload = decodeToken();
+  const rawRole = payload?.role || "doctor";
+  const role = rawRole.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
   function handleLogout() {
     localStorage.clear();
@@ -14,10 +26,14 @@ function Sidebar() {
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
     { icon: Users, label: "Patients", path: "/patients" },
-    { icon: Activity, label: "Risk Prediction", path: "/risk-prediction", badge: 2 },
+    { icon: Activity, label: "Risk Prediction", path: "/risk-prediction"  },
     { icon: ClipboardList, label: "Care Recommendations", path: "/care-recommendations" },
     { icon: FileBarChart, label: "Reports", path: "/reports" },
   ];
+
+  if (rawRole === "system_admin") {
+    menuItems.push({ icon: UserCog, label: "User Management", path: "/user-management" });
+  }
 
   return (
     <aside className="w-64 bg-white border-r border-pista-100 h-screen flex flex-col sticky top-0">
