@@ -1,15 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FiActivity, FiArrowLeft, FiShield, FiRefreshCw } from 'react-icons/fi';
+import { motion } from 'framer-motion';
+import { FiActivity, FiArrowLeft, FiShield } from 'react-icons/fi';
+import api from '../services/api';
 
 export default function OtpVerify() {
   const navigate = useNavigate();
   const location = useLocation();
-  const email = location.state?.email || 'your email';
+  const email = location.state?.email || '';
+  const maskedEmail = location.state?.maskedEmail || email || 'your email';
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resendMsg, setResendMsg] = useState('');
   const [countdown, setCountdown] = useState(60);
   const [canResend, setCanResend] = useState(false);
   const inputs = useRef([]);
@@ -21,12 +24,20 @@ export default function OtpVerify() {
     return () => clearTimeout(t);
   }, [countdown]);
 
-  const handleResend = () => {
-    setCountdown(60);
-    setCanResend(false);
-    setOtp(['', '', '', '', '', '']);
+  const handleResend = async () => {
+    if (!email) return;
     setError('');
-    inputs.current[0]?.focus();
+    setResendMsg('');
+    try {
+      await api.post('/auth/forgot-password', { email });
+      setResendMsg('New verification code sent to your email.');
+      setCountdown(60);
+      setCanResend(false);
+      setOtp(['', '', '', '', '', '']);
+      inputs.current[0]?.focus();
+    } catch (err) {
+      setError(err?.response?.data?.detail || err?.message || 'Failed to resend verification code.');
+    }
   };
 
   const handleChange = (i, val) => {
@@ -57,149 +68,98 @@ export default function OtpVerify() {
     const code = otp.join('');
     if (code.length < 6) { setError('Please enter all 6 digits'); return; }
     setError('');
+    setResendMsg('');
     setLoading(true);
-    await new Promise(r => setTimeout(r, 700));
-    setLoading(false);
-    if (code === '123456') {
-      navigate('/reset-password', { state: { email, verified: true } });
-    } else {
-      setError('Invalid OTP. Use 123456 for demo.');
+
+    try {
+      const response = await api.post('/auth/verify-otp', { email, otp: code });
+      setLoading(false);
+      const resetToken = response.data?.reset_token;
+      navigate('/reset-password', { state: { email, resetToken, verified: true } });
+    } catch (err) {
+      setLoading(false);
+      setError(err?.response?.data?.detail || err?.message || 'Invalid verification code.');
       setOtp(['', '', '', '', '', '']);
       inputs.current[0]?.focus();
     }
   };
 
-  const filled = otp.filter(Boolean).length;
-
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 relative overflow-hidden">
-
-      {/* Background blobs */}
-      <motion.div animate={{ scale:[1,1.15,1] }} transition={{ duration:20, repeat:Infinity, ease:'easeInOut' }}
-        className="absolute -top-40 -right-40 w-96 h-96 bg-blue-200/30 rounded-full blur-3xl pointer-events-none" />
-      <motion.div animate={{ scale:[1,1.1,1] }} transition={{ duration:25, repeat:Infinity, ease:'easeInOut', delay:5 }}
-        className="absolute -bottom-40 -left-40 w-80 h-80 bg-violet-200/25 rounded-full blur-3xl pointer-events-none" />
-
+    <div className="min-h-screen bg-[#fafafa] dark:bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden text-zinc-900 dark:text-zinc-100">
+      
       {/* Back */}
       <div className="absolute top-6 left-6">
-        <Link to="/forgot-password" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 font-medium transition-colors group">
-          <span className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center group-hover:border-slate-300 transition-colors shadow-sm">
+        <Link to="/forgot-password" className="inline-flex items-center gap-2 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-white font-semibold transition-colors">
+          <span className="w-8 h-8 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center shadow-xs">
             <FiArrowLeft size={14} />
           </span>
           Back
         </Link>
       </div>
 
-      <motion.div initial={{ opacity:0, y:24 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.45 }}
+      <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}
         className="w-full max-w-md">
 
         {/* Logo */}
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2.5 mb-5">
-            <div className="w-11 h-11 bg-gradient-to-br from-blue-600 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/25">
-              <FiActivity className="text-white" size={20} />
+        <div className="text-center mb-6">
+          <Link to="/" className="inline-flex items-center gap-2.5 mb-2">
+            <div className="w-10 h-10 bg-zinc-900 dark:bg-zinc-100 rounded-xl flex items-center justify-center text-white dark:text-zinc-950 shadow-xs">
+              <FiActivity size={18} className="stroke-[2.5]" />
             </div>
-            <span className="text-xl font-extrabold text-slate-800 tracking-tight">
-              HealthForecast <span className="text-blue-600">AI</span>
+            <span className="text-xl font-extrabold text-zinc-900 dark:text-white tracking-tight">
+              CarePulse AI
             </span>
           </Link>
         </div>
 
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-premium p-8">
-
-          {/* Header */}
-          <div className="text-center mb-8">
-            <motion.div
-              initial={{ scale:0 }} animate={{ scale:1 }}
-              transition={{ type:'spring', stiffness:200, damping:15 }}
-              className="w-16 h-16 bg-gradient-to-br from-blue-500 to-violet-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/25">
-              <FiShield className="text-white" size={28} />
-            </motion.div>
-            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Verify Your Email</h1>
-            <p className="text-slate-500 text-sm mt-2 leading-relaxed">
-              Enter the 6-digit code sent to<br />
-              <span className="font-semibold text-slate-700">{email}</span>
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm p-8">
+          <div className="mb-6">
+            <h1 className="text-2xl font-extrabold text-zinc-900 dark:text-white tracking-tight">Verify Code</h1>
+            <p className="text-zinc-500 dark:text-zinc-400 text-xs mt-1.5 leading-relaxed">
+              Verification code sent to <span className="font-semibold text-slate-800 dark:text-slate-200">{maskedEmail}</span>
             </p>
-            <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-full border border-blue-100 mt-3">
-              Demo OTP: <span className="font-extrabold tracking-widest">123456</span>
-            </span>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* OTP boxes */}
-            <div className="flex gap-2.5 justify-center" onPaste={handlePaste}>
-              {otp.map((d, i) => (
-                <motion.input
-                  key={i}
-                  ref={el => inputs.current[i] = el}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="flex justify-between gap-2">
+              {otp.map((digit, idx) => (
+                <input
+                  key={idx}
+                  ref={el => (inputs.current[idx] = el)}
                   type="text"
                   inputMode="numeric"
                   maxLength={1}
-                  value={d}
-                  onChange={e => handleChange(i, e.target.value)}
-                  onKeyDown={e => handleKeyDown(i, e)}
-                  whileFocus={{ scale:1.08 }}
-                  transition={{ type:'spring', stiffness:300, damping:20 }}
-                  className={`w-12 h-14 text-center text-xl font-extrabold rounded-2xl border-2 transition-all duration-200 outline-none
-                    ${d ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm shadow-blue-500/20'
-                        : 'border-slate-200 bg-slate-50 text-slate-900 focus:border-blue-400 focus:bg-white focus:shadow-sm focus:shadow-blue-500/15'}`}
+                  value={digit}
+                  onChange={e => handleChange(idx, e.target.value)}
+                  onKeyDown={e => handleKeyDown(idx, e)}
+                  onPaste={handlePaste}
+                  className="w-12 h-12 text-center text-lg font-bold rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 focus:border-zinc-900 dark:focus:border-zinc-100 outline-none"
                 />
               ))}
             </div>
 
-            {/* Progress dots */}
-            <div className="flex justify-center gap-1.5">
-              {otp.map((d, i) => (
-                <motion.div key={i}
-                  animate={{ scale: d ? 1.2 : 1, backgroundColor: d ? '#2563eb' : '#e2e8f0' }}
-                  transition={{ duration:0.15 }}
-                  className="w-1.5 h-1.5 rounded-full" />
-              ))}
-            </div>
+            {error && <p className="text-xs text-rose-600 dark:text-rose-400 text-center font-medium">{error}</p>}
+            {resendMsg && <p className="text-xs text-emerald-600 dark:text-emerald-400 text-center font-medium">{resendMsg}</p>}
 
-            <AnimatePresence>
-              {error && (
-                <motion.div initial={{ opacity:0, y:-6 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }}
-                  className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl text-center">
-                  {error}
-                </motion.div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary w-full py-2.5 text-xs font-bold uppercase tracking-wider"
+            >
+              {loading ? 'Verifying...' : 'Verify & Proceed'}
+            </button>
+
+            <div className="text-center text-xs text-zinc-500">
+              {canResend ? (
+                <button type="button" onClick={handleResend} className="font-bold text-zinc-900 dark:text-white hover:underline">
+                  Resend verification code
+                </button>
+              ) : (
+                <span>Resend code in {countdown}s</span>
               )}
-            </AnimatePresence>
-
-            <motion.button type="submit" disabled={loading || filled < 6}
-              whileHover={{ scale: (loading || filled < 6) ? 1 : 1.01 }}
-              whileTap={{ scale: (loading || filled < 6) ? 1 : 0.98 }}
-              className={`btn-primary w-full py-3 text-sm font-semibold transition-opacity ${filled < 6 ? 'opacity-50 cursor-not-allowed' : ''}`}>
-              {loading
-                ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Verifying...</>
-                : 'Verify Code'
-              }
-            </motion.button>
+            </div>
           </form>
-
-          {/* Resend */}
-          <div className="mt-6 text-center">
-            {canResend ? (
-              <motion.button initial={{ opacity:0 }} animate={{ opacity:1 }}
-                onClick={handleResend}
-                className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-semibold transition-colors">
-                <FiRefreshCw size={14} /> Resend Code
-              </motion.button>
-            ) : (
-              <p className="text-sm text-slate-400">
-                Resend code in{' '}
-                <span className="font-bold text-slate-600 tabular-nums">
-                  0:{String(countdown).padStart(2, '0')}
-                </span>
-              </p>
-            )}
-          </div>
         </div>
-
-        <p className="text-center text-sm text-slate-500 mt-5">
-          Wrong email?{' '}
-          <Link to="/forgot-password" className="text-blue-600 font-bold hover:text-blue-700 transition-colors">Go back</Link>
-        </p>
       </motion.div>
     </div>
   );

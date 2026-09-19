@@ -4,7 +4,7 @@ from pathlib import Path
 
 # Project paths
 BASE_DIR = Path(__file__).resolve().parent
-DATASET_PATH = BASE_DIR / "dataset" / "diabetes_130_us_hospitals.csv"
+DATASET_PATH = BASE_DIR / "dataset" / "diabetic_data.csv"
 PROCESSED_PATH = BASE_DIR / "dataset" / "processed_diabetes.csv"
 
 

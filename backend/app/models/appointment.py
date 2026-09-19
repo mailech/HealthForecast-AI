@@ -14,4 +14,5 @@ class Appointment(Base):
     appointment_date: Mapped[date] = mapped_column(Date, nullable=False)
     appointment_time: Mapped[time] = mapped_column(Time, nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="scheduled")
+    reminder_timing: Mapped[str | None] = mapped_column(String(50), nullable=True, default="At appointment time")
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)

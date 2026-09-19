@@ -1,476 +1,704 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiActivity, FiShield, FiBarChart2, FiUsers, FiArrowRight,
-  FiCheckCircle, FiCpu, FiTrendingUp, FiHeart, FiZap,
-  FiCloud, FiUser, FiHome, FiLock, FiGlobe
+  FiCpu, FiZap, FiCheck,
+  FiLock, FiFileText, FiDatabase, FiUserCheck, FiMenu, FiX,
+  FiChevronRight
 } from 'react-icons/fi';
+import { useAuth } from '../context/AuthContext';
 
 /* ── Animation Variants ── */
 const fadeUp = (delay = 0) => ({
-  initial: { opacity: 0, y: 24 },
+  initial: { opacity: 0, y: 20 },
   whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true },
+  viewport: { once: true, margin: '-40px' },
   transition: { duration: 0.5, delay, ease: [0.215, 0.61, 0.355, 1.0] },
 });
 
-const floatAnim = (duration = 4, delay = 0) => ({
-  animate: {
-    y: [0, -10, 0],
-    rotate: [0, 1, 0, -1, 0],
-    transition: {
-      duration,
-      repeat: Infinity,
-      ease: 'easeInOut',
-      delay,
-    },
+/* ── Platform Capabilities Bar ── */
+const capabilityPillars = [
+  {
+    icon: FiUserCheck,
+    title: 'Patient Management',
+    desc: 'Centralized patient directory, admission details, and clinical records.',
+    route: '/patients',
   },
-});
-
-/* ── Static Data ── */
-const features = [
   {
     icon: FiCpu,
-    title: 'AI Readmission Prediction',
-    desc: 'Machine learning models trained on 100k+ patient records predict 30-day readmission risk with 94.2% accuracy.',
+    title: 'Risk Assessment',
+    desc: 'Machine learning readmission risk scoring based on clinical parameters.',
+    route: '/risk-analyzer',
   },
   {
     icon: FiZap,
-    title: 'Real-Time Risk Intelligence',
-    desc: 'Continuous patient monitoring with instant automated alerts for high-risk cases across hospital departments.',
+    title: 'Clinical Support',
+    desc: 'Actionable clinical insights to guide early intervention decisions.',
+    route: '/clinical-insights',
   },
   {
     icon: FiBarChart2,
-    title: 'Advanced Analytics',
-    desc: 'Comprehensive KPI dashboards, department metrics, and trend analysis for data-driven clinical decisions.',
+    title: 'Healthcare Analytics',
+    desc: 'Interactive operational dashboards and department metrics.',
+    route: '/analytics',
+  },
+];
+
+/* ── Core Features (4 Cards) ── */
+const coreFeatures = [
+  {
+    icon: FiUsers,
+    title: 'PATIENT MANAGEMENT',
+    desc: 'Create, update, and manage patient records with essential clinical information.',
+    tag: 'Records & Directory',
+    route: '/patients',
   },
   {
-    icon: FiShield,
-    title: 'Secure & Compliant',
-    desc: 'Built with enterprise-grade protection, HIPAA-compliant standards, and role-based access control.',
+    icon: FiActivity,
+    title: 'RISK ASSESSMENT',
+    desc: 'Evaluate patient readmission risk using clinical data and machine learning models.',
+    tag: 'Predictive Models',
+    route: '/risk-analyzer',
+  },
+  {
+    icon: FiZap,
+    title: 'CLINICAL INSIGHTS',
+    desc: 'Understand patient risk and receive actionable information to support clinical workflows.',
+    tag: 'Decision Support',
+    route: '/clinical-insights',
+  },
+  {
+    icon: FiBarChart2,
+    title: 'HEALTHCARE ANALYTICS',
+    desc: 'View patient, prediction, appointment, and operational information through clear dashboards.',
+    tag: 'Operational Intelligence',
+    route: '/analytics',
   },
 ];
 
-const stats = [
-  { value: '94.2%', label: 'Prediction Accuracy' },
-  { value: '30%', label: 'Readmission Reduction' },
-  { value: '1,200+', label: 'Patients Monitored' },
-  { value: '12', label: 'Departments Covered' },
+/* ── 4-Step Process ── */
+const howItWorksSteps = [
+  {
+    step: '01',
+    title: 'Add Patient',
+    desc: 'Create a patient record with essential demographic and clinical information.',
+    icon: FiUserCheck,
+  },
+  {
+    step: '02',
+    title: 'Review Patient Data',
+    desc: 'Access patient information, appointments, treatments, and clinical details in one place.',
+    icon: FiFileText,
+  },
+  {
+    step: '03',
+    title: 'Assess Risk',
+    desc: 'Use the available clinical information to generate a readmission risk assessment.',
+    icon: FiActivity,
+  },
+  {
+    step: '04',
+    title: 'Take Action',
+    desc: 'Use risk information and clinical insights to support follow-up and healthcare workflows.',
+    icon: FiCheck,
+  },
 ];
 
-const roles = [
-  { role: 'Doctor', desc: 'Patient risk scores, appointments & clinical alerts', emoji: '🩺' },
-  { role: 'Hospital Admin', desc: 'Hospital KPIs, department performance & analytics', emoji: '🏥' },
-  { role: 'Researcher', desc: 'Population trends, datasets & model insights', emoji: '🔬' },
-  { role: 'System Admin', desc: 'User management, audit logs & platform monitoring', emoji: '⚙️' },
-];
-
-/* ── Updated: Exactly 4 Items ── */
-const checks = [
-  'HIPAA-compliant architecture',
-  'Real-time risk stratification',
-  'Role-based access control',
-  'Explainable AI predictions',
+/* ── Built Around Real Healthcare Workflows (4 Points) ── */
+const whyCarePulseItems = [
+  {
+    step: '01',
+    title: 'Connected Patient Management',
+    desc: 'Keep essential patient information organized in one place.',
+    icon: FiUsers,
+  },
+  {
+    step: '02',
+    title: 'Risk-Aware Care',
+    desc: 'Use readmission risk assessment to identify patients who may require closer follow-up.',
+    icon: FiActivity,
+  },
+  {
+    step: '03',
+    title: 'Role-Based Access',
+    desc: 'Provide different healthcare roles with appropriate access to platform features and information.',
+    icon: FiShield,
+  },
+  {
+    step: '04',
+    title: 'Clear Healthcare Analytics',
+    desc: 'Understand patient and operational information through focused dashboards and reports.',
+    icon: FiBarChart2,
+  },
 ];
 
 export default function Landing() {
+  const { user } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const userRoleKey = user?.role?.toString().toLowerCase().replace(/\s+/g, '_');
+  const dashboardPath = user ? (
+    userRoleKey === 'doctor' ? '/dashboard/doctor' :
+    userRoleKey === 'hospital_admin' ? '/dashboard/admin' :
+    userRoleKey === 'researcher' ? '/dashboard/researcher' :
+    userRoleKey === 'system_admin' ? '/dashboard/sysadmin' : '/dashboard/doctor'
+  ) : '/login';
+
+  const scrollToSection = (id) => {
+    setMobileMenuOpen(false);
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50/70 text-slate-800 font-sans selection:bg-blue-500 selection:text-white relative overflow-x-hidden">
+    <div id="top" className="min-h-screen bg-[#F4F8FF] dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans selection:bg-blue-600 selection:text-white relative overflow-x-hidden transition-colors duration-200">
 
-      {/* ── Subtle Background Glow Shapes ── */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[650px] pointer-events-none z-0">
-        <div className="absolute top-[-5%] left-[-5%] w-[500px] h-[500px] bg-blue-300/25 rounded-full blur-[120px]" />
-        <div className="absolute top-[10%] right-[-5%] w-[450px] h-[450px] bg-purple-300/25 rounded-full blur-[120px]" />
-        <div className="absolute top-[35%] left-[25%] w-[350px] h-[350px] bg-indigo-200/20 rounded-full blur-[100px]" />
-      </div>
-
-      {/* ── Sticky Glass Navbar ── */}
-      <nav className="sticky top-0 z-50 backdrop-blur-md bg-white/80 border-b border-slate-200/70 transition-all duration-300">
+      {/* ── Translucent Healthcare Navbar ── */}
+      <header className="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-white/10 text-white shadow-md transition-all">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
-              <FiActivity size={20} />
+          
+          {/* Logo */}
+          <Link to={user ? dashboardPath : "/"} className="flex items-center gap-3 group">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-500/30 group-hover:scale-105 transition-transform">
+              <FiActivity size={20} className="stroke-[2.5]" />
             </div>
-            <span className="font-extrabold text-xl tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors">
-              HealthForecast <span className="text-blue-600">AI</span>
-            </span>
+            <div className="flex flex-col">
+              <span className="font-extrabold text-xl tracking-tight text-white leading-none">
+                CarePulse <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">AI</span>
+              </span>
+              <span className="text-[10px] font-semibold text-blue-300/80 tracking-wider uppercase mt-0.5">
+                Healthcare Management Platform
+              </span>
+            </div>
           </Link>
 
-          <div className="flex items-center gap-3">
-            <Link
-              to="/login"
-              className="px-5 py-2.5 text-sm font-semibold text-slate-700 hover:text-blue-600 transition-colors rounded-xl"
+          {/* Center Nav Links (Desktop) */}
+          <nav className="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-200">
+            <a
+              href="#top"
+              onClick={(e) => { e.preventDefault(); scrollToSection('top'); }}
+              className="hover:text-blue-400 transition-colors cursor-pointer"
             >
-              Sign In
-            </Link>
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              Home
+            </a>
+            <a
+              href="#features"
+              onClick={(e) => { e.preventDefault(); scrollToSection('features'); }}
+              className="hover:text-blue-400 transition-colors cursor-pointer"
+            >
+              Features
+            </a>
+            <a
+              href="#how-it-works"
+              onClick={(e) => { e.preventDefault(); scrollToSection('how-it-works'); }}
+              className="hover:text-blue-400 transition-colors cursor-pointer"
+            >
+              How It Works
+            </a>
+            <a
+              href="#about"
+              onClick={(e) => { e.preventDefault(); scrollToSection('about'); }}
+              className="hover:text-blue-400 transition-colors cursor-pointer"
+            >
+              About
+            </a>
+          </nav>
+
+          {/* Right Action Buttons (Desktop) */}
+          <div className="hidden sm:flex items-center gap-3">
+            {user ? (
               <Link
-                to="/register"
-                className="px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/35 transition-all flex items-center gap-2"
+                to={dashboardPath}
+                className="btn-primary"
               >
-                <span>Get Started</span>
-                <FiArrowRight size={14} />
+                <span>Go to Dashboard</span>
+                <FiArrowRight size={15} />
               </Link>
-            </motion.div>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="px-4 py-2.5 text-sm font-semibold text-slate-200 hover:text-white transition-colors rounded-xl hover:bg-white/10"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/register"
+                  className="btn-primary"
+                >
+                  <span>Get Started</span>
+                  <FiArrowRight size={15} />
+                </Link>
+              </>
+            )}
           </div>
+
+          {/* Mobile Menu Toggle Button */}
+          <div className="md:hidden flex items-center">
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2.5 rounded-xl text-slate-200 hover:bg-white/10 focus:outline-none"
+              aria-label="Toggle Navigation Menu"
+            >
+              {mobileMenuOpen ? <FiX size={22} /> : <FiMenu size={22} />}
+            </button>
+          </div>
+
         </div>
-      </nav>
 
-      {/* ── Hero Section ── */}
-      <section className="relative z-10 pt-12 pb-20 md:pt-20 md:pb-28 max-w-7xl mx-auto px-6">
-        <div className="grid lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+        {/* Mobile Dropdown Nav */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="md:hidden border-t border-slate-800 bg-slate-900 px-6 py-4 space-y-3 text-slate-200"
+            >
+              <a
+                href="#top"
+                onClick={(e) => { e.preventDefault(); scrollToSection('top'); }}
+                className="block py-2 text-sm font-semibold hover:text-blue-400"
+              >
+                Home
+              </a>
+              <a
+                href="#features"
+                onClick={(e) => { e.preventDefault(); scrollToSection('features'); }}
+                className="block py-2 text-sm font-semibold hover:text-blue-400"
+              >
+                Features
+              </a>
+              <a
+                href="#how-it-works"
+                onClick={(e) => { e.preventDefault(); scrollToSection('how-it-works'); }}
+                className="block py-2 text-sm font-semibold hover:text-blue-400"
+              >
+                How It Works
+              </a>
+              <a
+                href="#about"
+                onClick={(e) => { e.preventDefault(); scrollToSection('about'); }}
+                className="block py-2 text-sm font-semibold hover:text-blue-400"
+              >
+                About
+              </a>
+              <div className="pt-3 border-t border-slate-800 flex flex-col gap-2">
+                {user ? (
+                  <Link
+                    to={dashboardPath}
+                    className="btn-primary w-full text-center"
+                  >
+                    Go to Dashboard
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      to="/login"
+                      className="btn-secondary w-full text-center"
+                    >
+                      Sign In
+                    </Link>
+                    <Link
+                      to="/register"
+                      className="btn-primary w-full text-center"
+                    >
+                      Get Started
+                    </Link>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </header>
 
-          {/* Left Column */}
-          <motion.div {...fadeUp(0)} className="lg:col-span-6 space-y-8">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-200/80 text-blue-700 text-xs font-bold uppercase tracking-wider shadow-sm">
-              <FiZap size={14} className="text-blue-600" />
-              <span>AI-Powered Healthcare Intelligence Platform</span>
+      {/* ── Full-Screen Clinical Healthcare Hero Section ── */}
+      <section className="relative min-h-[88vh] flex items-center justify-center overflow-hidden bg-slate-950 text-white">
+        
+        {/* Background Image with Deep Navy & Royal Blue Translucent Healthcare Overlay */}
+        <div 
+          className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: `url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=2000')`
+          }}
+        >
+          {/* Deep Navy / Royal Blue Translucent Overlay */}
+          <div 
+            className="absolute inset-0"
+            style={{
+              background: 'linear-gradient(135deg, rgba(8, 25, 55, 0.76) 0%, rgba(20, 45, 95, 0.82) 100%)'
+            }}
+          />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-transparent to-transparent pointer-events-none" />
+        </div>
+
+        {/* Hero Centered Content Container */}
+        <div className="relative z-10 max-w-4xl mx-auto px-6 py-16 md:py-20 w-full text-center flex flex-col items-center justify-center">
+          <motion.div {...fadeUp(0)} className="flex flex-col items-center space-y-6 max-w-3xl">
+            
+            {/* Small Trust Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-bold uppercase tracking-wider backdrop-blur-md shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+              <span>HEALTHCARE MANAGEMENT PLATFORM</span>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 leading-[1.12] tracking-tight">
-              AI-Powered Insights for <br className="hidden sm:inline" />
-              <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                Smarter Healthcare
+            {/* Main Heading */}
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-[1.15] tracking-tight">
+              Intelligent Healthcare, <br />
+              <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-300 bg-clip-text text-transparent">
+                Simplified.
               </span>
             </h1>
 
-            <p className="text-lg text-slate-600 leading-relaxed max-w-xl">
-              HealthForecast AI empowers clinicians with intelligent risk scoring, real-time alerts, and data-driven insights — reducing hospital readmissions by up to 30%.
+            {/* Short Supporting Description */}
+            <p className="text-base sm:text-lg text-slate-200 leading-relaxed max-w-2xl mx-auto">
+              Manage patients, assess risk, and streamline clinical workflows in one secure platform.
             </p>
 
-            {/* Premium Dual Buttons */}
-            <div className="flex flex-wrap items-center gap-4 pt-2">
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Link
-                  to="/register"
-                  className="px-7 py-3.5 text-base font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all flex items-center gap-2 group"
-                >
-                  <span>Start Free Trial</span>
-                  <FiArrowRight className="group-hover:translate-x-1 transition-transform" size={18} />
-                </Link>
-              </motion.div>
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Link
-                  to="/login"
-                  className="px-7 py-3.5 text-base font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all"
-                >
-                  View Demo Dashboard
-                </Link>
-              </motion.div>
+            {/* Compact Healthcare Feature Row */}
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2.5 pt-5 border-t border-white/15 text-xs font-semibold text-slate-200 w-full max-w-2xl">
+              <div className="flex items-center gap-1.5">
+                <span className="text-blue-400 font-bold text-sm">•</span>
+                <span>Patient Risk Assessment</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-blue-400 font-bold text-sm">•</span>
+                <span>Secure Patient Management</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-blue-400 font-bold text-sm">•</span>
+                <span>Clinical Insights</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-blue-400 font-bold text-sm">•</span>
+                <span>Healthcare Analytics</span>
+              </div>
             </div>
 
-            {/* Checklist (Now only 4 items) */}
-            <div className="grid grid-cols-2 gap-y-3 gap-x-6 pt-6 border-t border-slate-200/80 text-sm font-medium text-slate-600">
-              {checks.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <FiCheckCircle className="text-blue-600 flex-shrink-0" size={16} />
-                  <span>{item}</span>
-                </div>
-              ))}
-            </div>
           </motion.div>
-
-          {/* Right Column: AI Hospital Command Center Illustration */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.93 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.7, delay: 0.1 }}
-            className="lg:col-span-6 relative flex justify-center items-center w-full min-h-[480px] sm:min-h-[540px]"
-          >
-            {/* Ambient Multi-Layer Glowing Backdrop */}
-            <div className="absolute w-80 h-80 sm:w-[420px] sm:h-[420px] bg-gradient-to-tr from-blue-400/25 via-indigo-400/20 to-purple-400/25 rounded-full blur-[100px] -z-10 animate-pulse" />
-            <div className="absolute w-64 h-64 bg-cyan-300/20 rounded-full blur-[80px] -translate-x-12 translate-y-8 -z-10" />
-
-            {/* Main Command Center Wrapper */}
-            <div className="relative w-full max-w-xl p-2">
-
-              {/* 3D Glassmorphism Hospital Command Center Window */}
-              <motion.div 
-                {...floatAnim(5, 0)}
-                className="w-full bg-white/80 backdrop-blur-2xl border border-white/90 rounded-3xl p-6 sm:p-7 shadow-[0_25px_60px_rgba(30,58,138,0.12)] relative overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-indigo-500/5 to-purple-500/5 pointer-events-none" />
-
-                {/* Command Window Top Control Bar */}
-                <div className="flex items-center justify-between pb-4 mb-5 border-b border-slate-100">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-black text-xs shadow-md shadow-blue-500/30">
-                      <FiHome size={16} />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">AI Command Center</p>
-                      <h4 className="text-xs font-black text-slate-800">HealthForecast Neural Hub</h4>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-extrabold flex items-center gap-1 border border-emerald-200/60">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                      Live Feed
-                    </span>
-                    <span className="px-2.5 py-1 rounded-full bg-purple-50 text-purple-600 text-[10px] font-extrabold flex items-center gap-1 border border-purple-200/60">
-                      <FiCloud size={11} /> Cloud Sync
-                    </span>
-                  </div>
-                </div>
-
-                {/* Central Canvas */}
-                <div className="grid grid-cols-12 gap-4 items-center my-2 relative">
-                  
-                  {/* Left Box */}
-                  <div className="col-span-6 bg-slate-900/95 text-white rounded-2xl p-4 shadow-xl relative overflow-hidden flex flex-col items-center justify-center border border-slate-800">
-                    <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/20 via-indigo-600/10 to-purple-600/20" />
-                    
-                    <svg className="w-full h-32 absolute inset-0 opacity-40 pointer-events-none" viewBox="0 0 200 120">
-                      <line x1="30" y1="30" x2="100" y2="60" stroke="#60A5FA" strokeWidth="1.5" strokeDasharray="2 2" />
-                      <line x1="170" y1="20" x2="100" y2="60" stroke="#C084FC" strokeWidth="1.5" strokeDasharray="2 2" />
-                      <line x1="40" y1="90" x2="100" y2="60" stroke="#38BDF8" strokeWidth="1.5" strokeDasharray="2 2" />
-                      <line x1="160" y1="100" x2="100" y2="60" stroke="#818CF8" strokeWidth="1.5" strokeDasharray="2 2" />
-                      <circle cx="30" cy="30" r="4" fill="#60A5FA" />
-                      <circle cx="170" cy="20" r="4" fill="#C084FC" />
-                      <circle cx="40" cy="90" r="4" fill="#38BDF8" />
-                      <circle cx="160" cy="100" r="4" fill="#818CF8" />
-                    </svg>
-
-                    <div className="relative z-10 my-1">
-                      <svg className="w-16 h-16 text-blue-400 drop-shadow-[0_0_15px_rgba(96,165,250,0.7)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04Z" />
-                        <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04Z" />
-                        <circle cx="12" cy="12" r="2" fill="#818CF8" />
-                      </svg>
-                    </div>
-
-                    <p className="text-[11px] font-black tracking-wider text-indigo-200 mt-1 z-10">AI PREDICTION CORE</p>
-                    <p className="text-[9px] font-semibold text-slate-400 z-10">Deep Learning Active</p>
-                  </div>
-
-                  {/* Right Box */}
-                  <div className="col-span-6 space-y-3">
-                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center justify-between">
-                      <div>
-                        <p className="text-[9px] font-extrabold text-slate-400 uppercase">Patient Risk Index</p>
-                        <p className="text-xs font-black text-slate-900">Low Readmission</p>
-                      </div>
-                      <span className="text-xs font-black text-blue-600 bg-blue-100/80 px-2 py-0.5 rounded-md">88.4%</span>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-indigo-50/70 to-blue-50/70 p-3 rounded-xl border border-indigo-100">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-[9px] font-extrabold text-slate-500 uppercase">ML Trend Graph</span>
-                        <FiTrendingUp className="text-indigo-600" size={12} />
-                      </div>
-                      <svg className="w-full h-9 text-indigo-600 fill-none" viewBox="0 0 120 30">
-                        <path d="M0 25 Q30 5, 60 18 T120 8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-                        <path d="M0 25 Q30 5, 60 18 T120 8 L120 30 L0 30 Z" fill="rgba(99, 102, 241, 0.15)" />
-                      </svg>
-                    </div>
-
-                  </div>
-                </div>
-
-                {/* ECG Heartbeat Pulse Track Bar */}
-                <div className="mt-4 pt-3 border-t border-slate-100">
-                  <div className="flex justify-between items-center text-[10px] text-slate-500 font-extrabold mb-1.5">
-                    <span className="flex items-center gap-1 text-slate-700">
-                      <FiHeart className="text-rose-500 animate-pulse" size={13} /> Continuous Heartbeat Monitoring
-                    </span>
-                    <span className="text-blue-600">72 BPM</span>
-                  </div>
-                  <div className="h-9 w-full bg-slate-900 rounded-xl px-2 flex items-center overflow-hidden">
-                    <svg className="w-full h-7 stroke-emerald-400 fill-none" viewBox="0 0 280 30">
-                      <path 
-                        d="M0 15 L50 15 L60 5 L68 25 L76 2 L84 20 L90 15 L160 15 L170 5 L178 25 L186 2 L194 20 L200 15 L280 15" 
-                        strokeWidth="2" 
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
-                </div>
-
-              </motion.div>
-
-              {/* Floating Glass Badges */}
-              <motion.div
-                {...floatAnim(4.2, 0.1)}
-                className="absolute -top-5 -right-3 sm:-right-5 bg-white/90 backdrop-blur-xl border border-white/90 px-3.5 py-2.5 rounded-2xl shadow-xl shadow-indigo-500/10 flex items-center gap-2.5 z-20"
-              >
-                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <FiUser size={16} />
-                </div>
-                <div>
-                  <p className="text-[9px] font-extrabold text-slate-400 uppercase">Clinician AI</p>
-                  <p className="text-xs font-black text-slate-800">Doctor Portal</p>
-                </div>
-              </motion.div>
-
-              <motion.div
-                {...floatAnim(3.8, 0.4)}
-                className="absolute top-8 -left-4 sm:-left-7 bg-white/90 backdrop-blur-xl border border-white/90 px-3 py-2 rounded-2xl shadow-xl shadow-blue-500/10 flex items-center gap-2 z-20"
-              >
-                <div className="w-8 h-8 rounded-xl bg-purple-500 text-white flex items-center justify-center shadow-md shadow-purple-500/20">
-                  <FiShield size={16} />
-                </div>
-                <div className="pr-1">
-                  <p className="text-xs font-extrabold text-slate-800">HIPAA Protected</p>
-                  <p className="text-[9px] font-extrabold text-purple-600">Encrypted Nodes</p>
-                </div>
-              </motion.div>
-
-              <motion.div
-                {...floatAnim(4.6, 0.7)}
-                className="absolute -bottom-5 -left-3 sm:-left-5 bg-white/90 backdrop-blur-xl border border-white/90 px-4 py-3 rounded-2xl shadow-xl shadow-rose-500/10 flex items-center gap-3 z-20"
-              >
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-rose-500 to-red-600 text-white flex items-center justify-center font-black text-base shadow-md shadow-rose-500/20">
-                  +
-                </div>
-                <div>
-                  <p className="text-[9px] font-extrabold text-slate-400 uppercase">Genomic AI</p>
-                  <p className="text-xs font-black text-slate-800">DNA Risk Score</p>
-                </div>
-              </motion.div>
-
-              <motion.div
-                {...floatAnim(5.1, 1)}
-                className="absolute -bottom-6 right-4 bg-slate-900/90 text-white backdrop-blur-xl border border-slate-700/80 px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2.5 z-20"
-              >
-                <div className="w-2.5 h-2.5 rounded-full bg-blue-400 animate-ping" />
-                <div>
-                  <p className="text-[8px] font-extrabold text-slate-400 uppercase">Hospital Analytics</p>
-                  <p className="text-xs font-bold text-indigo-200">12 Wards Connected</p>
-                </div>
-              </motion.div>
-
-            </div>
-          </motion.div>
-
         </div>
+
       </section>
 
-      {/* ── KPI Statistics Bar ── */}
-      <section className="py-14 bg-white border-y border-slate-200/80 relative z-10">
+      {/* ── Feature Capabilities Bar ── */}
+      <section className="py-12 bg-white dark:bg-slate-900 border-y border-slate-200 dark:border-slate-800 relative z-10 transition-colors">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((item, idx) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {capabilityPillars.map((item, idx) => (
               <motion.div
                 key={idx}
                 {...fadeUp(idx * 0.08)}
-                className="text-center md:text-left space-y-1"
               >
-                <p className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 tracking-tight">
-                  {item.value}
-                </p>
-                <p className="text-sm font-bold text-slate-800">{item.label}</p>
+                <Link
+                  to={item.route}
+                  className="flex items-start gap-3.5 p-3.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-100 dark:border-blue-900 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                    <item.icon size={19} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{item.title}</h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">{item.desc}</p>
+                  </div>
+                </Link>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Feature Cards ── */}
-      <section className="py-24 max-w-7xl mx-auto px-6 relative z-10">
-        <motion.div {...fadeUp()} className="text-center max-w-3xl mx-auto mb-16 space-y-3">
-          <span className="text-xs font-extrabold tracking-widest text-blue-600 uppercase">Core Capabilities</span>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-            Designed for Modern Clinical Workflows
+      {/* ── Features Section ── */}
+      <section id="features" className="py-24 max-w-7xl mx-auto px-6 relative z-10 scroll-mt-20">
+        <motion.div {...fadeUp()} className="text-center max-w-2xl mx-auto mb-16 space-y-3">
+          <span className="text-xs font-bold tracking-widest text-blue-700 dark:text-blue-300 uppercase bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900 px-3.5 py-1.5 rounded-full">
+            Core Features
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            Everything You Need to Manage Healthcare
           </h2>
-          <p className="text-slate-600 text-base">
-            Everything you need to predict outcomes, streamline department interventions, and elevate patient care standards.
+          <p className="text-slate-600 dark:text-slate-300 text-base">
+            CarePulse AI brings essential patient and clinical workflows together in one connected workspace.
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {features.map((feature, idx) => (
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-7">
+          {coreFeatures.map((feature, idx) => (
             <motion.div
               key={idx}
               {...fadeUp(idx * 0.1)}
-              whileHover={{ y: -6 }}
-              className="bg-white p-8 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-xl hover:border-blue-200 transition-all group"
+              whileHover={{ y: -4 }}
+              className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-md transition-all flex flex-col justify-between group overflow-hidden"
             >
-              <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                <feature.icon size={22} />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">{feature.title}</h3>
-              <p className="text-sm text-slate-600 leading-relaxed">{feature.desc}</p>
+              <Link to={feature.route} className="p-7 flex flex-col justify-between flex-1">
+                <div>
+                  <div className="flex items-center justify-between mb-5">
+                    <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-indigo-600 group-hover:text-white transition-all shadow-xs">
+                      <feature.icon size={22} />
+                    </div>
+                    <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded-md border border-blue-100 dark:border-blue-900">
+                      {feature.tag}
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2.5 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    {feature.title}
+                  </h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{feature.desc}</p>
+                </div>
+
+                <div className="pt-5 mt-5 border-t border-slate-100 dark:border-slate-800 flex items-center text-xs font-semibold text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300">
+                  <span>View module</span>
+                  <FiArrowRight className="ml-1.5 group-hover:translate-x-1.5 transition-transform" size={14} />
+                </div>
+              </Link>
             </motion.div>
           ))}
         </div>
       </section>
 
-      {/* ── Multi-Role Platform ── */}
-      <section className="py-20 bg-slate-100/60 border-t border-slate-200/70 relative z-10">
+      {/* ── How It Works Section ── */}
+      <section id="how-it-works" className="py-20 bg-slate-100/70 dark:bg-slate-900/40 border-t border-slate-200/80 dark:border-slate-800 relative z-10 scroll-mt-20 transition-colors">
         <div className="max-w-7xl mx-auto px-6">
-          <motion.div {...fadeUp()} className="text-center max-w-3xl mx-auto mb-14 space-y-3">
-            <span className="text-xs font-extrabold tracking-widest text-indigo-600 uppercase">Multi-Role Platform</span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-              Built for Every Healthcare Professional
+          
+          <motion.div {...fadeUp()} className="text-center max-w-2xl mx-auto mb-16 space-y-3">
+            <span className="text-xs font-bold tracking-widest text-indigo-700 dark:text-indigo-300 uppercase bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-900 px-3 py-1 rounded-full">
+              Clinical Process
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              How CarePulse AI Works
             </h2>
-            <p className="text-slate-600 text-base">
-              Tailored dashboards and tools for each role in your hospital ecosystem.
+            <p className="text-slate-600 dark:text-slate-300 text-base">
+              A simple workflow for managing patient information and turning clinical data into useful insights.
             </p>
           </motion.div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {roles.map((r, i) => (
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-7 relative">
+            {howItWorksSteps.map((step, idx) => (
               <motion.div
-                key={i}
-                {...fadeUp(i * 0.08)}
-                whileHover={{ y: -4 }}
-                className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all"
+                key={idx}
+                {...fadeUp(idx * 0.1)}
+                className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 p-7 shadow-sm relative group hover:border-blue-300 dark:hover:border-blue-700 transition-all flex flex-col justify-between"
               >
-                <div className="text-3xl mb-3">{r.emoji}</div>
-                <h3 className="font-bold text-slate-900 mb-1">{r.role}</h3>
-                <p className="text-xs text-slate-600 leading-relaxed">{r.desc}</p>
+                <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <span className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-extrabold text-sm flex items-center justify-center shadow-md shadow-blue-500/20">
+                      {step.step}
+                    </span>
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                      <step.icon size={20} />
+                    </div>
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">{step.title}</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{step.desc}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+        </div>
+      </section>
+
+      {/* ── About Section ── */}
+      <section id="about" className="py-24 max-w-7xl mx-auto px-6 relative z-10 scroll-mt-20">
+        <div className="grid lg:grid-cols-12 gap-12 items-center">
+          
+          <motion.div {...fadeUp(0)} className="lg:col-span-6 space-y-6">
+            <span className="text-xs font-bold tracking-widest text-blue-700 dark:text-blue-300 uppercase bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900 px-3.5 py-1.5 rounded-full">
+              About CarePulse AI
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
+              About CarePulse AI
+            </h2>
+            <div className="space-y-4 text-slate-600 dark:text-slate-300 text-base leading-relaxed">
+              <p>
+                CarePulse AI is a healthcare management platform designed to simplify patient-focused workflows and provide healthcare teams with useful clinical information.
+              </p>
+              <p>
+                The platform combines patient management, risk assessment, clinical insights, appointment management, and healthcare analytics in a single workspace.
+              </p>
+            </div>
+            
+            <div className="pt-2 flex items-center gap-4 text-sm font-semibold text-blue-600 dark:text-blue-400">
+              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/80 border border-blue-100 dark:border-blue-900">
+                <FiShield className="text-blue-600 dark:text-blue-400" size={18} />
+                <span>Enterprise Clinical Security</span>
+              </span>
+              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/80 border border-blue-100 dark:border-blue-900">
+                <FiActivity className="text-blue-600 dark:text-blue-400" size={18} />
+                <span>Role-Based Workflows</span>
+              </span>
+            </div>
+          </motion.div>
+
+          <motion.div {...fadeUp(0.15)} className="lg:col-span-6">
+            <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-950 p-8 sm:p-10 rounded-3xl border border-slate-800 text-white shadow-xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+              <h3 className="text-xl font-bold text-white mb-4">Unified Clinical Intelligence</h3>
+              <p className="text-slate-300 text-sm leading-relaxed mb-6">
+                Designed to connect doctors, hospital administrators, researchers, and system managers in one intuitive operational environment.
+              </p>
+              
+              <div className="grid grid-cols-2 gap-4 border-t border-white/10 pt-6">
+                <div className="space-y-1">
+                  <p className="text-xs text-blue-300 uppercase font-bold">Patient Records</p>
+                  <p className="text-sm font-semibold text-white">Centralized Intake</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-blue-300 uppercase font-bold">Risk Scoring</p>
+                  <p className="text-sm font-semibold text-white">Machine Learning</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-blue-300 uppercase font-bold">Clinical Care</p>
+                  <p className="text-sm font-semibold text-white">Decision Support</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-blue-300 uppercase font-bold">Analytics</p>
+                  <p className="text-sm font-semibold text-white">Real-Time Dashboards</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+        </div>
+      </section>
+
+      {/* ── Why CarePulse AI Section ── */}
+      <section id="why-carepulse" className="py-20 bg-slate-100/70 dark:bg-slate-900/40 border-t border-slate-200/80 dark:border-slate-800 relative z-10 scroll-mt-20 transition-colors">
+        <div className="max-w-7xl mx-auto px-6">
+          <motion.div {...fadeUp()} className="text-center max-w-2xl mx-auto mb-16 space-y-3">
+            <span className="text-xs font-bold tracking-widest text-purple-700 dark:text-purple-300 uppercase bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-900 px-3 py-1 rounded-full">
+              Workflow Integration
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              Built Around Real Healthcare Workflows
+            </h2>
+            <p className="text-slate-600 dark:text-slate-300 text-base">
+              Designed to streamline everyday clinical operations and empower healthcare teams.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-7">
+            {whyCarePulseItems.map((item, idx) => (
+              <motion.div
+                key={idx}
+                {...fadeUp(idx * 0.08)}
+                className="bg-white dark:bg-slate-900 p-7 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm hover:border-blue-300 dark:hover:border-blue-700 transition-all flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-5">
+                    <span className="text-2xl font-black text-blue-600 dark:text-blue-400">
+                      {item.step}
+                    </span>
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                      <item.icon size={19} />
+                    </div>
+                  </div>
+                  <h4 className="text-base font-bold text-slate-900 dark:text-white mb-2">{item.title}</h4>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{item.desc}</p>
+                </div>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Bottom CTA ── */}
+      {/* ── Call To Action Section ── */}
       <section className="py-20 max-w-7xl mx-auto px-6 relative z-10">
         <motion.div
           {...fadeUp()}
-          className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-3xl p-10 sm:p-14 text-center text-white shadow-xl relative overflow-hidden"
+          className="bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 rounded-3xl p-10 sm:p-14 text-center text-white border border-slate-800 shadow-2xl relative overflow-hidden"
         >
           <div className="relative z-10 max-w-2xl mx-auto space-y-6">
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-              Ready to Transform Patient Care?
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+              One Workspace for Better Healthcare Management
             </h2>
-            <p className="text-blue-100 text-base leading-relaxed">
-              Join healthcare professionals using HealthForecast AI to predict readmissions, reduce costs, and improve patient outcomes.
+            <p className="text-slate-300 text-base sm:text-lg leading-relaxed">
+              Manage patients, appointments, risk assessments, clinical insights, and analytics from one connected platform.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
               <Link
-                to="/register"
-                className="px-7 py-3.5 text-base font-semibold text-blue-700 bg-white rounded-xl shadow-lg hover:bg-blue-50 transition-all flex items-center gap-2"
+                to={user ? dashboardPath : "/register"}
+                className="px-8 py-3.5 text-base font-bold text-slate-900 bg-white hover:bg-slate-50 rounded-xl shadow-md transition-all flex items-center gap-2 group"
               >
-                <span>Create Free Account</span>
-                <FiArrowRight size={18} />
+                <span>{user ? 'Go to Dashboard' : 'Get Started'}</span>
+                <FiArrowRight className="group-hover:translate-x-1 transition-transform" size={18} />
               </Link>
             </div>
           </div>
         </motion.div>
       </section>
 
-      {/* ── Modern Footer ── */}
-      <footer className="bg-slate-900 text-slate-400 py-12 border-t border-slate-800 text-sm relative z-10">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white">
-              <FiActivity size={18} />
+      {/* ── Professional Healthcare Footer ── */}
+      <footer className="bg-slate-950 text-slate-400 pt-16 pb-12 border-t border-slate-800 text-sm relative z-10">
+        <div className="max-w-7xl mx-auto px-6">
+          
+          {/* Main Footer Links */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-8 pb-12 border-b border-slate-800">
+            
+            {/* Brand Column */}
+            <div className="col-span-2 space-y-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white">
+                  <FiActivity size={18} />
+                </div>
+                <span className="font-extrabold text-white text-xl">CarePulse AI</span>
+              </div>
+              <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
+                Healthcare management and clinical intelligence in one connected platform.
+              </p>
+              <div className="text-xs text-slate-500 font-semibold flex items-center gap-2">
+                <FiShield className="text-blue-400" size={14} />
+                <span>Enterprise Clinical Security</span>
+              </div>
             </div>
-            <span className="font-bold text-white text-base">HealthForecast AI</span>
+
+            {/* Product Column */}
+            <div className="space-y-3">
+              <h5 className="text-xs font-bold uppercase tracking-wider text-slate-200">PRODUCT</h5>
+              <ul className="space-y-2 text-xs">
+                <li><a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection('features'); }} className="hover:text-white transition-colors">Patient Management</a></li>
+                <li><a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection('features'); }} className="hover:text-white transition-colors">Risk Assessment</a></li>
+                <li><a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection('features'); }} className="hover:text-white transition-colors">Clinical Insights</a></li>
+                <li><a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection('features'); }} className="hover:text-white transition-colors">Healthcare Analytics</a></li>
+              </ul>
+            </div>
+
+            {/* Workflow Column */}
+            <div className="space-y-3">
+              <h5 className="text-xs font-bold uppercase tracking-wider text-slate-200">WORKFLOW</h5>
+              <ul className="space-y-2 text-xs">
+                <li><a href="#how-it-works" onClick={(e) => { e.preventDefault(); scrollToSection('how-it-works'); }} className="hover:text-white transition-colors">How It Works</a></li>
+                <li><Link to="/login" className="hover:text-white transition-colors">Appointments</Link></li>
+                <li><a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection('features'); }} className="hover:text-white transition-colors">Reports</a></li>
+                <li><Link to={user ? dashboardPath : "/login"} className="hover:text-white transition-colors">Dashboard</Link></li>
+              </ul>
+            </div>
+
+            {/* Company / Account Column */}
+            <div className="space-y-3">
+              <h5 className="text-xs font-bold uppercase tracking-wider text-slate-200">COMPANY & ACCOUNT</h5>
+              <ul className="space-y-2 text-xs">
+                <li><a href="#about" onClick={(e) => { e.preventDefault(); scrollToSection('about'); }} className="hover:text-white transition-colors">About</a></li>
+                <li><a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection('features'); }} className="hover:text-white transition-colors">Features</a></li>
+                <li><Link to="/login" className="hover:text-white transition-colors">Sign In</Link></li>
+                <li><Link to="/register" className="hover:text-white transition-colors">Get Started</Link></li>
+              </ul>
+            </div>
+
           </div>
 
-          <p className="text-xs text-slate-500 text-center md:text-left">
-            &copy; {new Date().getFullYear()} HealthForecast AI. Enterprise Healthcare Intelligence. All rights reserved.
-          </p>
-
-          <div className="flex gap-6 text-xs font-semibold">
-            <Link to="/login" className="hover:text-white transition-colors">Sign In</Link>
-            <Link to="/register" className="hover:text-white transition-colors">Register</Link>
+          {/* Bottom Copyright */}
+          <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+            <p>&copy; 2026 CarePulse AI. All rights reserved.</p>
+            <p className="font-medium text-slate-400 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span>Secure Healthcare Management</span>
+            </p>
           </div>
+
         </div>
       </footer>
 

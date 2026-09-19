@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.db.database import engine
 from app.db.base import Base
-from app.models import user, patient, prediction, recommendation, treatment, appointment
+from app.models import user, patient, prediction, recommendation, treatment, appointment, notification
 from app.core.security import decode_access_token
 from fastapi import Request
 
@@ -23,6 +23,8 @@ from app.routers import (
     ml_models,
     appointments,
     reports,
+    notifications,
+    search,
 )
 
 # Logging Setup
@@ -33,16 +35,60 @@ logging.basicConfig(
 logger = logging.getLogger("healthforecast_ai")
 
 
-# --- Lifespan Manager (Database Table Creation) ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # App startup logic: Database tables initialize cheyadaniki
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    logger.info("Database tables initialized successfully.")
+    import app.db.database as db_mod
+    try:
+        async with db_mod.engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database tables initialized successfully with primary engine.")
+    except Exception as exc:
+        logger.warning(f"Primary PostgreSQL database connection failed ({exc}). Falling back to SQLite...")
+        sqlite_engine = create_async_engine("sqlite+aiosqlite:///./healthforecast.db", echo=settings.DEBUG, future=True)
+        db_mod.engine = sqlite_engine
+        db_mod.AsyncSessionLocal = async_sessionmaker(
+            bind=sqlite_engine,
+            class_=AsyncSession,
+            expire_on_commit=False,
+            autocommit=False,
+            autoflush=False,
+        )
+        async with sqlite_engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("SQLite database tables initialized successfully.")
+
+    # Seed default role accounts if missing
+    try:
+        from app.models.user import User, UserRole
+        from app.core.security import get_password_hash
+        from sqlalchemy import select
+
+        async with db_mod.AsyncSessionLocal() as session:
+            seed_accounts = [
+                ("sarah@hospital.com", "Dr. Sarah Mitchell", UserRole.DOCTOR, "password"),
+                ("admin@hospital.com", "Hospital Admin", UserRole.HOSPITAL_ADMIN, "password"),
+                ("researcher@hospital.com", "Healthcare Researcher", UserRole.RESEARCHER, "password"),
+                ("sysadmin@hospital.com", "System Administrator", UserRole.SYSTEM_ADMIN, "password"),
+            ]
+            for email, name, role, pw in seed_accounts:
+                existing = await session.scalar(select(User).where(User.email == email))
+                if not existing:
+                    user_obj = User(
+                        email=email,
+                        full_name=name,
+                        role=role,
+                        password_hash=get_password_hash(pw),
+                        is_active=True,
+                    )
+                    session.add(user_obj)
+                elif not existing.is_active:
+                    existing.is_active = True
+            await session.commit()
+            logger.info("Default role accounts verified.")
+    except Exception as e:
+        logger.warning(f"Default role accounts seed check skipped: {e}")
+
     yield
-    # App shutdown logic (kavali anukunte un-comment cheyochu):
-    # await engine.dispose()
 
 
 app = FastAPI(
@@ -101,6 +147,17 @@ async def health_check():
     }
 
 
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(
+        "app.main:app",
+        host="127.0.0.1",
+        port=settings.PORT,
+        reload=False,
+    )
+
+
 # Include all sub-routers directly with prefix
 app.include_router(auth.router, prefix=settings.API_V1_STR)
 app.include_router(users.router, prefix=settings.API_V1_STR)
@@ -112,3 +169,5 @@ app.include_router(analytics.router, prefix=settings.API_V1_STR)
 app.include_router(ml_models.router, prefix=settings.API_V1_STR)
 app.include_router(appointments.router, prefix=settings.API_V1_STR)
 app.include_router(reports.router, prefix=settings.API_V1_STR)
+app.include_router(notifications.router, prefix=settings.API_V1_STR)
+app.include_router(search.router, prefix=settings.API_V1_STR)

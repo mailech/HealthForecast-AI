@@ -8,10 +8,11 @@ class Settings(BaseSettings):
     # -----------------------------
     # Application Settings
     # -----------------------------
-    PROJECT_NAME: str = "HealthForecast AI"
+    PROJECT_NAME: str = "CarePulse AI"
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
     DEBUG: bool = True
+    PORT: int = 8000
 
     # -----------------------------
     # JWT Settings

@@ -45,12 +45,11 @@ export default {
         display: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
       },
       boxShadow: {
-        'card': '0 1px 3px 0 rgba(0,0,0,0.04), 0 4px 16px 0 rgba(37,99,235,0.06)',
-        'card-hover': '0 4px 24px 0 rgba(37,99,235,0.12), 0 1px 4px 0 rgba(0,0,0,0.06)',
-        'glass': '0 8px 32px 0 rgba(31,38,135,0.12)',
-        'glow-blue': '0 0 24px rgba(37,99,235,0.25)',
-        'glow-violet': '0 0 24px rgba(124,58,237,0.25)',
-        'premium': '0 20px 60px -10px rgba(37,99,235,0.15), 0 4px 16px -4px rgba(0,0,0,0.08)',
+        'xs': '0 1px 2px 0 rgba(0, 0, 0, 0.04)',
+        'card': '0 1px 3px 0 rgba(0,0,0,0.04), 0 4px 16px 0 rgba(0,0,0,0.04)',
+        'card-hover': '0 4px 24px 0 rgba(0,0,0,0.08), 0 1px 4px 0 rgba(0,0,0,0.04)',
+        'glass': '0 8px 32px 0 rgba(0,0,0,0.06)',
+        'premium': '0 20px 60px -10px rgba(0,0,0,0.08), 0 4px 16px -4px rgba(0,0,0,0.04)',
         'inner-glow': 'inset 0 1px 0 rgba(255,255,255,0.6)',
       },
       backgroundImage: {

@@ -5,99 +5,84 @@ import { FiShield, FiArrowLeft, FiHome, FiActivity } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 
 const ROLE_REDIRECTS = {
-  doctor: '/dashboard/doctor',
-  hospital_admin: '/dashboard/admin',
-  researcher: '/dashboard/researcher',
-  system_admin: '/dashboard/sysadmin',
+  Doctor: '/dashboard/doctor',
+  'Hospital Admin': '/dashboard/admin',
+  Researcher: '/dashboard/researcher',
+  'System Admin': '/dashboard/sysadmin',
 };
 
 export default function Unauthorized() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 relative overflow-hidden">
+  const userRoleKey = user?.role?.toString().toLowerCase().replace(/\s+/g, '_');
+  const dashboardPath = user ? (
+    userRoleKey === 'doctor' ? '/dashboard/doctor' :
+    userRoleKey === 'hospital_admin' ? '/dashboard/admin' :
+    userRoleKey === 'researcher' ? '/dashboard/researcher' :
+    userRoleKey === 'system_admin' ? '/dashboard/sysadmin' : '/dashboard/doctor'
+  ) : '/login';
 
-      {/* Background */}
-      <div className="absolute inset-0"
-        style={{ background:'radial-gradient(ellipse at 60% 20%, rgba(239,68,68,0.08) 0%, transparent 60%), radial-gradient(ellipse at 20% 80%, rgba(124,58,237,0.06) 0%, transparent 60%)' }} />
-      <motion.div animate={{ scale:[1,1.12,1] }} transition={{ duration:18, repeat:Infinity, ease:'easeInOut' }}
-        className="absolute -top-40 -right-40 w-96 h-96 bg-red-200/20 rounded-full blur-3xl pointer-events-none" />
-      <motion.div animate={{ scale:[1,1.08,1] }} transition={{ duration:22, repeat:Infinity, ease:'easeInOut', delay:4 }}
-        className="absolute -bottom-40 -left-40 w-80 h-80 bg-orange-200/20 rounded-full blur-3xl pointer-events-none" />
+  return (
+    <div className="min-h-screen bg-[#fafafa] dark:bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden text-zinc-900 dark:text-zinc-100">
 
       <motion.div
-        initial={{ opacity:0, y:24 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.5 }}
-        className="text-center max-w-lg relative z-10">
-
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="text-center max-w-lg relative z-10"
+      >
         {/* Logo */}
-        <Link to="/" className="inline-flex items-center gap-2.5 mb-10">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/25">
-            <FiActivity className="text-white" size={18} />
+        <Link to="/" className="inline-flex items-center gap-2.5 mb-8">
+          <div className="w-10 h-10 bg-zinc-900 dark:bg-zinc-100 rounded-xl flex items-center justify-center text-white dark:text-zinc-950 shadow-xs">
+            <FiActivity size={18} className="stroke-[2.5]" />
           </div>
-          <span className="text-lg font-extrabold text-slate-800 tracking-tight">
-            HealthForecast <span className="text-blue-600">AI</span>
+          <span className="text-xl font-extrabold text-zinc-900 dark:text-white tracking-tight">
+            CarePulse AI
           </span>
         </Link>
 
         {/* Shield illustration */}
-        <motion.div
-          initial={{ scale:0, rotate:-10 }} animate={{ scale:1, rotate:0 }}
-          transition={{ type:'spring', stiffness:180, damping:14, delay:0.1 }}
-          className="relative inline-flex mb-8">
-          <div className="w-28 h-28 bg-gradient-to-br from-red-100 to-orange-100 rounded-3xl flex items-center justify-center border border-red-200/60 shadow-lg">
-            <FiShield className="text-red-500" size={52} />
-          </div>
-          {/* Pulse rings */}
-          <motion.div animate={{ scale:[1,1.4,1], opacity:[0.4,0,0.4] }} transition={{ duration:2.5, repeat:Infinity }}
-            className="absolute inset-0 rounded-3xl border-2 border-red-400/40" />
-          <motion.div animate={{ scale:[1,1.6,1], opacity:[0.2,0,0.2] }} transition={{ duration:2.5, repeat:Infinity, delay:0.4 }}
-            className="absolute inset-0 rounded-3xl border border-red-400/20" />
-        </motion.div>
+        <div className="w-20 h-20 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl flex items-center justify-center mx-auto mb-6 text-zinc-800 dark:text-zinc-200">
+          <FiShield size={36} />
+        </div>
 
         {/* 403 badge */}
-        <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.25 }}>
-          <span className="inline-flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 text-xs font-bold px-4 py-2 rounded-full mb-4">
-            <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />
-            Error 403 — Access Denied
+        <div>
+          <span className="inline-flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-bold px-3.5 py-1.5 rounded-full mb-4">
+            <span className="w-1.5 h-1.5 bg-zinc-900 dark:bg-zinc-100 rounded-full" />
+            Error 403 — Access Restricted
           </span>
-        </motion.div>
+        </div>
 
-        <motion.h1 initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.3 }}
-          className="text-3xl font-extrabold text-slate-900 tracking-tight mb-3">
-          You don't have permission
-        </motion.h1>
+        <h1 className="text-3xl font-extrabold text-zinc-900 dark:text-white tracking-tight mb-3">
+          Restricted Resource
+        </h1>
 
-        <motion.p initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.35 }}
-          className="text-slate-500 text-base leading-relaxed mb-8 max-w-sm mx-auto">
-          This page is restricted to authorized roles only. Please contact your system administrator if you believe this is an error.
-        </motion.p>
+        <p className="text-zinc-500 dark:text-zinc-400 text-xs sm:text-sm leading-relaxed mb-8 max-w-sm mx-auto">
+          This workspace view is restricted to authorized roles. Your current credentials do not have permission to view this section.
+        </p>
 
-        <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.4 }}
-          className="flex flex-col sm:flex-row gap-3 justify-center">
-          <motion.button
-            whileHover={{ scale:1.02, y:-1 }} whileTap={{ scale:0.97 }}
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <button
             onClick={() => navigate(-1)}
-            className="btn-secondary flex items-center justify-center gap-2 py-3 px-6">
-            <FiArrowLeft size={16} /> Go Back
-          </motion.button>
-          <motion.div whileHover={{ scale:1.02, y:-1 }} whileTap={{ scale:0.97 }}>
-            <Link
-              to={user ? (ROLE_REDIRECTS[user.role] || '/') : '/login'}
-              className="btn-primary flex items-center justify-center gap-2 py-3 px-6">
-              <FiHome size={16} />
-              {user ? 'Go to Dashboard' : 'Sign In'}
-            </Link>
-          </motion.div>
-        </motion.div>
+            className="btn-secondary flex items-center justify-center gap-2 py-2.5 px-5 text-xs font-bold uppercase tracking-wider"
+          >
+            <FiArrowLeft size={14} /> Go Back
+          </button>
+          <Link
+            to={dashboardPath}
+            className="btn-primary flex items-center justify-center gap-2 py-2.5 px-5 text-xs font-bold uppercase tracking-wider"
+          >
+            <FiHome size={14} />
+            {user ? 'Go to Dashboard' : 'Sign In'}
+          </Link>
+        </div>
 
         {user && (
-          <motion.p initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:0.5 }}
-            className="text-xs text-slate-400 mt-6">
-            Signed in as <span className="font-semibold text-slate-600">{user.full_name}</span>
-            {' '}·{' '}
-            <span className="capitalize">{user.role?.replace('_', ' ')}</span>
-          </motion.p>
+          <p className="text-xs text-zinc-400 mt-6">
+            Authenticated as <span className="font-semibold text-zinc-700 dark:text-zinc-300">{user.full_name}</span> ({user.role})
+          </p>
         )}
       </motion.div>
     </div>

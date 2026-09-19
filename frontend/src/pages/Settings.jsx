@@ -10,19 +10,19 @@ function Toggle({ checked, onChange }) {
     <button
       type="button"
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${checked ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-600'}`}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${checked ? 'bg-zinc-900 dark:bg-zinc-100' : 'bg-zinc-200 dark:bg-zinc-700'}`}
     >
-      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'}`} />
+      <span className={`inline-block h-4 w-4 transform rounded-full bg-white dark:bg-zinc-900 shadow transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'}`} />
     </button>
   );
 }
 
 function SettingRow({ label, desc, checked, onChange }) {
   return (
-    <div className="flex items-center justify-between py-4 border-b border-slate-100 dark:border-slate-700 last:border-0">
+    <div className="flex items-center justify-between py-4 border-b border-zinc-100 dark:border-zinc-800 last:border-0">
       <div>
-        <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{label}</p>
-        {desc && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{desc}</p>}
+        <p className="text-sm font-medium text-zinc-900 dark:text-white">{label}</p>
+        {desc && <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{desc}</p>}
       </div>
       <Toggle checked={checked} onChange={onChange} />
     </div>
@@ -56,25 +56,28 @@ export default function Settings() {
       <Breadcrumb items={[{ label: 'Settings' }]} />
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Settings</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Manage your preferences and account settings</p>
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight">Settings</h1>
+          <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-1">Manage preferences, notifications, and security policies.</p>
         </div>
         {saved && (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 px-4 py-2 rounded-xl text-sm font-medium border border-green-200 dark:border-green-800">
-            <FiCheckCircle size={16} /> Settings saved!
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white px-4 py-2 rounded-xl text-xs font-bold border border-zinc-200 dark:border-zinc-700"
+          >
+            <FiCheckCircle size={15} /> Settings saved successfully
           </motion.div>
         )}
       </div>
 
       <div className="max-w-2xl space-y-6">
         {/* Notifications */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-card border border-slate-100 dark:border-slate-700 p-6">
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xs border border-zinc-200 dark:border-zinc-800 p-6">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-              <FiBell className="text-blue-600" size={16} />
+            <div className="w-8 h-8 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-lg flex items-center justify-center">
+              <FiBell size={16} />
             </div>
-            <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">Notifications</h2>
+            <h2 className="text-sm font-bold text-zinc-900 dark:text-white">Notification Preferences</h2>
           </div>
           <SettingRow label="Email Notifications" desc="Receive updates via email" checked={settings.emailNotifs} onChange={() => toggle('emailNotifs')} />
           <SettingRow label="Risk Alerts" desc="Get notified for high-risk patients" checked={settings.riskAlerts} onChange={() => toggle('riskAlerts')} />
@@ -83,31 +86,35 @@ export default function Settings() {
         </div>
 
         {/* Appearance */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-card border border-slate-100 dark:border-slate-700 p-6">
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xs border border-zinc-200 dark:border-zinc-800 p-6">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-              {darkMode ? <FiMoon className="text-purple-600" size={16} /> : <FiSun className="text-purple-600" size={16} />}
+            <div className="w-8 h-8 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-lg flex items-center justify-center">
+              {darkMode ? <FiMoon size={16} /> : <FiSun size={16} />}
             </div>
-            <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">Appearance</h2>
+            <h2 className="text-sm font-bold text-zinc-900 dark:text-white">Appearance & Display</h2>
           </div>
-          <SettingRow label="Dark Mode" desc="Switch to dark theme" checked={darkMode} onChange={setDarkMode} />
-          <SettingRow label="Compact Mode" desc="Reduce spacing for more content" checked={settings.compactMode} onChange={() => toggle('compactMode')} />
-          <SettingRow label="Animations" desc="Enable page transitions and animations" checked={settings.animations} onChange={() => toggle('animations')} />
+          <SettingRow label="Dark Mode" desc="Switch between light and dark monochrome theme" checked={darkMode} onChange={setDarkMode} />
+          <SettingRow label="Compact Mode" desc="Reduce spacing for high-density content" checked={settings.compactMode} onChange={() => toggle('compactMode')} />
+          <SettingRow label="Animations" desc="Enable smooth page transitions" checked={settings.animations} onChange={() => toggle('animations')} />
         </div>
 
         {/* Security */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-card border border-slate-100 dark:border-slate-700 p-6">
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xs border border-zinc-200 dark:border-zinc-800 p-6">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-              <FiShield className="text-green-600" size={16} />
+            <div className="w-8 h-8 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-lg flex items-center justify-center">
+              <FiShield size={16} />
             </div>
-            <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">Security</h2>
+            <h2 className="text-sm font-bold text-zinc-900 dark:text-white">Security Controls</h2>
           </div>
-          <SettingRow label="Two-Factor Authentication" desc="Add an extra layer of security" checked={settings.twoFactor} onChange={() => toggle('twoFactor')} />
-          <SettingRow label="Session Timeout" desc="Auto logout after 30 minutes of inactivity" checked={settings.sessionTimeout} onChange={() => toggle('sessionTimeout')} />
+          <SettingRow label="Two-Factor Authentication (2FA)" desc="Require secondary verification at login" checked={settings.twoFactor} onChange={() => toggle('twoFactor')} />
+          <SettingRow label="Auto Session Timeout" desc="Automatically logout after 30 minutes of inactivity" checked={settings.sessionTimeout} onChange={() => toggle('sessionTimeout')} />
         </div>
 
-        <button onClick={handleSave} className="btn-primary">Save Settings</button>
+        <div className="flex justify-end">
+          <button onClick={handleSave} className="btn-primary text-xs py-2.5 px-5 font-bold uppercase tracking-wider">
+            Save Preferences
+          </button>
+        </div>
       </div>
     </DashboardLayout>
   );

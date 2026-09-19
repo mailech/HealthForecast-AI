@@ -1,8 +1,24 @@
-import sys
-import json
-import joblib
 import pandas as pd
+import joblib
+
 from pathlib import Path
+
+from sklearn.model_selection import train_test_split
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.impute import SimpleImputer
+
+from sklearn.ensemble import RandomForestClassifier
+
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    classification_report
+)
 
 
 # --------------------------------------------------
@@ -10,109 +26,292 @@ from pathlib import Path
 # --------------------------------------------------
 
 BASE_DIR = Path(__file__).resolve().parent
-MODEL_PATH = BASE_DIR / "models" / "patient_risk_model.joblib"
+
+DATASET_PATH = BASE_DIR / "dataset" / "processed_diabetes.csv"
+
+MODELS_DIR = BASE_DIR / "models"
+
+MODEL_PATH = MODELS_DIR / "patient_risk_model.joblib"
 
 
 # --------------------------------------------------
-# Risk labels
+# Load processed dataset
 # --------------------------------------------------
 
-RISK_LABELS = {
-    0: "Low",
-    1: "Medium",
-    2: "High"
-}
+def load_data():
 
-
-# --------------------------------------------------
-# Load trained model
-# --------------------------------------------------
-
-def load_model():
-    if not MODEL_PATH.exists():
+    if not DATASET_PATH.exists():
         raise FileNotFoundError(
-            f"Trained model not found: {MODEL_PATH}"
+            f"Processed dataset not found: {DATASET_PATH}"
         )
 
-    return joblib.load(MODEL_PATH)
+    data = pd.read_csv(DATASET_PATH)
+
+    return data
 
 
 # --------------------------------------------------
-# Predict patient risk
+# Train model
 # --------------------------------------------------
 
-def predict_patient_risk(patient_data):
+def train_model():
 
-    model = load_model()
+    print("Loading processed dataset...")
 
-    if isinstance(patient_data, dict):
-        patient_data = pd.DataFrame([patient_data])
+    data = load_data()
 
-    elif not isinstance(patient_data, pd.DataFrame):
-        raise TypeError(
-            "patient_data must be a dictionary or pandas DataFrame."
+    print(f"Dataset shape: {data.shape}")
+
+
+    # --------------------------------------------------
+    # Separate features and target
+    # --------------------------------------------------
+
+    X = data.drop(columns=["readmitted"])
+
+    y = data["readmitted"]
+
+
+    # --------------------------------------------------
+    # Identify categorical and numerical columns
+    # --------------------------------------------------
+
+    categorical_columns = X.select_dtypes(
+        include=["object", "category"]
+    ).columns.tolist()
+
+    numerical_columns = X.select_dtypes(
+        include=["number"]
+    ).columns.tolist()
+
+
+    print(
+        f"Categorical columns: {len(categorical_columns)}"
+    )
+
+    print(
+        f"Numerical columns: {len(numerical_columns)}"
+    )
+
+
+    # --------------------------------------------------
+    # Numerical preprocessing
+    # --------------------------------------------------
+
+    numerical_transformer = Pipeline(
+        steps=[
+            (
+                "imputer",
+                SimpleImputer(strategy="median")
+            )
+        ]
+    )
+
+
+    # --------------------------------------------------
+    # Categorical preprocessing
+    # --------------------------------------------------
+
+    categorical_transformer = Pipeline(
+        steps=[
+            (
+                "imputer",
+                SimpleImputer(
+                    strategy="most_frequent"
+                )
+            ),
+
+            (
+                "encoder",
+                OneHotEncoder(
+                    handle_unknown="ignore"
+                )
+            )
+        ]
+    )
+
+
+    # --------------------------------------------------
+    # Combine preprocessing
+    # --------------------------------------------------
+
+    preprocessor = ColumnTransformer(
+        transformers=[
+            (
+                "num",
+                numerical_transformer,
+                numerical_columns
+            ),
+
+            (
+                "cat",
+                categorical_transformer,
+                categorical_columns
+            )
+        ]
+    )
+
+
+    # --------------------------------------------------
+    # Random Forest model
+    # --------------------------------------------------
+
+    model = RandomForestClassifier(
+
+        n_estimators=200,
+
+        random_state=42,
+
+        class_weight="balanced",
+
+        n_jobs=-1
+    )
+
+
+    # --------------------------------------------------
+    # Full ML pipeline
+    # --------------------------------------------------
+
+    pipeline = Pipeline(
+        steps=[
+            (
+                "preprocessor",
+                preprocessor
+            ),
+
+            (
+                "model",
+                model
+            )
+        ]
+    )
+
+
+    # --------------------------------------------------
+    # Train / Test split
+    # --------------------------------------------------
+
+    X_train, X_test, y_train, y_test = train_test_split(
+
+        X,
+
+        y,
+
+        test_size=0.20,
+
+        random_state=42,
+
+        stratify=y
+    )
+
+
+    print()
+    print("Training model...")
+    print()
+
+
+    # --------------------------------------------------
+    # Train
+    # --------------------------------------------------
+
+    pipeline.fit(
+        X_train,
+        y_train
+    )
+
+
+    # --------------------------------------------------
+    # Predictions
+    # --------------------------------------------------
+
+    predictions = pipeline.predict(
+        X_test
+    )
+
+
+    # --------------------------------------------------
+    # Evaluation
+    # --------------------------------------------------
+
+    accuracy = accuracy_score(
+        y_test,
+        predictions
+    )
+
+    precision = precision_score(
+        y_test,
+        predictions,
+        average="weighted",
+        zero_division=0
+    )
+
+    recall = recall_score(
+        y_test,
+        predictions,
+        average="weighted",
+        zero_division=0
+    )
+
+    f1 = f1_score(
+        y_test,
+        predictions,
+        average="weighted",
+        zero_division=0
+    )
+
+
+    print("Model Performance")
+    print("-------------------------")
+
+    print(
+        f"Accuracy: {accuracy:.4f}"
+    )
+
+    print(
+        f"Precision: {precision:.4f}"
+    )
+
+    print(
+        f"Recall: {recall:.4f}"
+    )
+
+    print(
+        f"F1 Score: {f1:.4f}"
+    )
+
+
+    print()
+    print("Classification Report")
+    print("-------------------------")
+
+    print(
+        classification_report(
+            y_test,
+            predictions
         )
-
-    # Make prediction
-    prediction = model.predict(patient_data)
-    predicted_class = int(prediction[0])
-
-    risk_category = RISK_LABELS.get(
-        predicted_class,
-        "Unknown"
     )
 
-    # Prediction probabilities
-    probabilities = model.predict_proba(patient_data)[0]
 
-    probability_map = {
-        "Low": round(float(probabilities[0]) * 100, 2),
-        "Medium": round(float(probabilities[1]) * 100, 2),
-        "High": round(float(probabilities[2]) * 100, 2)
-    }
+    # --------------------------------------------------
+    # Save model
+    # --------------------------------------------------
 
-    risk_score = round(
-        float(max(probabilities)) * 100,
-        2
+    MODELS_DIR.mkdir(
+        exist_ok=True
     )
 
-    return {
-        "prediction": predicted_class,
-        "risk_category": risk_category,
-        "risk_score": risk_score,
-        "probabilities": probability_map
-    }
+    joblib.dump(
+        pipeline,
+        MODEL_PATH
+    )
 
 
-# --------------------------------------------------
-# Command-line input
-# --------------------------------------------------
+    print()
+    print("Model training completed successfully!")
 
-def main():
-
-    # Node.js will send patient data as JSON
-    if len(sys.argv) < 2:
-        print(json.dumps({
-            "error": "Patient data was not provided."
-        }))
-        sys.exit(1)
-
-    try:
-        patient_data = json.loads(sys.argv[1])
-
-        result = predict_patient_risk(patient_data)
-
-        # IMPORTANT:
-        # Only JSON is printed so Node.js can read it.
-        print(json.dumps(result))
-
-    except Exception as error:
-
-        print(json.dumps({
-            "error": str(error)
-        }))
-
-        sys.exit(1)
+    print(
+        f"Model saved to: {MODEL_PATH}"
+    )
 
 
 # --------------------------------------------------
@@ -120,4 +319,5 @@ def main():
 # --------------------------------------------------
 
 if __name__ == "__main__":
-    main()
+
+    train_model()

@@ -1,4 +1,39 @@
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Union
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+
+def convert_age_to_bracket(val: Union[int, float, str]) -> str:
+    """Normalize numeric age or string to the age bracket string expected by ML model."""
+    if isinstance(val, (int, float)):
+        age_int = int(val)
+    elif isinstance(val, str) and val.strip().isdigit():
+        age_int = int(val.strip())
+    else:
+        val_str = str(val).strip()
+        if val_str.endswith("]"):
+            val_str = val_str[:-1] + ")"
+        return val_str
+
+    if age_int < 10:
+        return "[0-10)"
+    elif age_int < 20:
+        return "[10-20)"
+    elif age_int < 30:
+        return "[20-30)"
+    elif age_int < 40:
+        return "[30-40)"
+    elif age_int < 50:
+        return "[40-50)"
+    elif age_int < 60:
+        return "[50-60)"
+    elif age_int < 70:
+        return "[60-70)"
+    elif age_int < 80:
+        return "[70-80)"
+    elif age_int < 90:
+        return "[80-90)"
+    else:
+        return "[90-100)"
 
 
 class PredictionCreate(BaseModel):
@@ -6,7 +41,7 @@ class PredictionCreate(BaseModel):
 
     race: str = "Caucasian"
     gender: str = "Male"
-    age: str = "[50-60]"
+    age: Union[int, str] = "[50-60)"
 
     admission_type_id: int = 1
     discharge_disposition_id: int = 1
@@ -56,6 +91,18 @@ class PredictionCreate(BaseModel):
 
     change: str = "No"
     diabetesMed: str = "No"
+
+    @field_validator("age", mode="before")
+    @classmethod
+    def normalize_age_field(cls, v):
+        return convert_age_to_bracket(v)
+
+    @field_validator("diag_1", "diag_2", "diag_3", mode="before")
+    @classmethod
+    def normalize_diag_fields(cls, v):
+        if v is None:
+            return "250.83"
+        return str(v).strip()
 
 
 class PredictionResponse(BaseModel):

@@ -18,106 +18,11 @@ import {
 import { useAuth } from '../context/AuthContext';
 
 const ROLES = [
-  {
-    value: 'Doctor',
-    label: 'Doctor',
-    emoji: '🩺',
-    color: 'blue',
-  },
-  {
-    value: 'Hospital Admin',
-    label: 'Hospital Administrator',
-    emoji: '🏥',
-    color: 'violet',
-  },
-  {
-    value: 'Researcher',
-    label: 'Healthcare Researcher',
-    emoji: '🔬',
-    color: 'emerald',
-  },
-  {
-    value: 'System Admin',
-    label: 'System Administrator',
-    emoji: '⚙️',
-    color: 'orange',
-  },
+  { value: 'Doctor', label: 'Doctor', defaultEmail: 'sarah@hospital.com' },
+  { value: 'Hospital Admin', label: 'Hospital Administrator', defaultEmail: 'admin@hospital.com' },
+  { value: 'Researcher', label: 'Researcher', defaultEmail: 'researcher@hospital.com' },
+  { value: 'System Admin', label: 'System Administrator', defaultEmail: 'sysadmin@hospital.com' },
 ];
-
-const COLOR = {
-  blue: {
-    border: 'border-blue-500',
-    bg: 'bg-blue-50',
-    text: 'text-blue-700',
-    ring: 'ring-blue-500/30',
-  },
-  violet: {
-    border: 'border-violet-500',
-    bg: 'bg-violet-50',
-    text: 'text-violet-700',
-    ring: 'ring-violet-500/30',
-  },
-  emerald: {
-    border: 'border-emerald-500',
-    bg: 'bg-emerald-50',
-    text: 'text-emerald-700',
-    ring: 'ring-emerald-500/30',
-  },
-  orange: {
-    border: 'border-orange-500',
-    bg: 'bg-orange-50',
-    text: 'text-orange-700',
-    ring: 'ring-orange-500/30',
-  },
-};
-
-function getStrength(password) {
-  if (!password) {
-    return {
-      score: 0,
-      label: '',
-      color: '',
-    };
-  }
-
-  let score = 0;
-
-  if (password.length >= 8) score++;
-  if (password.length >= 10) score++;
-  if (/[A-Z]/.test(password)) score++;
-  if (/[0-9]/.test(password)) score++;
-  if (/[^A-Za-z0-9]/.test(password)) score++;
-
-  if (score <= 1) {
-    return {
-      score,
-      label: 'Weak',
-      color: 'bg-red-500',
-    };
-  }
-
-  if (score <= 3) {
-    return {
-      score,
-      label: 'Fair',
-      color: 'bg-yellow-500',
-    };
-  }
-
-  if (score <= 4) {
-    return {
-      score,
-      label: 'Good',
-      color: 'bg-blue-500',
-    };
-  }
-
-  return {
-    score,
-    label: 'Strong',
-    color: 'bg-emerald-500',
-  };
-}
 
 const PERKS = [
   'AI-powered readmission prediction',
@@ -133,7 +38,7 @@ export default function Register() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [selectedRole, setSelectedRole] = useState('');
+  const [selectedRole, setSelectedRole] = useState('Doctor');
 
   const {
     register,
@@ -141,17 +46,17 @@ export default function Register() {
     watch,
     setValue,
     formState: { errors },
-  } = useForm();
+  } = useForm({
+    defaultValues: {
+      role: 'Doctor',
+    },
+  });
 
   const password = watch('password', '');
-  const strength = getStrength(password);
 
   const pickRole = (role) => {
     setSelectedRole(role);
-
-    setValue('role', role, {
-      shouldValidate: true,
-    });
+    setValue('role', role, { shouldValidate: true });
   };
 
   const onSubmit = async (data) => {
@@ -168,12 +73,7 @@ export default function Register() {
       };
 
       await registerUser(userData);
-
-      navigate('/login', {
-        state: {
-          registered: true,
-        },
-      });
+      navigate('/login', { state: { registered: true } });
     } catch (e) {
       setError(
         e?.response?.data?.detail ||
@@ -186,206 +86,91 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-[#fafafa] dark:bg-zinc-950 font-sans text-zinc-900 dark:text-zinc-100">
 
       {/* LEFT PANEL */}
-
-      <div
-        className="hidden lg:flex lg:w-[44%] relative overflow-hidden flex-col justify-between p-12"
-        style={{
-          background:
-            'linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #7c3aed 100%)',
-        }}
-      >
-
-        <motion.div
-          animate={{ scale: [1, 1.12, 1] }}
-          transition={{
-            duration: 18,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-          className="absolute -top-32 -right-32 w-96 h-96 bg-white/10 rounded-full blur-3xl"
-        />
-
-        <motion.div
-          animate={{ scale: [1, 1.08, 1] }}
-          transition={{
-            duration: 22,
-            repeat: Infinity,
-            ease: 'easeInOut',
-            delay: 5,
-          }}
-          className="absolute -bottom-32 -left-32 w-80 h-80 bg-white/10 rounded-full blur-3xl"
-        />
-
-        {/* Logo */}
-
+      <div className="hidden lg:flex lg:w-[44%] relative overflow-hidden flex-col justify-between p-12 bg-zinc-950 text-white border-r border-zinc-800">
+        
+        {/* Top Logo */}
         <motion.div
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           className="flex items-center gap-3 relative z-10"
         >
-          <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/30">
-            <FiActivity className="text-white" size={20} />
+          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-zinc-950 shadow-xs">
+            <FiActivity size={20} className="stroke-[2.5]" />
           </div>
-
-          <span className="text-white font-bold text-xl tracking-tight">
-            HealthForecast{' '}
-            <span className="text-blue-200">
-              AI
+          <div>
+            <span className="text-white font-extrabold text-xl tracking-tight">
+              CarePulse AI
             </span>
-          </span>
+            <p className="text-[10px] uppercase font-bold tracking-wider text-zinc-400">
+              Healthcare Intelligence Platform
+            </p>
+          </div>
         </motion.div>
 
-        {/* Content */}
-
+        {/* Center Content */}
         <div className="relative z-10 flex-1 flex flex-col justify-center py-10">
-
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: 0.6,
-              delay: 0.1,
-            }}
+            transition={{ duration: 0.6, delay: 0.1 }}
           >
-
             <h2 className="text-3xl font-extrabold text-white leading-tight mb-3 tracking-tight">
-              Join the Future
-              <br />
-              of{' '}
-              <span className="text-blue-200">
-                Healthcare AI
-              </span>
+              Join the Future of Healthcare AI
             </h2>
 
-            <p className="text-blue-100/75 text-sm leading-relaxed mb-8 max-w-xs">
-              Create your account and get access to AI-powered patient
-              risk intelligence.
+            <p className="text-zinc-400 text-sm leading-relaxed mb-8 max-w-xs">
+              Create your account to access clinical intelligence and risk evaluation dashboards.
             </p>
 
-            <div className="space-y-3">
-
+            <div className="space-y-3.5">
               {PERKS.map((perk, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: -16 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{
-                    delay: 0.3 + index * 0.08,
-                  }}
-                  className="flex items-center gap-3"
-                >
-                  <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                    <FiCheckCircle
-                      size={11}
-                      className="text-white"
-                    />
+                <div key={index} className="flex items-center gap-3">
+                  <div className="w-5 h-5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center flex-shrink-0">
+                    <FiCheckCircle size={11} className="text-zinc-300" />
                   </div>
-
-                  <span className="text-white/80 text-sm">
+                  <span className="text-zinc-300 text-xs font-medium">
                     {perk}
                   </span>
-                </motion.div>
+                </div>
               ))}
-
             </div>
-
           </motion.div>
 
-          {/* Security card */}
-
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: 0.6,
-              delay: 0.35,
-            }}
-            className="mt-10"
-          >
-
-            <motion.div
-              animate={{ y: [0, -6, 0] }}
-              transition={{
-                duration: 5,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }}
-              className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-5"
-            >
-
-              <div className="flex items-center gap-3 mb-4">
-
-                <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
-                  <FiShield
-                    className="text-white"
-                    size={16}
-                  />
-                </div>
-
-                <div>
-                  <p className="text-white font-semibold text-sm">
-                    Secure Authentication
-                  </p>
-
-                  <p className="text-white/50 text-xs">
-                    JWT · Role Based Access
-                  </p>
-                </div>
-
+          <div className="mt-10 p-5 rounded-2xl bg-zinc-900/80 border border-zinc-800">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-200 flex items-center justify-center border border-zinc-700">
+                <FiShield size={15} />
               </div>
-
-              <div className="grid grid-cols-3 gap-2">
-
-                {[
-                  'JWT Security',
-                  'Role-based Access',
-                  'Protected API',
-                ].map((text, index) => (
-                  <div
-                    key={index}
-                    className="bg-white/10 rounded-lg px-2 py-1.5 text-center"
-                  >
-                    <p className="text-white/70 text-xs font-medium">
-                      {text}
-                    </p>
-                  </div>
-                ))}
-
+              <div>
+                <p className="text-xs font-bold text-white">Enterprise Access Control</p>
+                <p className="text-[11px] text-zinc-400">Strict RBAC & JWT Authorization</p>
               </div>
-
-            </motion.div>
-
-          </motion.div>
-
+            </div>
+          </div>
         </div>
 
-        <p className="relative z-10 text-white/40 text-xs">
-          © 2026 HealthForecast AI
+        <p className="relative z-10 text-zinc-500 text-xs">
+          &copy; 2026 CarePulse AI
         </p>
-
       </div>
 
       {/* RIGHT PANEL */}
-
-      <div className="flex-1 flex flex-col justify-center items-center p-6 sm:p-10 bg-slate-50 overflow-y-auto">
-
-        <div className="w-full max-w-lg mb-4">
-
+      <div className="flex-1 flex flex-col justify-center items-center p-6 sm:p-10 overflow-y-auto">
+        <div className="w-full max-w-lg mb-4 flex justify-between items-center">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 font-medium transition-colors group"
+            className="inline-flex items-center gap-2 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-white font-semibold transition-colors"
           >
-            <span className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center shadow-sm">
+            <span className="w-7 h-7 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center shadow-xs">
               <FiArrowLeft size={13} />
             </span>
-
             Back to Home
           </Link>
-
+          <span className="text-[11px] font-semibold text-zinc-400">Account Setup</span>
         </div>
 
         <motion.div
@@ -394,453 +179,153 @@ export default function Register() {
           transition={{ duration: 0.45 }}
           className="w-full max-w-lg"
         >
-
-          {/* Mobile logo */}
-
-          <div className="lg:hidden flex items-center gap-2 mb-6">
-
-            <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-violet-600 rounded-xl flex items-center justify-center shadow-lg">
-
-              <FiActivity
-                className="text-white"
-                size={18}
-              />
-
-            </div>
-
-            <span className="font-bold text-slate-800 text-lg">
-              HealthForecast{' '}
-              <span className="text-blue-600">
-                AI
-              </span>
-            </span>
-
-          </div>
-
           <div className="mb-6">
-
-            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-              Create your account
+            <h1 className="text-2xl font-extrabold text-zinc-900 dark:text-white tracking-tight">
+              Create Your Account
             </h1>
-
-            <p className="text-slate-500 text-sm mt-1">
-              Join the healthcare intelligence platform
+            <p className="text-zinc-500 dark:text-zinc-400 text-xs sm:text-sm mt-1">
+              Join the CarePulse AI healthcare intelligence platform.
             </p>
-
           </div>
 
-          {/* ROLE */}
-
+          {/* ROLE SELECTOR */}
           <div className="mb-5">
-
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">
-              Select Your Role
-            </p>
-
+            <label className="block text-[11px] font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider mb-2">
+              Select Healthcare Role
+            </label>
             <div className="grid grid-cols-2 gap-2">
-
               {ROLES.map((role) => {
-
-                const c = COLOR[role.color];
-
-                const active =
-                  selectedRole === role.value;
-
+                const active = selectedRole === role.value;
                 return (
-                  <motion.button
+                  <button
                     key={role.value}
                     type="button"
-                    whileHover={{
-                      scale: 1.02,
-                      y: -1,
-                    }}
-                    whileTap={{
-                      scale: 0.97,
-                    }}
-                    onClick={() =>
-                      pickRole(role.value)
-                    }
-                    className={`text-left p-3 rounded-xl border-2 transition-all duration-200 ${
+                    onClick={() => pickRole(role.value)}
+                    className={`text-left p-3 rounded-xl border transition-all text-xs font-semibold flex items-center justify-between ${
                       active
-                        ? `${c.border} ${c.bg} ring-2 ${c.ring}`
-                        : 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'
+                        ? 'border-zinc-900 dark:border-zinc-100 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-xs'
+                        : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-700'
                     }`}
                   >
-
-                    <div className="flex items-center gap-2">
-
-                      <span className="text-base">
-                        {role.emoji}
-                      </span>
-
-                      <span
-                        className={`text-xs font-bold ${
-                          active
-                            ? c.text
-                            : 'text-slate-700'
-                        }`}
-                      >
-                        {role.label}
-                      </span>
-
-                      {active && (
-                        <FiCheckCircle
-                          size={11}
-                          className={`ml-auto ${c.text}`}
-                        />
-                      )}
-
-                    </div>
-
-                  </motion.button>
+                    <span className="truncate">{role.label}</span>
+                    {active && <FiCheckCircle size={13} className="text-white dark:text-zinc-900 flex-shrink-0 ml-1" />}
+                  </button>
                 );
               })}
-
             </div>
-
-            <input
-              type="hidden"
-              {...register('role', {
-                required: 'Please select a role',
-              })}
-            />
-
-            {errors.role && (
-              <p className="text-red-500 text-xs mt-1.5">
-                {errors.role.message}
-              </p>
-            )}
-
+            <input type="hidden" {...register('role', { required: 'Please select a role' })} />
+            {errors.role && <p className="text-red-500 text-xs mt-1">{errors.role.message}</p>}
           </div>
 
-          {/* FORM */}
-
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-card">
-
-            <form
-              onSubmit={handleSubmit(onSubmit)}
-              className="space-y-4"
-            >
-
+          {/* FORM CARD */}
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 sm:p-7 shadow-xs">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <AnimatePresence>
-
                 {error && (
-                  <motion.div
-                    initial={{
-                      opacity: 0,
-                      y: -6,
-                    }}
-                    animate={{
-                      opacity: 1,
-                      y: 0,
-                    }}
-                    exit={{
-                      opacity: 0,
-                    }}
-                    className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl"
-                  >
+                  <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 text-red-700 dark:text-red-300 text-xs p-3.5 rounded-xl">
                     {error}
-                  </motion.div>
+                  </div>
                 )}
-
               </AnimatePresence>
 
-              {/* FULL NAME */}
-
+              {/* Full Name */}
               <div>
-
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                <label className="block text-[11px] font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider mb-1.5">
                   Full Name
                 </label>
-
                 <div className="relative">
-
-                  <FiUser
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                    size={15}
-                  />
-
+                  <FiUser className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" size={15} />
                   <input
                     type="text"
-                    placeholder="Dr. John Smith"
-                    className={`input-field pl-10 ${
-                      errors.full_name
-                        ? 'border-red-400'
-                        : ''
-                    }`}
-                    {...register('full_name', {
-                      required:
-                        'Full name is required',
-                      minLength: {
-                        value: 2,
-                        message:
-                          'Minimum 2 characters',
-                      },
-                    })}
+                    placeholder="Dr. Sarah Johnson"
+                    className={`input-field pl-10 text-sm ${errors.full_name ? 'border-red-400' : ''}`}
+                    {...register('full_name', { required: 'Full name is required' })}
                   />
-
                 </div>
-
-                {errors.full_name && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.full_name.message}
-                  </p>
-                )}
-
+                {errors.full_name && <p className="text-red-500 text-xs mt-1">{errors.full_name.message}</p>}
               </div>
 
-              {/* EMAIL */}
-
+              {/* Email */}
               <div>
-
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                <label className="block text-[11px] font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider mb-1.5">
                   Email Address
                 </label>
-
                 <div className="relative">
-
-                  <FiMail
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                    size={15}
-                  />
-
+                  <FiMail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" size={15} />
                   <input
                     type="email"
-                    placeholder="you@hospital.com"
-                    className={`input-field pl-10 ${
-                      errors.email
-                        ? 'border-red-400'
-                        : ''
-                    }`}
+                    placeholder="sarah@hospital.com"
+                    className={`input-field pl-10 text-sm ${errors.email ? 'border-red-400' : ''}`}
                     {...register('email', {
-                      required:
-                        'Email is required',
-                      pattern: {
-                        value: /^\S+@\S+$/i,
-                        message:
-                          'Invalid email',
-                      },
+                      required: 'Email is required',
+                      pattern: { value: /^\S+@\S+$/i, message: 'Invalid email' },
                     })}
                   />
-
                 </div>
-
-                {errors.email && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.email.message}
-                  </p>
-                )}
-
+                {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
               </div>
 
-              {/* PHONE */}
-
+              {/* Phone */}
               <div>
-
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                  Phone Number
+                <label className="block text-[11px] font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider mb-1.5">
+                  Phone Number (Optional)
                 </label>
-
                 <div className="relative">
-
-                  <FiPhone
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                    size={15}
-                  />
-
+                  <FiPhone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" size={15} />
                   <input
                     type="tel"
-                    placeholder="+91 9876543210"
-                    className="input-field pl-10"
+                    placeholder="+1 555-0199"
+                    className="input-field pl-10 text-sm"
                     {...register('phone')}
                   />
-
                 </div>
-
               </div>
 
-              {/* PASSWORD */}
-
+              {/* Password */}
               <div>
-
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                <label className="block text-[11px] font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider mb-1.5">
                   Password
                 </label>
-
                 <div className="relative">
-
-                  <FiLock
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                    size={15}
-                  />
-
+                  <FiLock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" size={15} />
                   <input
                     type={showPass ? 'text' : 'password'}
-                    placeholder="Minimum 8 characters"
-                    className={`input-field pl-10 pr-10 ${
-                      errors.password
-                        ? 'border-red-400'
-                        : ''
-                    }`}
+                    placeholder="••••••••"
+                    className={`input-field pl-10 pr-10 text-sm ${errors.password ? 'border-red-400' : ''}`}
                     {...register('password', {
-                      required:
-                        'Password is required',
-                      minLength: {
-                        value: 8,
-                        message:
-                          'Minimum 8 characters',
-                      },
+                      required: 'Password is required',
+                      minLength: { value: 6, message: 'Minimum 6 characters' },
                     })}
                   />
-
                   <button
                     type="button"
-                    onClick={() =>
-                      setShowPass(!showPass)
-                    }
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                    onClick={() => setShowPass(!showPass)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400"
                   >
-                    {showPass ? (
-                      <FiEyeOff size={15} />
-                    ) : (
-                      <FiEye size={15} />
-                    )}
+                    {showPass ? <FiEyeOff size={15} /> : <FiEye size={15} />}
                   </button>
-
                 </div>
-
-                {errors.password && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.password.message}
-                  </p>
-                )}
-
-                {password && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="mt-2"
-                  >
-
-                    <div className="flex gap-1 mb-1">
-
-                      {[1, 2, 3, 4, 5].map(
-                        (n) => (
-                          <div
-                            key={n}
-                            className={`h-1 flex-1 rounded-full ${
-                              n <= strength.score
-                                ? strength.color
-                                : 'bg-slate-200'
-                            }`}
-                          />
-                        )
-                      )}
-
-                    </div>
-
-                    <p className="text-xs font-semibold">
-                      {strength.label}
-                    </p>
-
-                  </motion.div>
-                )}
-
+                {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
               </div>
 
-              {/* CONFIRM PASSWORD */}
-
-              <div>
-
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                  Confirm Password
-                </label>
-
-                <div className="relative">
-
-                  <FiLock
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                    size={15}
-                  />
-
-                  <input
-                    type="password"
-                    placeholder="Repeat password"
-                    className={`input-field pl-10 ${
-                      errors.confirm
-                        ? 'border-red-400'
-                        : ''
-                    }`}
-                    {...register('confirm', {
-                      required:
-                        'Please confirm password',
-                      validate: (value) =>
-                        value === password ||
-                        'Passwords do not match',
-                    })}
-                  />
-
-                </div>
-
-                {errors.confirm && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.confirm.message}
-                  </p>
-                )}
-
-              </div>
-
-              {/* SUBMIT */}
-
-              <motion.button
+              <button
                 type="submit"
                 disabled={loading}
-                whileHover={{
-                  scale: loading ? 1 : 1.01,
-                }}
-                whileTap={{
-                  scale: loading ? 1 : 0.98,
-                }}
-                className="btn-primary w-full py-3 text-sm font-semibold mt-1"
+                className="btn-primary w-full py-3 text-xs font-bold uppercase tracking-wider mt-2"
               >
-
-                {loading ? (
-                  <>
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Creating account...
-                  </>
-                ) : (
-                  <>
-                    <span>
-                      Create Account
-                    </span>
-                    <FiArrowRight size={15} />
-                  </>
-                )}
-
-              </motion.button>
-
+                {loading ? 'Creating Account...' : 'Create Account'}
+              </button>
             </form>
 
-            <p className="text-center text-sm text-slate-500 mt-5">
-
+            <p className="text-center text-xs text-zinc-500 mt-5">
               Already have an account?{' '}
-
-              <Link
-                to="/login"
-                className="text-blue-600 font-bold hover:text-blue-700"
-              >
+              <Link to="/login" className="text-zinc-900 dark:text-white font-bold hover:underline">
                 Sign in
               </Link>
-
             </p>
-
           </div>
-
         </motion.div>
-
       </div>
-
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://127.0.0.1:8000/api/v1',
+  baseURL: import.meta.env?.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -23,7 +23,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (!error.response) {
+    if (!error.response && (error.code === 'ERR_NETWORK' || error.message === 'Network Error')) {
       return Promise.reject(
         new Error(
           'Cannot connect to backend. Please make sure FastAPI is running on http://127.0.0.1:8000'
@@ -31,7 +31,7 @@ api.interceptors.response.use(
       );
     }
 
-    const detail = error.response.data?.detail;
+    const detail = error.response?.data?.detail;
 
     if (Array.isArray(detail)) {
       return Promise.reject(
@@ -40,7 +40,7 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(
-      new Error(detail || `Request failed with status ${error.response.status}`)
+      new Error(detail || error.message || `Request failed with status ${error.response?.status || 'unknown'}`)
     );
   }
 );

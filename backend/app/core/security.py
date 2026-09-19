@@ -18,6 +18,9 @@ def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
 
+get_password_hash = hash_password
+
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify PBKDF2 hashes with Passlib and legacy bcrypt hashes directly."""
     if not isinstance(plain_password, str) or not isinstance(hashed_password, str) or not hashed_password:

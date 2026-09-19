@@ -46,6 +46,31 @@ async def predict_readmission(
         db.add(prediction)
         await db.flush()
 
+        # Trigger Real High Risk Alert Notification if patient is High risk
+        if str(result.get("risk_category", "")).lower() == "high":
+            from app.services.notification_service import NotificationService
+            patient_name = f"{patient.first_name} {patient.last_name}"
+            await NotificationService.create_notification(
+                db=db,
+                type="high_risk",
+                title="High Risk Alert",
+                message=f"{patient_name} has been classified as High Risk and requires attention.",
+                user_id=getattr(token, "id", None),
+                target_role="Doctor",
+                related_entity_type="patient",
+                related_entity_id=patient.id,
+                metadata={
+                    "patient_id": patient.id,
+                    "patient_name": patient_name,
+                    "prediction_id": prediction.id,
+                    "risk_category": "High",
+                    "readmission_risk_score": result["readmission_risk_score"],
+                    "risk_percentage": f"{result['readmission_risk_score']:.1f}%",
+                },
+                event_key=f"high_risk:prediction_{prediction.id}",
+            )
+            await db.commit()
+
         return PredictionResponse(
             id=prediction.id,
             patient_id=payload.patient_id,

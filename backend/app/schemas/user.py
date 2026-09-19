@@ -50,3 +50,18 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# Password Recovery Schemas
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr = Field(..., example="sarah@hospital.com")
+
+
+class VerifyOtpRequest(BaseModel):
+    email: EmailStr = Field(..., example="sarah@hospital.com")
+    otp: str = Field(..., min_length=6, max_length=6, example="123456")
+
+
+class ResetPasswordRequest(BaseModel):
+    reset_token: str = Field(..., example="reset_token_xyz")
+    new_password: str = Field(..., min_length=6, max_length=100)
