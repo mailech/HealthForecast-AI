@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiActivity, FiShield, FiBarChart2, FiUsers, FiArrowRight,
   FiCpu, FiZap, FiCheck,
   FiLock, FiFileText, FiDatabase, FiUserCheck, FiMenu, FiX,
-  FiChevronRight
+  FiChevronRight, FiArrowUp
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 
@@ -136,6 +136,27 @@ const whyCarePulseItems = [
 export default function Landing() {
   const { user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        setShowBackToTop(true);
+      } else {
+        setShowBackToTop(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  };
 
   const userRoleKey = user?.role?.toString().toLowerCase().replace(/\s+/g, '_');
   const dashboardPath = user ? (
@@ -701,6 +722,23 @@ export default function Landing() {
 
         </div>
       </footer>
+
+      {/* ── Floating "Back to Top" Scroll Button ── */}
+      <AnimatePresence>
+        {showBackToTop && (
+          <motion.button
+            initial={{ opacity: 0, y: 16, scale: 0.85 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.85 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            onClick={scrollToTop}
+            aria-label="Back to top"
+            className="fixed bottom-6 right-6 z-50 w-11 h-11 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50 hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+          >
+            <FiArrowUp size={20} className="stroke-[2.5]" />
+          </motion.button>
+        )}
+      </AnimatePresence>
 
     </div>
   );

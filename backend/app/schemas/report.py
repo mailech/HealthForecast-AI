@@ -16,6 +16,23 @@ class AppointmentInfo(BaseModel):
     reminder_timing: str | None = None
 
 
+class MedicalReportInfo(BaseModel):
+    id: int
+    file_name: str
+    file_type: str
+    file_size: int
+    created_at: datetime
+
+
+class RiskHistoryInfo(BaseModel):
+    id: int
+    date: datetime
+    risk_category: str
+    risk_score: float
+    prior_admissions: int | None = None
+    length_of_stay: int | None = None
+
+
 class ReportResponse(BaseModel):
     patient_id: int
     patient_name: str
@@ -32,7 +49,11 @@ class ReportResponse(BaseModel):
     risk_category: str | None = None
     model_version: str | None = None
     prediction_date: datetime | None = None
+    prior_admissions: int | None = None
+    length_of_stay: int | None = None
     summary: str
     insights: list[str] = []
     treatment: TreatmentInfo | None = None
     appointments: list[AppointmentInfo] = []
+    medical_reports: list[MedicalReportInfo] = []
+    risk_history: list[RiskHistoryInfo] = []

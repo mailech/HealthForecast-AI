@@ -99,6 +99,41 @@ async def get_patient_report(
             )
         )
 
+    # Medical Reports history if available
+    med_reports = (await db.execute(
+        select(MedicalReport)
+        .where(MedicalReport.patient_id == patient_id)
+        .order_by(MedicalReport.created_at.desc())
+    )).scalars().all()
+    medical_report_list = [
+        MedicalReportInfo(
+            id=mr.id,
+            file_name=mr.file_name,
+            file_type=mr.file_type,
+            file_size=mr.file_size,
+            created_at=mr.created_at,
+        )
+        for mr in med_reports
+    ]
+
+    # Prediction risk history if available
+    pred_history = (await db.execute(
+        select(Prediction)
+        .where(Prediction.patient_id == patient_id)
+        .order_by(Prediction.created_at.desc())
+    )).scalars().all()
+    risk_history_list = [
+        RiskHistoryInfo(
+            id=p.id,
+            date=p.created_at,
+            risk_category=p.risk_category,
+            risk_score=p.readmission_risk_score,
+            prior_admissions=p.prior_admissions,
+            length_of_stay=p.length_of_stay,
+        )
+        for p in pred_history
+    ]
+
     return ReportResponse(
         patient_id=patient.id,
         patient_name=f"{patient.first_name} {patient.last_name}",
@@ -115,6 +150,8 @@ async def get_patient_report(
         risk_category=category,
         model_version=prediction.model_version if prediction else None,
         prediction_date=prediction.created_at if prediction else None,
+        prior_admissions=prediction.prior_admissions if prediction else None,
+        length_of_stay=prediction.length_of_stay if prediction else None,
         summary=(
             f"Latest forecast is {category.lower()} risk at {prediction.readmission_risk_score}%."
             if prediction else "No readmission forecast has been recorded for this patient."
@@ -122,6 +159,8 @@ async def get_patient_report(
         insights=insights,
         treatment=treatment_info,
         appointments=appointment_list,
+        medical_reports=medical_report_list,
+        risk_history=risk_history_list,
     )
 
 
@@ -135,3 +174,115 @@ async def list_patient_reports(
     for patient in patients:
         reports.append(await get_patient_report(patient.id, _, db))
     return reports
+
+
+# ============================================================
+# MEDICAL REPORT UPLOAD & CLINICAL EXTRACTION
+# ============================================================
+from fastapi import UploadFile, File, Form
+from app.models.medical_report import MedicalReport
+from app.schemas.medical_report import ClinicalExtractionResponse, MedicalReportItem
+from app.schemas.report import MedicalReportInfo, RiskHistoryInfo
+from app.services.report_parser_service import ReportParserService
+
+
+@router.post("/upload-extract", response_model=ClinicalExtractionResponse)
+async def upload_and_extract_report(
+    patient_id: int = Form(...),
+    file: UploadFile = File(...),
+    current_user: User = Depends(RoleChecker([UserRole.DOCTOR])),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Upload a medical report (PDF, DOCX, TXT), extract clinical information,
+    detect conflicts with DB patient data, and save report metadata.
+    Restricted to DOCTOR role.
+    """
+    if not file or not file.filename:
+        raise HTTPException(status_code=400, detail="No file uploaded.")
+
+    # 1. Verify Patient Exists
+    patient = await db.scalar(select(Patient).where(Patient.id == patient_id))
+    if patient is None:
+        raise HTTPException(status_code=404, detail=f"Patient #{patient_id} not found.")
+
+    # 2. Read File Contents & Validate
+    contents = await file.read()
+    if len(contents) == 0:
+        raise HTTPException(status_code=400, detail="The uploaded medical report file is empty.")
+
+    file_ext = file.filename.lower().split(".")[-1]
+    if file_ext not in ["pdf", "docx", "txt", "text"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported file format. Please upload a PDF (.pdf), DOCX (.docx), or TXT (.txt) report."
+        )
+
+    # 3. Extract Raw Text & Parse Clinical Fields
+    try:
+        raw_text = ReportParserService.extract_raw_text(contents, file.filename)
+    except ValueError as val_err:
+        raise HTTPException(status_code=400, detail=str(val_err))
+    except Exception as err:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unable to extract readable text from this report: {str(err)}"
+        )
+
+    extracted_fields = ReportParserService.parse_clinical_text(raw_text)
+    conflicts = ReportParserService.detect_conflicts(extracted_fields, patient)
+
+    # 4. Save Medical Report Record in Database
+    medical_report = MedicalReport(
+        patient_id=patient.id,
+        uploaded_by_id=current_user.id,
+        file_name=file.filename,
+        file_type=file_ext,
+        file_size=len(contents),
+        extracted_text=raw_text[:2000],  # Save initial text sample
+    )
+    db.add(medical_report)
+    await db.flush()
+
+    # Trigger Event-based notification for report analysis
+    from app.services.notification_service import NotificationService
+    patient_name = f"{patient.first_name} {patient.last_name}"
+    await NotificationService.create_notification(
+        db=db,
+        type="report_analysis",
+        title="Report Analysis Completed",
+        message=f"Medical report analysis completed for {patient_name}.",
+        user_id=current_user.id,
+        target_role="Doctor",
+        related_entity_type="patient",
+        related_entity_id=patient.id,
+        event_key=f"report_analysis:report_{medical_report.id}",
+    )
+    await db.commit()
+    await db.refresh(medical_report)
+
+    return ClinicalExtractionResponse(
+        report_id=medical_report.id,
+        patient_id=patient.id,
+        file_name=file.filename,
+        file_type=file_ext,
+        file_size=len(contents),
+        extracted_fields=extracted_fields,
+        conflicts=conflicts,
+        raw_text_snippet=raw_text[:500] if raw_text else None,
+    )
+
+
+@router.get("/medical-reports/{patient_id}", response_model=list[MedicalReportItem])
+async def list_patient_medical_reports(
+    patient_id: int,
+    _: UserRole = Depends(RoleChecker([UserRole.DOCTOR, UserRole.HOSPITAL_ADMIN])),
+    db: AsyncSession = Depends(get_db),
+):
+    """List uploaded medical reports for a patient (Doctor & Hospital Admin)."""
+    result = await db.execute(
+        select(MedicalReport)
+        .where(MedicalReport.patient_id == patient_id)
+        .order_by(MedicalReport.created_at.desc())
+    )
+    return result.scalars().all()

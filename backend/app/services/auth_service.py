@@ -32,12 +32,38 @@ def _mask_email(email: str) -> str:
 class AuthService:
 
     @staticmethod
+    def normalize_role(role_val: str | None) -> str | None:
+        if not role_val:
+            return None
+        r = str(role_val).strip().lower().replace("_", " ")
+        if "doc" in r:
+            return "doctor"
+        if "hosp" in r or ("admin" in r and "sys" not in r):
+            return "hospital_admin"
+        if "res" in r:
+            return "researcher"
+        if "sys" in r:
+            return "system_admin"
+        return r.replace(" ", "_")
+
+    @staticmethod
     async def register_user(db: AsyncSession, user_in: UserCreate) -> User:
         return await UserService.create(db, user_in)
 
     @staticmethod
-    async def authenticate_user(db: AsyncSession, email: str, password: str) -> User:
-        user = await UserService.get_by_email(db, email)
+    async def authenticate_user(
+        db: AsyncSession,
+        email: str,
+        password: str,
+        selected_role: str | None = None
+    ) -> User:
+        clean_email = email.strip().lower() if email else ""
+        if not clean_email or not password:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password."
+            )
+        user = await UserService.get_by_email(db, clean_email)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -53,11 +79,29 @@ class AuthService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="User account is deactivated."
             )
+
+        # Validate that selected_role matches the authoritative database role
+        if selected_role:
+            norm_selected = AuthService.normalize_role(selected_role)
+            norm_db_role = AuthService.normalize_role(
+                user.role.value if hasattr(user.role, "value") else str(user.role)
+            )
+            if norm_selected and norm_db_role and norm_selected != norm_db_role:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Incorrect email or password."
+                )
+
         return user
 
     @staticmethod
-    async def login_user(db: AsyncSession, form_data: OAuth2PasswordRequestForm) -> Token:
-        user = await AuthService.authenticate_user(db, form_data.username, form_data.password)
+    async def login_user(
+        db: AsyncSession,
+        form_data: OAuth2PasswordRequestForm,
+        selected_role: str | None = None
+    ) -> Token:
+        clean_username = form_data.username.strip().lower() if form_data.username else ""
+        user = await AuthService.authenticate_user(db, clean_username, form_data.password, selected_role=selected_role)
         access_token = create_access_token(subject=user.email, role=user.role.value)
         return Token(access_token=access_token, token_type="bearer")
 

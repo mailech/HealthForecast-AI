@@ -1,11 +1,14 @@
 import api from './api';
 
 export const authService = {
-  login: async (email, password) => {
+  login: async (email, password, role) => {
     const formData = new URLSearchParams();
 
-    formData.append('username', email);
-    formData.append('password', password);
+    formData.append('username', (email || '').trim().toLowerCase());
+    formData.append('password', password || '');
+    if (role) {
+      formData.append('role', role);
+    }
 
     const response = await api.post(
       '/auth/login',
@@ -21,7 +24,13 @@ export const authService = {
   },
 
   register: async (data) => {
-    const response = await api.post('/auth/register', data);
+    const payload = {
+      ...data,
+      email: (data.email || '').trim().toLowerCase(),
+      full_name: (data.full_name || '').trim(),
+      phone: data.phone ? data.phone.trim() : null,
+    };
+    const response = await api.post('/auth/register', payload);
     return response.data;
   },
 

@@ -4,6 +4,7 @@ import Breadcrumb from '../components/common/Breadcrumb';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { patientService } from '../services/patientService';
+import { getPatientLabel } from '../utils/patientUtils';
 import {
   FiCalendar,
   FiPlus,
@@ -266,7 +267,7 @@ export default function Appointments() {
                 <option value="">Select patient</option>
                 {patients.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.first_name} {p.last_name} (#{p.id})
+                    {getPatientLabel(p)}
                   </option>
                 ))}
               </select>

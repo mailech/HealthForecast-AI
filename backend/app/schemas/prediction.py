@@ -48,6 +48,7 @@ class PredictionCreate(BaseModel):
     admission_source_id: int = 1
 
     time_in_hospital: int = Field(3, ge=1, le=30)
+    length_of_stay: Union[int, None] = None
     num_lab_procedures: int = Field(40, ge=0, le=200)
     num_procedures: int = Field(1, ge=0, le=20)
     num_medications: int = Field(10, ge=0, le=100)
@@ -55,6 +56,7 @@ class PredictionCreate(BaseModel):
     number_outpatient: int = Field(0, ge=0)
     number_emergency: int = Field(0, ge=0)
     number_inpatient: int = Field(0, ge=0)
+    prior_admissions: Union[int, None] = None
 
     diag_1: str = "250.83"
     diag_2: str = "276"
@@ -113,6 +115,9 @@ class PredictionResponse(BaseModel):
     model_version: str
     probabilities: dict[str, float] = {}
     patient_name: str | None = None
+    created_at: Union[str, None] = None
+    prior_admissions: int | None = None
+    length_of_stay: int | None = None
 
     model_config = ConfigDict(
         from_attributes=True,

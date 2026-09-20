@@ -4,6 +4,7 @@ import Breadcrumb from '../components/common/Breadcrumb';
 import { FiCheckCircle, FiAlertTriangle, FiInfo, FiActivity } from 'react-icons/fi';
 import api from '../services/api';
 import { patientService } from '../services/patientService';
+import { getPatientLabel } from '../utils/patientUtils';
 
 export default function ClinicalRecommendations() {
   const [patientId, setPatientId] = useState('');
@@ -48,7 +49,7 @@ export default function ClinicalRecommendations() {
           <option value="">Select a patient</option>
           {patients.map((patient) => (
             <option key={patient.id} value={patient.id}>
-              {patient.first_name} {patient.last_name} (#{patient.id})
+              {getPatientLabel(patient)}
             </option>
           ))}
         </select>

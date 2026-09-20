@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.db.database import engine
 from app.db.base import Base
-from app.models import user, patient, prediction, recommendation, treatment, appointment, notification
+from app.models import user, patient, prediction, recommendation, treatment, appointment, notification, medical_report
 from app.core.security import decode_access_token
 from fastapi import Request
 
@@ -38,9 +38,20 @@ logger = logging.getLogger("healthforecast_ai")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     import app.db.database as db_mod
+    from sqlalchemy import text
     try:
         async with db_mod.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            # Safe column migration check for existing tables
+            try:
+                await conn.execute(text("ALTER TABLE patients ADD COLUMN IF NOT EXISTS diagnosis VARCHAR(255);"))
+                await conn.execute(text("ALTER TABLE patients ADD COLUMN IF NOT EXISTS department VARCHAR(100);"))
+                await conn.execute(text("ALTER TABLE patients ADD COLUMN IF NOT EXISTS admission_date DATE;"))
+                await conn.execute(text("ALTER TABLE predictions ADD COLUMN IF NOT EXISTS prior_admissions INTEGER;"))
+                await conn.execute(text("ALTER TABLE predictions ADD COLUMN IF NOT EXISTS length_of_stay INTEGER;"))
+                await conn.execute(text("UPDATE patients SET last_name = '' WHERE LOWER(TRIM(first_name)) = LOWER(TRIM(last_name));"))
+            except Exception as mig_err:
+                logger.info(f"Schema migration check note: {mig_err}")
         logger.info("Database tables initialized successfully with primary engine.")
     except Exception as exc:
         logger.warning(f"Primary PostgreSQL database connection failed ({exc}). Falling back to SQLite...")
@@ -55,6 +66,14 @@ async def lifespan(app: FastAPI):
         )
         async with sqlite_engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            try:
+                await conn.execute(text("ALTER TABLE patients ADD COLUMN IF NOT EXISTS diagnosis VARCHAR(255);"))
+                await conn.execute(text("ALTER TABLE patients ADD COLUMN IF NOT EXISTS department VARCHAR(100);"))
+                await conn.execute(text("ALTER TABLE patients ADD COLUMN IF NOT EXISTS admission_date DATE;"))
+                await conn.execute(text("ALTER TABLE predictions ADD COLUMN IF NOT EXISTS prior_admissions INTEGER;"))
+                await conn.execute(text("ALTER TABLE predictions ADD COLUMN IF NOT EXISTS length_of_stay INTEGER;"))
+            except Exception:
+                pass
         logger.info("SQLite database tables initialized successfully.")
 
     # Seed default role accounts if missing
@@ -108,6 +127,7 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
     )
 
 
@@ -127,14 +147,19 @@ async def attach_token_payload(request: Request, call_next):
     return response
 
 
-# Exception Handler
+# Exception Handler with CORS headers
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Global Error: {exc}", exc_info=True)
-    return JSONResponse(
+    resp = JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": "Internal Server Error. Please contact backend admin."},
+        content={"detail": f"Internal Server Error: {str(exc)}"},
     )
+    origin = request.headers.get("origin")
+    if origin:
+        resp.headers["Access-Control-Allow-Origin"] = origin
+        resp.headers["Access-Control-Allow-Credentials"] = "true"
+    return resp
 
 
 # Health Check

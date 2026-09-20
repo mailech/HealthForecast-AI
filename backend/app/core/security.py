@@ -22,23 +22,28 @@ get_password_hash = hash_password
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify PBKDF2 hashes with Passlib and legacy bcrypt hashes directly."""
+    """Verify PBKDF2 hashes with Passlib, legacy bcrypt hashes directly, and fallback schemes."""
     if not isinstance(plain_password, str) or not isinstance(hashed_password, str) or not hashed_password:
         return False
 
-    try:
-        if hashed_password.startswith(("$2a$", "$2b$", "$2y$")):
-            return bcrypt.checkpw(
-                plain_password.encode("utf-8"),
-                hashed_password.encode("ascii"),
-            )
-
-        if hashed_password.startswith(("$pbkdf2-", "$pbkdf2_")):
-            return pwd_context.verify(plain_password, hashed_password)
-    except (ValueError, TypeError, UnicodeError):
+    hashed_password_clean = hashed_password.strip()
+    if not hashed_password_clean:
         return False
 
-    return False
+    try:
+        if hashed_password_clean.startswith(("$2a$", "$2b$", "$2y$")):
+            try:
+                if bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password_clean.encode("ascii")):
+                    return True
+            except (ValueError, TypeError, UnicodeError):
+                pass
+
+        if hashed_password_clean.startswith(("$pbkdf2-", "$pbkdf2_")):
+            return pwd_context.verify(plain_password, hashed_password_clean)
+
+        return pwd_context.verify(plain_password, hashed_password_clean)
+    except Exception:
+        return False
 
 
 def create_access_token(subject: Any, role: str, expires_delta: Optional[timedelta] = None) -> str:

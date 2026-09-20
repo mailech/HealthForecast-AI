@@ -7,6 +7,8 @@ import RiskBadge from '../components/common/RiskBadge';
 import { FiActivity, FiAlertTriangle, FiCheckCircle, FiClock, FiFileText } from 'react-icons/fi';
 import { predictionService } from '../services/predictionService';
 
+import { getPatientFullName } from '../utils/patientUtils';
+
 export default function PatientRiskAnalyzer() {
   const [result, setResult] = useState(null);
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -123,7 +125,7 @@ export default function PatientRiskAnalyzer() {
       <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xs border border-zinc-200 dark:border-zinc-800 p-6">
         <h2 className="text-sm font-bold text-zinc-900 dark:text-white mb-3 flex items-center gap-2">
           <FiClock size={16} className="text-zinc-600 dark:text-zinc-400" />
-          Patient Prediction History {selectedPatient ? `(${selectedPatient.first_name} ${selectedPatient.last_name})` : ''}
+          Patient Prediction History {selectedPatient ? `(${getPatientFullName(selectedPatient)})` : ''}
         </h2>
 
         {loadingHistory ? (

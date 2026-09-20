@@ -106,6 +106,21 @@ class Settings(BaseSettings):
     # -----------------------------
     # Environment Configuration
     # -----------------------------
+    APP_ENV: str = Field(default="development", alias="APP_ENV")
+    PASSWORD_RESET_TEST_EMAIL: str = Field(
+        default="chnagadeepika2005@gmail.com",
+        alias="PASSWORD_RESET_TEST_EMAIL"
+    )
+
+    # -----------------------------
+    # SMTP Settings
+    # -----------------------------
+    SMTP_HOST: str = Field(default="smtp.gmail.com", alias="SMTP_HOST")
+    SMTP_PORT: int = Field(default=587, alias="SMTP_PORT")
+    SMTP_USERNAME: str = Field(default="", alias="SMTP_USERNAME")
+    SMTP_PASSWORD: str = Field(default="", alias="SMTP_PASSWORD")
+    SMTP_FROM_EMAIL: str = Field(default="", alias="SMTP_FROM_EMAIL")
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

@@ -1,7 +1,7 @@
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from fastapi import HTTPException, status
 
 from app.models.user import User, UserRole
@@ -13,7 +13,10 @@ class UserService:
 
     @staticmethod
     async def get_by_email(db: AsyncSession, email: str) -> Optional[User]:
-        result = await db.execute(select(User).where(User.email == email))
+        if not email:
+            return None
+        clean_email = email.strip().lower()
+        result = await db.execute(select(User).where(func.lower(User.email) == clean_email))
         return result.scalars().first()
 
     @staticmethod
@@ -51,7 +54,8 @@ class UserService:
 
     @staticmethod
     async def create(db: AsyncSession, user_in: UserCreate) -> User:
-        existing_user = await UserService.get_by_email(db, user_in.email)
+        clean_email = user_in.email.strip().lower() if user_in.email else ""
+        existing_user = await UserService.get_by_email(db, clean_email)
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -59,9 +63,9 @@ class UserService:
             )
         
         db_user = User(
-            full_name=user_in.full_name,
-            email=user_in.email,
-            phone=user_in.phone,
+            full_name=user_in.full_name.strip() if user_in.full_name else "",
+            email=clean_email,
+            phone=user_in.phone.strip() if user_in.phone else None,
             password_hash=hash_password(user_in.password),
             role=user_in.role,
             is_active=True

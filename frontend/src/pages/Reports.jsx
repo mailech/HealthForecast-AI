@@ -5,6 +5,7 @@ import Breadcrumb from '../components/common/Breadcrumb';
 import RiskBadge from '../components/common/RiskBadge';
 import api from '../services/api';
 import { patientService } from '../services/patientService';
+import { getPatientLabel, getPatientFullName, getPatientMRN } from '../utils/patientUtils';
 import {
   FiDownload,
   FiFileText,
@@ -163,8 +164,39 @@ export default function Reports() {
       doc.text(`${report.diagnosis || 'Standard Observation'}`, col1 + 28, y);
       y += 10;
 
-      // 2. RISK ASSESSMENT
-      drawSectionHeader('Risk Assessment');
+      // 2. MEDICAL REPORTS HISTORY
+      drawSectionHeader('Medical Reports Log');
+      doc.setFontSize(8.5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(51, 65, 85);
+      if (report.medical_reports && report.medical_reports.length > 0) {
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setFillColor(248, 250, 252);
+        doc.rect(col1, y, pageWidth - 36, 6, 'F');
+        doc.text('File Name', col1 + 2, y + 4.5);
+        doc.text('Uploaded Date', col1 + 80, y + 4.5);
+        doc.text('Type', col1 + 130, y + 4.5);
+        doc.text('Status', col1 + 155, y + 4.5);
+        y += 8;
+        doc.setFont('helvetica', 'normal');
+        report.medical_reports.forEach((mr) => {
+          if (y > 270) { doc.addPage(); y = 20; }
+          doc.text(mr.file_name || '—', col1 + 2, y);
+          doc.text(mr.created_at ? new Date(mr.created_at).toLocaleDateString() : '—', col1 + 80, y);
+          doc.text((mr.file_type || '').toUpperCase(), col1 + 130, y);
+          doc.text('Analyzed', col1 + 155, y);
+          y += 5;
+        });
+      } else {
+        doc.setFont('helvetica', 'italic');
+        doc.text('No medical reports recorded for this patient.', col1, y);
+        y += 6;
+      }
+      y += 4;
+
+      // 3. RISK ASSESSMENT & KEY MODEL INPUTS
+      drawSectionHeader('Risk Assessment & Key Model Inputs');
 
       const cat = (report.risk_category || 'N/A').toUpperCase();
       const score = report.risk_score !== null && report.risk_score !== undefined ? `${report.risk_score}%` : 'N/A';
@@ -194,15 +226,47 @@ export default function Reports() {
       doc.setTextColor(51, 65, 85);
       doc.setFontSize(8.5);
       doc.setFont('helvetica', 'bold');
-      doc.text('Prediction Date:', col2, y + 4);
+      doc.text('Prior Admissions:', col2, y + 4);
       doc.setFont('helvetica', 'normal');
-      doc.text(`${report.prediction_date ? new Date(report.prediction_date).toLocaleString() : 'N/A'}`, col2 + 28, y + 4);
+      doc.text(`${report.prior_admissions !== null && report.prior_admissions !== undefined ? report.prior_admissions : 'N/A'}`, col2 + 28, y + 4);
 
       doc.setFont('helvetica', 'bold');
-      doc.text('Model Version:', col2, y + 10);
+      doc.text('Length of Stay:', col2, y + 10);
       doc.setFont('helvetica', 'normal');
-      doc.text(`${report.model_version || 'patient-risk-model-v1.0.0'}`, col2 + 28, y + 10);
+      doc.text(`${report.length_of_stay !== null && report.length_of_stay !== undefined ? `${report.length_of_stay} days` : 'N/A'}`, col2 + 28, y + 10);
       y += 20;
+
+      // 4. PREDICTION RISK HISTORY
+      drawSectionHeader('Risk Assessment History');
+      if (report.risk_history && report.risk_history.length > 0) {
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setFillColor(248, 250, 252);
+        doc.rect(col1, y, pageWidth - 36, 6, 'F');
+        doc.text('Assessment Date', col1 + 2, y + 4.5);
+        doc.text('Risk Category', col1 + 60, y + 4.5);
+        doc.text('Score', col1 + 105, y + 4.5);
+        doc.text('Prior Admissions', col1 + 130, y + 4.5);
+        doc.text('Length of Stay', col1 + 160, y + 4.5);
+        y += 8;
+
+        doc.setFont('helvetica', 'normal');
+        report.risk_history.forEach((rh) => {
+          if (y > 270) { doc.addPage(); y = 20; }
+          doc.text(rh.date ? new Date(rh.date).toLocaleDateString() : '—', col1 + 2, y);
+          doc.text((rh.risk_category || '').toUpperCase(), col1 + 60, y);
+          doc.text(`${rh.risk_score}%`, col1 + 105, y);
+          doc.text(rh.prior_admissions !== null && rh.prior_admissions !== undefined ? String(rh.prior_admissions) : 'N/A', col1 + 130, y);
+          doc.text(rh.length_of_stay !== null && rh.length_of_stay !== undefined ? `${rh.length_of_stay} d` : 'N/A', col1 + 160, y);
+          y += 5;
+        });
+      } else {
+        doc.setFontSize(8.5);
+        doc.setFont('helvetica', 'italic');
+        doc.text('No historical prediction records found.', col1, y);
+        y += 6;
+      }
+      y += 4;
 
       // 3. CLINICAL RECOMMENDATIONS & INSIGHTS
       drawSectionHeader('Clinical Recommendations & Insights');
@@ -365,7 +429,7 @@ export default function Reports() {
             <option value="">Select a patient</option>
             {patients.map((patient) => (
               <option key={patient.id} value={patient.id}>
-                {patient.first_name} {patient.last_name} (#{patient.id})
+                {getPatientLabel(patient)}
               </option>
             ))}
           </select>

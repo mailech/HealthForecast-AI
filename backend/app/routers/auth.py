@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,9 +22,23 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/login", response_model=Token)
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
-    """OAuth2 Compatible Login Endpoint."""
-    return await AuthService.login_user(db, form_data)
+async def login(
+    request: Request,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: AsyncSession = Depends(get_db)
+):
+    """OAuth2 Compatible Login Endpoint with Role Validation."""
+    selected_role = None
+    try:
+        form = await request.form()
+        selected_role = form.get("role") or form.get("selected_role") or form.get("client_id")
+    except Exception:
+        pass
+
+    if not selected_role:
+        selected_role = request.query_params.get("role") or request.query_params.get("selected_role")
+
+    return await AuthService.login_user(db, form_data, selected_role=selected_role)
 
 
 @router.post("/forgot-password")

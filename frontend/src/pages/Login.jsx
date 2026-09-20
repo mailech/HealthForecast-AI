@@ -28,10 +28,10 @@ const ROLE_REDIRECTS = {
 };
 
 const ROLES_LIST = [
-  { value: 'Doctor', label: 'Doctor', defaultEmail: 'sarah@hospital.com' },
-  { value: 'Hospital Admin', label: 'Hospital Administrator', defaultEmail: 'admin@hospital.com' },
-  { value: 'Researcher', label: 'Researcher', defaultEmail: 'researcher@hospital.com' },
-  { value: 'System Admin', label: 'System Administrator', defaultEmail: 'sysadmin@hospital.com' },
+  { value: 'Doctor', label: 'Doctor' },
+  { value: 'Hospital Admin', label: 'Hospital Administrator' },
+  { value: 'Researcher', label: 'Researcher' },
+  { value: 'System Admin', label: 'System Administrator' },
 ];
 
 const FEATURE_POINTS = [
@@ -75,19 +75,14 @@ export default function Login() {
   } = useForm({
     defaultValues: {
       selectedRole: 'Doctor',
-      email: 'sarah@hospital.com',
-      password: 'password',
+      email: '',
+      password: '',
     },
   });
 
   const selectRole = (roleVal) => {
     setActiveRole(roleVal);
     setValue('selectedRole', roleVal);
-    const roleObj = ROLES_LIST.find((r) => r.value === roleVal);
-    if (roleObj) {
-      setValue('email', roleObj.defaultEmail);
-      setValue('password', 'password');
-    }
   };
 
   const onSubmit = async ({ email, password }) => {
@@ -95,7 +90,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const user = await login(email, password);
+      const user = await login(email, password, activeRole);
       const role = user?.role;
       const normalizedRole = role?.toString().toLowerCase().replace(/\s+/g, '_');
 
@@ -109,7 +104,7 @@ export default function Login() {
       setError(
         e?.response?.data?.detail ||
           e?.message ||
-          'Invalid email or password.'
+          'Incorrect email or password.'
       );
     } finally {
       setLoading(false);
@@ -262,7 +257,7 @@ export default function Login() {
               </div>
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} autoComplete="off" className="space-y-4">
               <AnimatePresence>
                 {error && (
                   <motion.div
@@ -288,7 +283,9 @@ export default function Login() {
                   <FiMail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
                   <input
                     type="email"
-                    placeholder="name@hospital.com"
+                    placeholder="Enter your email address"
+                    autoComplete="off"
+                    defaultValue=""
                     className={`input-field pl-10 text-sm rounded-xl ${
                       errors.email ? 'border-rose-400 dark:border-rose-500' : ''
                     }`}
@@ -321,7 +318,9 @@ export default function Login() {
                   <FiLock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
                   <input
                     type={showPass ? 'text' : 'password'}
-                    placeholder="••••••••"
+                    placeholder="Enter your password"
+                    autoComplete="off"
+                    defaultValue=""
                     className={`input-field pl-10 pr-10 text-sm rounded-xl ${
                       errors.password ? 'border-rose-400 dark:border-rose-500' : ''
                     }`}

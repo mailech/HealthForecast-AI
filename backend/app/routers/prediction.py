@@ -37,11 +37,16 @@ async def predict_readmission(
         if patient is None:
             raise HTTPException(status_code=404, detail="Patient not found")
 
+        prior_val = payload.prior_admissions if payload.prior_admissions is not None else payload.number_inpatient
+        los_val = payload.length_of_stay if payload.length_of_stay is not None else payload.time_in_hospital
+
         prediction = Prediction(
             patient_id=payload.patient_id,
             readmission_risk_score=result["readmission_risk_score"],
             risk_category=result["risk_category"],
             model_version=result["model_version"],
+            prior_admissions=prior_val,
+            length_of_stay=los_val,
         )
         db.add(prediction)
         await db.flush()
@@ -54,7 +59,7 @@ async def predict_readmission(
                 db=db,
                 type="high_risk",
                 title="High Risk Alert",
-                message=f"{patient_name} has been classified as High Risk and requires attention.",
+                message=f"High-risk assessment recorded for {patient_name}.",
                 user_id=getattr(token, "id", None),
                 target_role="Doctor",
                 related_entity_type="patient",
@@ -79,6 +84,9 @@ async def predict_readmission(
             model_version=result["model_version"],
             probabilities=result["probabilities"],
             patient_name=f"{patient.first_name} {patient.last_name}",
+            created_at=prediction.created_at.isoformat() if prediction.created_at else None,
+            prior_admissions=prediction.prior_admissions,
+            length_of_stay=prediction.length_of_stay,
         )
 
     except FileNotFoundError as error:
@@ -102,7 +110,7 @@ async def predict_readmission(
 )
 async def get_patient_prediction_history(
     patient_id: int,
-    token=Depends(RoleChecker([UserRole.DOCTOR])),
+    token=Depends(RoleChecker([UserRole.DOCTOR, UserRole.HOSPITAL_ADMIN])),
     db: AsyncSession = Depends(get_db),
 ):
     """Return persisted prediction history for one patient."""
@@ -123,6 +131,9 @@ async def get_patient_prediction_history(
             risk_category=prediction.risk_category,
             model_version=prediction.model_version,
             patient_name=f"{patient.first_name} {patient.last_name}",
+            created_at=prediction.created_at.isoformat() if prediction.created_at else None,
+            prior_admissions=prediction.prior_admissions,
+            length_of_stay=prediction.length_of_stay,
         )
         for prediction in result.scalars().all()
     ]

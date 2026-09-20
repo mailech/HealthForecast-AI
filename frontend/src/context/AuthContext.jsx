@@ -78,12 +78,13 @@ export function AuthProvider({ children }) {
   // LOGIN
   // =====================================================
 
-  const login = async (email, password) => {
+  const login = async (email, password, role) => {
     try {
       // Call FastAPI /auth/login
       const response = await authService.login(
         email,
-        password
+        password,
+        role
       );
 
       const token = response?.access_token;
@@ -124,7 +125,7 @@ export function AuthProvider({ children }) {
       const message =
         error?.response?.data?.detail ||
         error?.message ||
-        'Login failed. Please check your email and password.';
+        'Incorrect email or password.';
 
       throw new Error(
         Array.isArray(message)

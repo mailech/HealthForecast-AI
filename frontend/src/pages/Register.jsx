@@ -18,10 +18,10 @@ import {
 import { useAuth } from '../context/AuthContext';
 
 const ROLES = [
-  { value: 'Doctor', label: 'Doctor', defaultEmail: 'sarah@hospital.com' },
-  { value: 'Hospital Admin', label: 'Hospital Administrator', defaultEmail: 'admin@hospital.com' },
-  { value: 'Researcher', label: 'Researcher', defaultEmail: 'researcher@hospital.com' },
-  { value: 'System Admin', label: 'System Administrator', defaultEmail: 'sysadmin@hospital.com' },
+  { value: 'Doctor', label: 'Doctor' },
+  { value: 'Hospital Admin', label: 'Hospital Administrator' },
+  { value: 'Researcher', label: 'Researcher' },
+  { value: 'System Admin', label: 'System Administrator' },
 ];
 
 const PERKS = [
@@ -49,6 +49,10 @@ export default function Register() {
   } = useForm({
     defaultValues: {
       role: 'Doctor',
+      full_name: '',
+      email: '',
+      phone: '',
+      password: '',
     },
   });
 
@@ -88,74 +92,80 @@ export default function Register() {
   return (
     <div className="min-h-screen flex bg-[#fafafa] dark:bg-zinc-950 font-sans text-zinc-900 dark:text-zinc-100">
 
-      {/* LEFT PANEL */}
-      <div className="hidden lg:flex lg:w-[44%] relative overflow-hidden flex-col justify-between p-12 bg-zinc-950 text-white border-r border-zinc-800">
-        
-        {/* Top Logo */}
+      {/* ───────────────── LEFT PANEL (Deep Navy/Blue Healthcare Visual Panel) ───────────────── */}
+      <div 
+        className="hidden lg:flex lg:w-[45%] xl:w-[44%] relative overflow-hidden flex-col justify-between p-10 xl:p-12 text-white border-r border-indigo-900/40"
+        style={{
+          background: 'linear-gradient(135deg, #0b1f4d 0%, #172f78 50%, #312e81 100%)',
+        }}
+      >
+        {/* Soft Ambient Glow Elements */}
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
+
+        {/* TOP-LEFT BRANDING */}
         <motion.div
-          initial={{ opacity: 0, y: -16 }}
+          initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="flex items-center gap-3 relative z-10"
+          className="relative z-10 flex items-center gap-3 pt-2 pl-1"
         >
-          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-zinc-950 shadow-xs">
-            <FiActivity size={20} className="stroke-[2.5]" />
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20 border border-white/10">
+            <FiActivity size={18} className="stroke-[2.5]" />
           </div>
-          <div>
-            <span className="text-white font-extrabold text-xl tracking-tight">
-              CarePulse AI
+          <div className="flex flex-col">
+            <span className="text-white font-extrabold text-lg tracking-tight leading-none">
+              CarePulse <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-300 bg-clip-text text-transparent">AI</span>
             </span>
-            <p className="text-[10px] uppercase font-bold tracking-wider text-zinc-400">
-              Healthcare Intelligence Platform
-            </p>
+            <span className="text-[10px] font-bold text-slate-300/80 uppercase tracking-wider mt-1">
+              HEALTHCARE INTELLIGENCE PLATFORM
+            </span>
           </div>
         </motion.div>
 
-        {/* Center Content */}
-        <div className="relative z-10 flex-1 flex flex-col justify-center py-10">
+        {/* CENTER DECORATIVE ECG & TAGLINE */}
+        <div className="relative z-10 flex flex-col items-center text-center my-auto px-4 w-full">
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.1 }}
+            className="w-full max-w-sm flex flex-col items-center space-y-4"
           >
-            <h2 className="text-3xl font-extrabold text-white leading-tight mb-3 tracking-tight">
-              Join the Future of Healthcare AI
-            </h2>
+            {/* Medical Heartbeat / ECG Waveform Graphic */}
+            <div className="w-full h-28 relative flex items-center justify-center mb-1">
+              <svg className="w-full h-full text-blue-400 drop-shadow-[0_0_12px_rgba(96,165,250,0.5)]" viewBox="0 0 500 120" fill="none">
+                <path
+                  d="M0 60 L140 60 L155 35 L170 85 L185 15 L200 105 L215 60 L230 60 L242 45 L254 75 L266 60 L500 60"
+                  stroke="url(#ecg-gradient-reg)"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <defs>
+                  <linearGradient id="ecg-gradient-reg" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#60A5FA" stopOpacity="0.4" />
+                    <stop offset="50%" stopColor="#818CF8" stopOpacity="1" />
+                    <stop offset="100%" stopColor="#A78BFA" stopOpacity="0.4" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
 
-            <p className="text-zinc-400 text-sm leading-relaxed mb-8 max-w-xs">
-              Create your account to access clinical intelligence and risk evaluation dashboards.
+            {/* Center Text */}
+            <h3 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight leading-snug">
+              Connected Care. Smarter Decisions.
+            </h3>
+            <p className="text-xs sm:text-sm font-medium leading-relaxed text-slate-300/90 max-w-xs">
+              A unified platform for modern healthcare management.
             </p>
-
-            <div className="space-y-3.5">
-              {PERKS.map((perk, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <div className="w-5 h-5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center flex-shrink-0">
-                    <FiCheckCircle size={11} className="text-zinc-300" />
-                  </div>
-                  <span className="text-zinc-300 text-xs font-medium">
-                    {perk}
-                  </span>
-                </div>
-              ))}
-            </div>
           </motion.div>
-
-          <div className="mt-10 p-5 rounded-2xl bg-zinc-900/80 border border-zinc-800">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-200 flex items-center justify-center border border-zinc-700">
-                <FiShield size={15} />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-white">Enterprise Access Control</p>
-                <p className="text-[11px] text-zinc-400">Strict RBAC & JWT Authorization</p>
-              </div>
-            </div>
-          </div>
         </div>
 
-        <p className="relative z-10 text-zinc-500 text-xs">
+        {/* BOTTOM COPYRIGHT */}
+        <div className="relative z-10 text-xs text-slate-400/80 pl-1 pb-1">
           &copy; 2026 CarePulse AI
-        </p>
+        </div>
       </div>
 
       {/* RIGHT PANEL */}
@@ -237,7 +247,8 @@ export default function Register() {
                   <FiUser className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" size={15} />
                   <input
                     type="text"
-                    placeholder="Dr. Sarah Johnson"
+                    placeholder="Enter your full name"
+                    autoComplete="name"
                     className={`input-field pl-10 text-sm ${errors.full_name ? 'border-red-400' : ''}`}
                     {...register('full_name', { required: 'Full name is required' })}
                   />
@@ -254,7 +265,8 @@ export default function Register() {
                   <FiMail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" size={15} />
                   <input
                     type="email"
-                    placeholder="sarah@hospital.com"
+                    placeholder="Enter your email address"
+                    autoComplete="email"
                     className={`input-field pl-10 text-sm ${errors.email ? 'border-red-400' : ''}`}
                     {...register('email', {
                       required: 'Email is required',
@@ -274,7 +286,8 @@ export default function Register() {
                   <FiPhone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" size={15} />
                   <input
                     type="tel"
-                    placeholder="+1 555-0199"
+                    placeholder="Enter your phone number"
+                    autoComplete="tel"
                     className="input-field pl-10 text-sm"
                     {...register('phone')}
                   />
@@ -290,7 +303,8 @@ export default function Register() {
                   <FiLock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" size={15} />
                   <input
                     type={showPass ? 'text' : 'password'}
-                    placeholder="••••••••"
+                    placeholder="Create a password"
+                    autoComplete="new-password"
                     className={`input-field pl-10 pr-10 text-sm ${errors.password ? 'border-red-400' : ''}`}
                     {...register('password', {
                       required: 'Password is required',

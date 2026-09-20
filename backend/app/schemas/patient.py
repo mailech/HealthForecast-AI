@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict
 class PatientBase(BaseModel):
     mrn: str
     first_name: str
-    last_name: str
+    last_name: str = ""
     gender: str
     age: int
     diagnosis: str | None = None

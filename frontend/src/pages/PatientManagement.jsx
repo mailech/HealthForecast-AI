@@ -2,16 +2,25 @@ import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../layouts/DashboardLayout';
 import Breadcrumb from '../components/common/Breadcrumb';
 import SearchBar from '../components/common/SearchBar';
-import { FiUserPlus, FiEdit2, FiTrash2 } from 'react-icons/fi';
+import { FiUserPlus, FiEdit2, FiTrash2, FiFileText, FiUser } from 'react-icons/fi';
 import PatientForm from '../components/forms/PatientForm';
 import { patientService } from '../services/patientService';
+import { useAuth } from '../context/AuthContext';
+import MedicalReportAnalysisModal from '../components/patient/MedicalReportAnalysisModal';
+import PatientProfileModal from '../components/patient/PatientProfileModal';
+import { getPatientFullName, getPatientMRN } from '../utils/patientUtils';
 
 export default function PatientManagement() {
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [patients, setPatients] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState('');
   const [editingPatient, setEditingPatient] = useState(null);
+  const [selectedPatientForAnalysis, setSelectedPatientForAnalysis] = useState(null);
+  const [selectedPatientProfile, setSelectedPatientProfile] = useState(null);
+
+  const isDoctor = user?.role === 'Doctor' || user?.role === 'doctor';
 
   useEffect(() => {
     loadPatients();
@@ -28,8 +37,8 @@ export default function PatientManagement() {
   };
 
   const filtered = patients.filter((p) => {
-    const name = `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase();
-    const mrn = (p.mrn || '').toLowerCase();
+    const name = getPatientFullName(p).toLowerCase();
+    const mrn = getPatientMRN(p).toLowerCase();
     const searchText = search.toLowerCase();
 
     return (
@@ -49,7 +58,7 @@ export default function PatientManagement() {
       const created = await patientService.create({
         mrn: data.mrn,
         first_name: nameParts[0],
-        last_name: nameParts.slice(1).join(' ') || nameParts[0],
+        last_name: nameParts.slice(1).join(' ') || '',
         gender: genderVal,
         age: Number(data.age),
         diagnosis: diagVal || null,
@@ -73,7 +82,7 @@ export default function PatientManagement() {
 
   const handleDelete = async (patient) => {
     const confirmed = window.confirm(
-      `Are you sure you want to permanently delete ${patient.first_name} ${patient.last_name}?`
+      `Are you sure you want to permanently delete ${getPatientFullName(patient)}?`
     );
     if (!confirmed) return;
 
@@ -136,7 +145,7 @@ export default function PatientManagement() {
               editingPatient
                 ? {
                     mrn: editingPatient.mrn,
-                    name: `${editingPatient.first_name} ${editingPatient.last_name}`,
+                    name: getPatientFullName(editingPatient),
                     age: editingPatient.age,
                     gender: editingPatient.gender,
                     admission_date: editingPatient.admission_date || '',
@@ -197,22 +206,26 @@ export default function PatientManagement() {
                       #{p.id}
                     </td>
                     <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 flex items-center justify-center text-xs font-bold">
-                          {`${p.first_name || ''} ${p.last_name || ''}`
-                            .trim()
+                      <button
+                        onClick={() => setSelectedPatientProfile(p)}
+                        className="flex items-center gap-2.5 text-left group"
+                      >
+                        <div className="w-7 h-7 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 flex items-center justify-center text-xs font-bold group-hover:scale-105 transition-transform">
+                          {getPatientFullName(p)
                             .split(' ')
+                            .filter(Boolean)
                             .map((n) => n[0])
                             .join('')
+                            .toUpperCase()
                           }
                         </div>
-                        <span className="font-semibold text-zinc-900 dark:text-white text-xs">
-                          {p.first_name} {p.last_name}
+                        <span className="font-semibold text-zinc-900 dark:text-white text-xs group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                          {getPatientFullName(p)}
                         </span>
-                      </div>
+                      </button>
                     </td>
                     <td className="px-4 py-3.5 font-mono text-xs text-zinc-500">
-                      {p.mrn || '—'}
+                      {getPatientMRN(p)}
                     </td>
                     <td className="px-4 py-3.5 text-zinc-600 dark:text-zinc-400 text-xs">
                       {p.age ?? '—'}
@@ -227,17 +240,35 @@ export default function PatientManagement() {
                       {p.department || '—'}
                     </td>
                     <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setSelectedPatientProfile(p)}
+                          className="px-2.5 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-xs font-bold flex items-center gap-1 transition-all"
+                          title="View Patient Profile"
+                        >
+                          <FiUser size={13} />
+                          <span>Profile</span>
+                        </button>
+                        {isDoctor && (
+                          <button
+                            onClick={() => setSelectedPatientForAnalysis(p)}
+                            className="px-2.5 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
+                            title="Upload Medical Report & Run Risk Assessment"
+                          >
+                            <FiFileText size={13} />
+                            <span>Analyze Report</span>
+                          </button>
+                        )}
                         <button
                           onClick={() => handleEdit(p)}
-                          className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors"
+                          className="p-1.5 text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors"
                           title="Edit Patient"
                         >
                           <FiEdit2 size={14} />
                         </button>
                         <button
                           onClick={() => handleDelete(p)}
-                          className="text-red-500 hover:text-red-700 transition-colors"
+                          className="p-1.5 text-red-500 hover:text-red-700 transition-colors"
                           title="Delete Patient"
                         >
                           <FiTrash2 size={14} />
@@ -251,6 +282,33 @@ export default function PatientManagement() {
           </div>
         )}
       </div>
+
+      {/* PATIENT PROFILE MODAL */}
+      {selectedPatientProfile && (
+        <PatientProfileModal
+          patient={selectedPatientProfile}
+          user={user}
+          onClose={() => setSelectedPatientProfile(null)}
+          onOpenAnalysis={(patientToAnalyze) => {
+            setSelectedPatientForAnalysis(patientToAnalyze);
+          }}
+        />
+      )}
+
+      {/* MEDICAL REPORT ANALYSIS MODAL */}
+      {selectedPatientForAnalysis && (
+        <MedicalReportAnalysisModal
+          patient={selectedPatientForAnalysis}
+          user={user}
+          onClose={() => setSelectedPatientForAnalysis(null)}
+          onPredictionSaved={() => {
+            loadPatients();
+            if (selectedPatientProfile) {
+              setSelectedPatientProfile({ ...selectedPatientProfile });
+            }
+          }}
+        />
+      )}
     </DashboardLayout>
   );
 }

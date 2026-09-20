@@ -3,6 +3,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import func
 
 from app.core.config import settings
 from app.core.security import decode_access_token
@@ -27,10 +28,11 @@ async def get_current_user(
         raise credentials_exception
         
     email: str = payload.get("sub")
-    if email is None:
+    if not email:
         raise credentials_exception
 
-    result = await db.execute(select(User).where(User.email == email))
+    clean_email = email.strip().lower()
+    result = await db.execute(select(User).where(func.lower(User.email) == clean_email))
     user = result.scalars().first()
     
     if user is None:

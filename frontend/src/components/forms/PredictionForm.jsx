@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { FiActivity } from 'react-icons/fi';
 import { predictionService } from '../../services/predictionService';
 import { patientService } from '../../services/patientService';
+import { getPatientLabel } from '../../utils/patientUtils';
 
 export default function PredictionForm({ onResult, onPatientSelect }) {
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm({
@@ -95,7 +96,7 @@ export default function PredictionForm({ onResult, onPatientSelect }) {
           <option value="">Select a patient</option>
           {patients.map((patient) => (
             <option key={patient.id} value={patient.id}>
-              {patient.first_name} {patient.last_name} (#{patient.id})
+              {getPatientLabel(patient)}
             </option>
           ))}
         </select>
