@@ -4,4 +4,4 @@ backend/__pycache__/
 *.pyc
 .env
 backend/venv/
-venv/
+venv/ml_pipeline/models/*.joblib
