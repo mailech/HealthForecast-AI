@@ -4,12 +4,11 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+
 from app.core.config import settings
 from app.db.database import engine
 from app.db.base import Base
-from app.models import user, patient, prediction, recommendation, treatment, appointment, notification, medical_report
-from app.core.security import decode_access_token
-from fastapi import Request
 
 # Routers
 from app.routers import (
