@@ -1,5 +1,6 @@
 import io
 import re
+from datetime import datetime
 from typing import Optional, Dict, Any, Tuple
 
 try:
@@ -26,6 +27,35 @@ from app.models.patient import Patient
 from app.schemas.medical_report import ExtractedClinicalFields, FieldConflict
 
 
+def parse_date_string(date_str: Optional[str]) -> Optional[datetime]:
+    if not date_str:
+        return None
+    # Clean ordinal suffixes like 5th -> 5, 1st -> 1, 2nd -> 2, 3rd -> 3
+    cleaned = re.sub(r'(\d+)(st|nd|rd|th)\b', r'\1', date_str.strip(), flags=re.IGNORECASE)
+    cleaned = re.sub(r'[,]', ' ', cleaned)
+    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+
+    formats = [
+        "%d %B %Y",      # 05 August 2026 / 5 August 2026
+        "%B %d %Y",      # August 05 2026 / August 5 2026
+        "%d %b %Y",      # 05 Aug 2026
+        "%b %d %Y",      # Aug 05 2026
+        "%Y-%m-%d",      # 2026-08-05
+        "%d-%m-%Y",      # 05-08-2026
+        "%m-%d-%Y",      # 08-05-2026
+        "%d/%m/%Y",      # 05/08/2026
+        "%m/%d/%Y",      # 08/05/2026
+        "%Y/%m/%d",      # 2026/08/05
+    ]
+
+    for fmt in formats:
+        try:
+            return datetime.strptime(cleaned, fmt)
+        except ValueError:
+            pass
+    return None
+
+
 class ReportParserService:
 
     @staticmethod
@@ -34,36 +64,49 @@ class ReportParserService:
         
         if ext == "pdf":
             extracted = ""
-            if fitz is not None:
-                try:
-                    doc = fitz.open(stream=file_contents, filetype="pdf")
-                    text_parts = [page.get_text() for page in doc]
-                    extracted = "\n".join(text_parts).strip()
-                except Exception as e:
-                    raise ValueError(f"Unable to read this report. The PDF file may be corrupted: {str(e)}")
-            elif pypdf is not None:
+            errors_list = []
+
+            # 1. Try pypdf
+            if pypdf is not None:
                 try:
                     reader = pypdf.PdfReader(io.BytesIO(file_contents))
                     text_parts = [page.extract_text() for page in reader.pages if page.extract_text()]
                     extracted = "\n".join(text_parts).strip()
                 except Exception as e:
-                    raise ValueError(f"Unable to read this report. The PDF file may be corrupted: {str(e)}")
-            elif PyPDF2 is not None:
+                    errors_list.append(f"pypdf: {str(e)}")
+
+            # 2. Try fitz (PyMuPDF) if pypdf didn't produce text
+            if not extracted and fitz is not None:
+                try:
+                    doc = fitz.open(stream=file_contents, filetype="pdf")
+                    text_parts = [page.get_text() for page in doc]
+                    extracted = "\n".join(text_parts).strip()
+                except Exception as e:
+                    errors_list.append(f"fitz: {str(e)}")
+
+            # 3. Try PyPDF2
+            if not extracted and PyPDF2 is not None:
                 try:
                     reader = PyPDF2.PdfReader(io.BytesIO(file_contents))
                     text_parts = [page.extract_text() for page in reader.pages if page.extract_text()]
                     extracted = "\n".join(text_parts).strip()
                 except Exception as e:
-                    raise ValueError(f"Unable to read this report. The PDF file may be corrupted: {str(e)}")
-            else:
-                # Fallback text extraction from raw bytes
-                try:
-                    extracted = file_contents.decode("utf-8", errors="ignore").strip()
-                except Exception:
-                    extracted = ""
+                    errors_list.append(f"PyPDF2: {str(e)}")
 
+            # 4. Fallback text stream regex parser for uncompressed PDF text operators
             if not extracted:
-                raise ValueError("Unable to extract readable information from this report.")
+                try:
+                    decoded = file_contents.decode("latin-1", errors="ignore")
+                    text_matches = re.findall(r"\(([^()]{2,})\)\s*Tj", decoded)
+                    if text_matches:
+                        extracted = "\n".join(text_matches).strip()
+                except Exception:
+                    pass
+
+            if not extracted or len(extracted.strip()) < 5:
+                err_msg = f" ({'; '.join(errors_list)})" if errors_list else ""
+                raise ValueError(f"Unable to extract readable clinical text from this PDF medical report.{err_msg} Please ensure the document is a readable text PDF.")
+
             return extracted
 
         elif ext == "docx":
@@ -106,7 +149,7 @@ class ReportParserService:
 
         # 2. Age
         age_match = re.search(
-            r"(?:patient\s*age|age/sex|age/gender|age)\s*[:=]\s*(\d{1,3})",
+            r"(?:patient\s*age|age/sex|age/gender|age)\s*[:=\-]\s*(\d{1,3})",
             raw_text,
             re.IGNORECASE
         )
@@ -122,7 +165,7 @@ class ReportParserService:
                 pass
 
         # 3. Gender
-        gender_match = re.search(r"(?:gender|sex)\s*[:=]\s*(male|female|m|f)\b", raw_text, re.IGNORECASE)
+        gender_match = re.search(r"(?:gender|sex)\s*[:=\-]\s*(male|female|m|f)\b", raw_text, re.IGNORECASE)
         if not gender_match:
             gender_match = re.search(r"\b(male|female)\b", raw_text, re.IGNORECASE)
         
@@ -135,7 +178,7 @@ class ReportParserService:
 
         # 4. Diagnosis
         diag_match = re.search(
-            r"(?:primary\s*diagnosis|admitting\s*diagnosis|diagnosis|condition|icd(?:-9|-10)?|impression)\s*[:=]\s*([^\n\r;,]+)",
+            r"(?:primary\s*diagnosis|admitting\s*diagnosis|diagnosis|condition|icd(?:-9|-10)?|impression)\s*[:=\-]\s*([^\n\r;,]+)",
             raw_text,
             re.IGNORECASE
         )
@@ -146,7 +189,7 @@ class ReportParserService:
 
         # 5. Department
         dept_match = re.search(
-            r"(?:department|specialty|unit|ward|clinic)\s*[:=]\s*([^\n\r;,]+)",
+            r"(?:department|specialty|unit|ward|clinic)\s*[:=\-]\s*([^\n\r;,]+)",
             raw_text,
             re.IGNORECASE
         )
@@ -160,26 +203,49 @@ class ReportParserService:
                     fields.department = known_dept
                     break
 
-        # 6. Prior Admissions (STRICT: ONLY IF FOUND)
+        # 6. Prior Admissions
         prior_match = re.search(
-            r"(?:prior\s*admissions|previous\s*admissions|history\s*of\s*hospitalization|number\s*of\s*previous\s*hospital\s*admissions|prior\s*inpatient\s*stays|inpatient\s*stays|prior\s*hospitalization[s]?|previous\s*hospitalization[s]?)\s*[:=]\s*(\d+)",
+            r"(?:prior(?:\s+hospital)?\s+admissions?|previous(?:\s+hospital)?\s+admissions?|number\s+of\s+(?:previous|prior)\s+(?:hospital\s+)?admissions?|history\s+of\s+(?:hospital\s+)?admissions?|prior\s+inpatient\s+(?:stays|admissions)|inpatient\s+stays|prior\s+hospitalization[s]?|previous\s+hospitalization[s]?)\s*[:=\-]\s*(\d+)",
             raw_text,
             re.IGNORECASE
         )
         if not prior_match:
-            prior_match = re.search(r"(\d+)\s*(?:previous\s*admissions|prior\s*admissions|prior\s*hospitalizations|previous\s*hospitalizations|prior\s*inpatient\s*stays)", raw_text, re.IGNORECASE)
+            prior_match = re.search(r"(\d+)\s*(?:previous|prior)\s+(?:hospital\s+)?admissions", raw_text, re.IGNORECASE)
         if not prior_match:
             prior_match = re.search(r"(?:admitted|hospitalized)\s*(\d+)\s*times?\s*(?:previously|prior|in\s*the\s*past)", raw_text, re.IGNORECASE)
 
         if prior_match:
             try:
                 fields.prior_admissions = int(prior_match.group(1))
+                fields.prior_admissions_source = "Medical report"
             except ValueError:
-                pass
+                fields.prior_admissions = None
+                fields.prior_admissions_source = "Not Available"
+        else:
+            fields.prior_admissions = None
+            fields.prior_admissions_source = "Not Available"
 
-        # 7. Length of Stay (STRICT: ONLY IF FOUND)
+        # 7. Admission Date & Discharge Date
+        adm_match = re.search(
+            r"(?:date\s+of\s+admission|admission\s+date|admitted\s+on|admitted|date\s+admitted)\s*[:=\-]\s*([A-Za-z0-9\s/,\.\-]+?)(?=\n|\r|;|\bdischarge|\bdate\s+of\s+discharge|\bpatient|\bdiagnosis|$)",
+            raw_text,
+            re.IGNORECASE
+        )
+        dis_match = re.search(
+            r"(?:date\s+of\s+discharge|discharge\s+date|discharged\s+on|discharged|date\s+discharged)\s*[:=\-]\s*([A-Za-z0-9\s/,\.\-]+?)(?=\n|\r|;|\badmission|\bpatient|\bdiagnosis|$)",
+            raw_text,
+            re.IGNORECASE
+        )
+
+        if adm_match:
+            fields.admission_date = adm_match.group(1).strip()
+        if dis_match:
+            fields.discharge_date = dis_match.group(1).strip()
+
+        # 8. Length of Stay Priority Logic
+        # FIRST: Explicit Length of Stay in report
         los_match = re.search(
-            r"(?:length\s*of\s*stay|hospital\s*stay|stay\s*duration|los|duration\s*of\s*stay)\s*[:=]\s*(\d+)\s*(?:days?)?",
+            r"(?:length\s*of\s*stay(?:\s*\([^)]*\))?|hospital\s*stay|stay\s*duration|\blos\b|duration\s*of\s*stay)\s*[:=\-]\s*(\d+)\s*(?:days?)?",
             raw_text,
             re.IGNORECASE
         )
@@ -191,68 +257,57 @@ class ReportParserService:
         if los_match:
             try:
                 fields.length_of_stay = int(los_match.group(1))
+                fields.length_of_stay_source = "Medical report"
             except ValueError:
                 pass
 
-        # 7b. Admission & Discharge Date Calculation for Length of Stay if stay duration wasn't explicitly matched
-        if fields.length_of_stay is None:
-            adm_match = re.search(r"(?:admission\s*date|admitted|date\s*of\s*admission)\s*[:=]\s*(\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}[-/]\d{4})", raw_text, re.IGNORECASE)
-            dis_match = re.search(r"(?:discharge\s*date|discharged|date\s*of\s*discharge)\s*[:=]\s*(\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}[-/]\d{4})", raw_text, re.IGNORECASE)
-            if adm_match and dis_match:
-                try:
-                    from datetime import datetime as dt_cls
-                    adm_str = adm_match.group(1).replace('/', '-')
-                    dis_str = dis_match.group(1).replace('/', '-')
-                    def parse_dt(s):
-                        for fmt in ("%Y-%m-%d", "%m-%d-%Y", "%d-%m-%Y"):
-                            try:
-                                return dt_cls.strptime(s, fmt)
-                            except ValueError:
-                                pass
-                        return None
-                    dt_adm = parse_dt(adm_str)
-                    dt_dis = parse_dt(dis_str)
-                    if dt_adm and dt_dis and dt_dis >= dt_adm:
-                        days = (dt_dis - dt_adm).days
-                        if days > 0:
-                            fields.length_of_stay = days
-                except Exception:
-                    pass
+        # SECOND: Calculate from Admission and Discharge dates if explicit LOS not found
+        if fields.length_of_stay is None and fields.admission_date and fields.discharge_date:
+            adm_dt = parse_date_string(fields.admission_date)
+            dis_dt = parse_date_string(fields.discharge_date)
+            if adm_dt and dis_dt and dis_dt >= adm_dt:
+                calc_days = (dis_dt - adm_dt).days
+                fields.length_of_stay = calc_days
+                fields.length_of_stay_source = "Calculated from admission and discharge dates"
 
-        # 8. Clinical procedure metrics
-        lab_match = re.search(r"(?:num(?:ber)?\s*of\s*lab\s*procedures|lab\s*procedures|lab\s*tests)\s*[:=]\s*(\d+)", raw_text, re.IGNORECASE)
+        # THIRD: If neither exists, length_of_stay remains None ("Not Available")
+        if fields.length_of_stay is None:
+            fields.length_of_stay_source = "Not Available"
+
+        # 9. Clinical procedure metrics
+        lab_match = re.search(r"(?:num(?:ber)?\s*of\s*lab\s*procedures|lab\s*procedures|lab\s*tests)\s*[:=\-]\s*(\d+)", raw_text, re.IGNORECASE)
         if lab_match:
             fields.num_lab_procedures = int(lab_match.group(1))
 
-        proc_match = re.search(r"(?<!lab\s)(?:num(?:ber)?\s*of\s*procedures|surgical\s*procedures|\bprocedures)\s*[:=]\s*(\d+)", raw_text, re.IGNORECASE)
+        proc_match = re.search(r"(?<!lab\s)(?:num(?:ber)?\s*of\s*procedures|surgical\s*procedures|\bprocedures)\s*[:=\-]\s*(\d+)", raw_text, re.IGNORECASE)
         if proc_match:
             fields.num_procedures = int(proc_match.group(1))
 
-        med_match = re.search(r"(?:num(?:ber)?\s*of\s*medications|medications)\s*[:=]\s*(\d+)", raw_text, re.IGNORECASE)
+        med_match = re.search(r"(?:num(?:ber)?\s*of\s*medications|medications)\s*[:=\-]\s*(\d+)", raw_text, re.IGNORECASE)
         if med_match:
             fields.num_medications = int(med_match.group(1))
 
-        outpatient_match = re.search(r"(?:outpatient\s*visits|number\s*outpatient)\s*[:=]\s*(\d+)", raw_text, re.IGNORECASE)
+        outpatient_match = re.search(r"(?:outpatient\s*visits|number\s*outpatient)\s*[:=\-]\s*(\d+)", raw_text, re.IGNORECASE)
         if outpatient_match:
             fields.number_outpatient = int(outpatient_match.group(1))
 
-        emergency_match = re.search(r"(?:emergency\s*visits|number\s*emergency)\s*[:=]\s*(\d+)", raw_text, re.IGNORECASE)
+        emergency_match = re.search(r"(?:emergency\s*visits|number\s*emergency)\s*[:=\-]\s*(\d+)", raw_text, re.IGNORECASE)
         if emergency_match:
             fields.number_emergency = int(emergency_match.group(1))
 
-        a1c_match = re.search(r"(?:a1c\s*result|hba1c|a1c)\s*[:=]\s*(>8|>7|norm|none)", raw_text, re.IGNORECASE)
+        a1c_match = re.search(r"(?:a1c\s*result|hba1c|a1c)\s*[:=\-]\s*(>8|>7|norm|none)", raw_text, re.IGNORECASE)
         if a1c_match:
             fields.A1Cresult = a1c_match.group(1).title()
 
-        glu_match = re.search(r"(?:max\s*glu\s*serum|glucose\s*serum)\s*[:=]\s*(>300|>200|norm|none)", raw_text, re.IGNORECASE)
+        glu_match = re.search(r"(?:max\s*glu\s*serum|glucose\s*serum)\s*[:=\-]\s*(>300|>200|norm|none)", raw_text, re.IGNORECASE)
         if glu_match:
             fields.max_glu_serum = glu_match.group(1).title()
 
-        ins_match = re.search(r"insulin\s*[:=]\s*(up|down|steady|no)", raw_text, re.IGNORECASE)
+        ins_match = re.search(r"insulin\s*[:=\-]\s*(up|down|steady|no)", raw_text, re.IGNORECASE)
         if ins_match:
             fields.insulin = ins_match.group(1).capitalize()
 
-        met_match = re.search(r"metformin\s*[:=]\s*(up|down|steady|no)", raw_text, re.IGNORECASE)
+        met_match = re.search(r"metformin\s*[:=\-]\s*(up|down|steady|no)", raw_text, re.IGNORECASE)
         if met_match:
             fields.metformin = met_match.group(1).capitalize()
 

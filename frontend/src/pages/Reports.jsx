@@ -63,311 +63,409 @@ export default function Reports() {
     if (!report) return;
     setPdfGenerating(true);
     try {
-      const doc = new jsPDF();
-      const dateStr = new Date().toISOString().split('T')[0];
+      const doc = new jsPDF({
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 12;
+      const contentWidth = pageWidth - margin * 2;
+      let y = 10;
+
       const timeStr = new Date().toLocaleString('en-US', {
         dateStyle: 'medium',
         timeStyle: 'short',
       });
+      const dateStr = new Date().toISOString().split('T')[0];
+      const reportId = `RPT-${report.patient_id}-${report.prediction_id || Date.now().toString().slice(-4)}`;
 
-      const pageWidth = doc.internal.pageSize.getWidth();
-      let y = 18;
+      // Helper to check page overflow before drawing
+      const checkPageOverflow = (requiredHeight = 10) => {
+        if (y + requiredHeight > pageHeight - 16) {
+          doc.addPage();
+          y = 14;
+          doc.setFillColor(37, 99, 235);
+          doc.rect(0, 0, pageWidth, 2.5, 'F');
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(7);
+          doc.setTextColor(148, 163, 184);
+          doc.text(
+            `CARE PULSE AI  |  PATIENT FORECAST REPORT  |  ${report.patient_name || ''} (#${report.patient_id})`,
+            margin,
+            8
+          );
+          doc.setDrawColor(226, 232, 240);
+          doc.line(margin, 10, pageWidth - margin, 10);
+        }
+      };
 
-      // Primary Blue Accent Top Bar
+      const drawSectionHeader = (title) => {
+        checkPageOverflow(10);
+        y += 1.5;
+        doc.setFillColor(241, 245, 249);
+        doc.rect(margin, y, contentWidth, 5.5, 'F');
+        doc.setFillColor(37, 99, 235);
+        doc.rect(margin, y, 2, 5.5, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(30, 41, 59);
+        doc.text(title.toUpperCase(), margin + 4.5, y + 3.8);
+        y += 7.5;
+      };
+
+      const drawGridField = (label, val, xLbl, xVal, currentY) => {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(71, 85, 105);
+        doc.text(`${label}:`, xLbl, currentY);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(15, 23, 42);
+        doc.text(String(val ?? 'N/A'), xVal, currentY);
+      };
+
+      // --------------------------------------------------
+      // TOP BRANDING & HEADER (COMPACT)
+      // --------------------------------------------------
       doc.setFillColor(37, 99, 235);
-      doc.rect(0, 0, pageWidth, 5, 'F');
+      doc.rect(0, 0, pageWidth, 4, 'F');
 
-      // Title & Subtitle
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(18);
+      doc.setFontSize(15);
       doc.setTextColor(15, 23, 42);
-      doc.text('CARE PULSE AI', 14, y);
+      doc.text('CARE PULSE AI', margin, y + 4);
 
-      doc.setFontSize(8.5);
+      doc.setFontSize(7.5);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(79, 70, 229);
-      doc.text('HEALTHCARE MANAGEMENT PLATFORM', 14, y + 5);
+      doc.text('HEALTHCARE MANAGEMENT PLATFORM', margin, y + 8);
 
-      doc.setFontSize(10);
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(71, 85, 105);
-      doc.text('PATIENT FORECAST REPORT', pageWidth - 14, y + 2, { align: 'right' });
-      doc.setFontSize(8);
+      doc.setTextColor(30, 41, 59);
+      doc.text('PATIENT FORECAST REPORT', pageWidth - margin, y + 4, { align: 'right' });
+
+      doc.setFontSize(7.5);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Generated: ${timeStr}`, pageWidth - 14, y + 7, { align: 'right' });
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Generated: ${timeStr}`, pageWidth - margin, y + 8, { align: 'right' });
+      doc.text(`Report ID: ${reportId}`, pageWidth - margin, y + 11.5, { align: 'right' });
 
       y += 14;
       doc.setDrawColor(226, 232, 240);
-      doc.setLineWidth(0.5);
-      doc.line(14, y, pageWidth - 14, y);
-      y += 8;
+      doc.setLineWidth(0.4);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 3;
 
-      const drawSectionHeader = (title) => {
-        if (y > 260) {
-          doc.addPage();
-          y = 20;
-        }
-        doc.setFillColor(241, 245, 249);
-        doc.rect(14, y, pageWidth - 28, 7, 'F');
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(9);
-        doc.setTextColor(30, 41, 59);
-        doc.text(title.toUpperCase(), 18, y + 5);
-        y += 12;
-      };
-
+      // --------------------------------------------------
       // 1. PATIENT INFORMATION
+      // --------------------------------------------------
       drawSectionHeader('Patient Information');
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(51, 65, 85);
+      const col1 = margin + 2;
+      const col1Val = col1 + 25;
+      const col2 = margin + 92;
+      const col2Val = col2 + 28;
 
-      const col1 = 18;
-      const col2 = 110;
+      drawGridField('Patient Name', report.patient_name || 'N/A', col1, col1Val, y);
+      drawGridField('Patient ID', `#${report.patient_id}`, col2, col2Val, y);
+      y += 4.5;
 
-      doc.setFont('helvetica', 'bold');
-      doc.text('Patient Name:', col1, y);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`${report.patient_name || '—'}`, col1 + 28, y);
+      drawGridField('MRN', report.mrn || 'N/A', col1, col1Val, y);
+      drawGridField(
+        'Gender / Age',
+        `${report.gender || 'N/A'} / ${
+          report.age !== null && report.age !== undefined ? `${report.age} yrs` : 'N/A'
+        }`,
+        col2,
+        col2Val,
+        y
+      );
+      y += 4.5;
 
-      doc.setFont('helvetica', 'bold');
-      doc.text('Patient ID:', col2, y);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`#${report.patient_id}`, col2 + 24, y);
+      drawGridField('Department', report.department || 'General Care', col1, col1Val, y);
+      drawGridField('Admission Date', report.admission_date || 'N/A', col2, col2Val, y);
+      y += 4.5;
+
+      drawGridField('Diagnosis', report.diagnosis || 'N/A', col1, col1Val, y);
       y += 6;
 
-      doc.setFont('helvetica', 'bold');
-      doc.text('MRN:', col1, y);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`${report.mrn || '—'}`, col1 + 28, y);
-
-      doc.setFont('helvetica', 'bold');
-      doc.text('Gender / Age:', col2, y);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`${report.gender || '—'} / ${report.age ?? '—'} yrs`, col2 + 24, y);
-      y += 6;
-
-      doc.setFont('helvetica', 'bold');
-      doc.text('Department:', col1, y);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`${report.department || 'General Care'}`, col1 + 28, y);
-
-      doc.setFont('helvetica', 'bold');
-      doc.text('Admission Date:', col2, y);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`${report.admission_date || 'Not recorded'}`, col2 + 24, y);
-      y += 6;
-
-      doc.setFont('helvetica', 'bold');
-      doc.text('Diagnosis:', col1, y);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`${report.diagnosis || 'Standard Observation'}`, col1 + 28, y);
-      y += 10;
-
-      // 2. MEDICAL REPORTS HISTORY
-      drawSectionHeader('Medical Reports Log');
-      doc.setFontSize(8.5);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(51, 65, 85);
+      // --------------------------------------------------
+      // 2. MEDICAL REPORTS (COMPACT SUMMARY)
+      // --------------------------------------------------
+      drawSectionHeader('Medical Reports');
+      doc.setFontSize(8);
       if (report.medical_reports && report.medical_reports.length > 0) {
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'bold');
-        doc.setFillColor(248, 250, 252);
-        doc.rect(col1, y, pageWidth - 36, 6, 'F');
-        doc.text('File Name', col1 + 2, y + 4.5);
-        doc.text('Uploaded Date', col1 + 80, y + 4.5);
-        doc.text('Type', col1 + 130, y + 4.5);
-        doc.text('Status', col1 + 155, y + 4.5);
-        y += 8;
-        doc.setFont('helvetica', 'normal');
-        report.medical_reports.forEach((mr) => {
-          if (y > 270) { doc.addPage(); y = 20; }
-          doc.text(mr.file_name || '—', col1 + 2, y);
-          doc.text(mr.created_at ? new Date(mr.created_at).toLocaleDateString() : '—', col1 + 80, y);
-          doc.text((mr.file_type || '').toUpperCase(), col1 + 130, y);
-          doc.text('Analyzed', col1 + 155, y);
-          y += 5;
-        });
+        const latest = report.medical_reports[0];
+        const count = report.medical_reports.length;
+        const uploadDateStr = latest.created_at ? new Date(latest.created_at).toLocaleString() : 'N/A';
+
+        if (count === 1) {
+          drawGridField('Latest Report', latest.file_name || 'N/A', col1, col1 + 25, y);
+          drawGridField('Uploaded', uploadDateStr, margin + 92, margin + 110, y);
+          y += 4.5;
+          drawGridField('Status', 'Analyzed', col1, col1 + 25, y);
+          drawGridField('Format', (latest.file_type || 'PDF').toUpperCase(), margin + 92, margin + 110, y);
+          y += 6;
+        } else {
+          drawGridField('Reports on Record', String(count), col1, col1 + 30, y);
+          drawGridField('Latest Report', latest.file_name || 'N/A', margin + 70, margin + 95, y);
+          y += 4.5;
+          drawGridField('Latest Status', 'Analyzed', col1, col1 + 30, y);
+          drawGridField('Latest Upload', uploadDateStr, margin + 70, margin + 95, y);
+          y += 6;
+        }
       } else {
         doc.setFont('helvetica', 'italic');
-        doc.text('No medical reports recorded for this patient.', col1, y);
-        y += 6;
+        doc.setTextColor(100, 116, 139);
+        doc.text('No medical report recorded for this patient.', col1, y);
+        y += 5;
       }
-      y += 4;
 
-      // 3. RISK ASSESSMENT & KEY MODEL INPUTS
-      drawSectionHeader('Risk Assessment & Key Model Inputs');
-
+      // --------------------------------------------------
+      // 3. RISK ASSESSMENT
+      // --------------------------------------------------
+      drawSectionHeader('Risk Assessment');
       const cat = (report.risk_category || 'N/A').toUpperCase();
-      const score = report.risk_score !== null && report.risk_score !== undefined ? `${report.risk_score}%` : 'N/A';
+      const score =
+        report.risk_score !== null && report.risk_score !== undefined
+          ? `${report.risk_score}%`
+          : 'N/A';
 
-      let rBg = [239, 246, 255];
-      let rText = [29, 78, 216];
+      let rBg = [241, 245, 249];
+      let rText = [30, 41, 59];
+      let rBorder = [203, 213, 225];
+
       if (cat === 'HIGH') {
         rBg = [254, 242, 242];
         rText = [185, 28, 28];
+        rBorder = [254, 202, 202];
       } else if (cat === 'MEDIUM') {
         rBg = [254, 243, 199];
         rText = [180, 83, 9];
+        rBorder = [253, 230, 138];
       } else if (cat === 'LOW') {
         rBg = [236, 253, 245];
         rText = [4, 120, 87];
+        rBorder = [167, 243, 208];
       }
 
+      checkPageOverflow(16);
       doc.setFillColor(...rBg);
-      doc.roundedRect(col1, y, 80, 14, 2, 2, 'F');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(...rText);
-      doc.text(`RISK CATEGORY: ${cat}`, col1 + 4, y + 6);
-      doc.setFontSize(9);
-      doc.text(`Readmission Risk Score: ${score}`, col1 + 4, y + 11);
+      doc.setDrawColor(...rBorder);
+      doc.roundedRect(col1, y, 70, 12, 1.5, 1.5, 'FD');
 
-      doc.setTextColor(51, 65, 85);
+      doc.setFont('helvetica', 'bold');
       doc.setFontSize(8.5);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Prior Admissions:', col2, y + 4);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`${report.prior_admissions !== null && report.prior_admissions !== undefined ? report.prior_admissions : 'N/A'}`, col2 + 28, y + 4);
+      doc.setTextColor(...rText);
+      doc.text(`RISK CATEGORY: ${cat}`, col1 + 3, y + 4.8);
+      doc.setFontSize(8);
+      doc.text(`Risk Score: ${score}`, col1 + 3, y + 9.2);
 
-      doc.setFont('helvetica', 'bold');
-      doc.text('Length of Stay:', col2, y + 10);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`${report.length_of_stay !== null && report.length_of_stay !== undefined ? `${report.length_of_stay} days` : 'N/A'}`, col2 + 28, y + 10);
-      y += 20;
+      drawGridField(
+        'Prediction Date',
+        report.prediction_date ? new Date(report.prediction_date).toLocaleString() : 'N/A',
+        margin + 80,
+        margin + 106,
+        y + 4
+      );
+      drawGridField(
+        'Model Version',
+        report.model_version || 'patient-risk-model-v1.0.0',
+        margin + 80,
+        margin + 106,
+        y + 9
+      );
+      y += 15;
 
-      // 4. PREDICTION RISK HISTORY
+      // KEY MODEL INPUTS SUB-LINE
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(71, 85, 105);
+      doc.text('KEY MODEL INPUTS:', col1, y);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(15, 23, 42);
+      const priorAdm = report.prior_admissions !== null && report.prior_admissions !== undefined ? report.prior_admissions : 'N/A';
+      const losDays = report.length_of_stay !== null && report.length_of_stay !== undefined ? `${report.length_of_stay} days` : 'N/A';
+      doc.text(`Prior Admissions: ${priorAdm}   |   Length of Stay: ${losDays}`, col1 + 32, y);
+      y += 6;
+
+      // --------------------------------------------------
+      // 4. RISK ASSESSMENT HISTORY (MAX 5 RECORDS)
+      // --------------------------------------------------
       drawSectionHeader('Risk Assessment History');
       if (report.risk_history && report.risk_history.length > 0) {
-        doc.setFontSize(8);
+        const displayHistory = report.risk_history.slice(0, 5);
+        doc.setFontSize(7.5);
         doc.setFont('helvetica', 'bold');
         doc.setFillColor(248, 250, 252);
-        doc.rect(col1, y, pageWidth - 36, 6, 'F');
-        doc.text('Assessment Date', col1 + 2, y + 4.5);
-        doc.text('Risk Category', col1 + 60, y + 4.5);
-        doc.text('Score', col1 + 105, y + 4.5);
-        doc.text('Prior Admissions', col1 + 130, y + 4.5);
-        doc.text('Length of Stay', col1 + 160, y + 4.5);
-        y += 8;
+        doc.rect(margin, y, contentWidth, 5, 'F');
+        doc.setTextColor(71, 85, 105);
+        doc.text('Assessment Date', col1, y + 3.6);
+        doc.text('Risk Category', margin + 45, y + 3.6);
+        doc.text('Risk Score', margin + 85, y + 3.6);
+        doc.text('Prior Admissions', margin + 120, y + 3.6);
+        doc.text('Length of Stay', margin + 155, y + 3.6);
+        y += 6;
 
         doc.setFont('helvetica', 'normal');
-        report.risk_history.forEach((rh) => {
-          if (y > 270) { doc.addPage(); y = 20; }
-          doc.text(rh.date ? new Date(rh.date).toLocaleDateString() : '—', col1 + 2, y);
-          doc.text((rh.risk_category || '').toUpperCase(), col1 + 60, y);
-          doc.text(`${rh.risk_score}%`, col1 + 105, y);
-          doc.text(rh.prior_admissions !== null && rh.prior_admissions !== undefined ? String(rh.prior_admissions) : 'N/A', col1 + 130, y);
-          doc.text(rh.length_of_stay !== null && rh.length_of_stay !== undefined ? `${rh.length_of_stay} d` : 'N/A', col1 + 160, y);
-          y += 5;
+        doc.setTextColor(15, 23, 42);
+        displayHistory.forEach((rh) => {
+          checkPageOverflow(5);
+          const historyDateStr = rh.date ? new Date(rh.date).toLocaleDateString() : 'N/A';
+          doc.text(historyDateStr, col1, y);
+          doc.text((rh.risk_category || 'N/A').toUpperCase(), margin + 45, y);
+          doc.text(
+            rh.risk_score !== null && rh.risk_score !== undefined ? `${rh.risk_score}%` : 'N/A',
+            margin + 85,
+            y
+          );
+          doc.text(
+            rh.prior_admissions !== null && rh.prior_admissions !== undefined
+              ? String(rh.prior_admissions)
+              : 'N/A',
+            margin + 120,
+            y
+          );
+          doc.text(
+            rh.length_of_stay !== null && rh.length_of_stay !== undefined
+              ? `${rh.length_of_stay} days`
+              : 'N/A',
+            margin + 155,
+            y
+          );
+          y += 4.2;
         });
-      } else {
-        doc.setFontSize(8.5);
-        doc.setFont('helvetica', 'italic');
-        doc.text('No historical prediction records found.', col1, y);
-        y += 6;
-      }
-      y += 4;
 
-      // 3. CLINICAL RECOMMENDATIONS & INSIGHTS
-      drawSectionHeader('Clinical Recommendations & Insights');
-      doc.setFontSize(8.5);
-      doc.setTextColor(51, 65, 85);
-
-      if (report.insights && report.insights.length > 0) {
-        report.insights.forEach((insight) => {
-          if (y > 270) {
-            doc.addPage();
-            y = 20;
-          }
-          doc.setFont('helvetica', 'bold');
-          doc.text('•', col1, y);
-          doc.setFont('helvetica', 'normal');
-          const lines = doc.splitTextToSize(insight, pageWidth - 42);
-          doc.text(lines, col1 + 5, y);
-          y += lines.length * 4.5 + 2;
-        });
-      } else {
-        doc.setFont('helvetica', 'italic');
-        doc.text('No clinical recommendations available for this prediction.', col1, y);
-        y += 6;
-      }
-      y += 4;
-
-      // 4. TREATMENT INFORMATION
-      drawSectionHeader('Treatment Information');
-      doc.setFontSize(8.5);
-      if (report.treatment && (report.treatment.diagnosis || report.treatment.treatment_plan)) {
-        if (report.treatment.diagnosis) {
-          doc.setFont('helvetica', 'bold');
-          doc.text('Diagnosis:', col1, y);
-          doc.setFont('helvetica', 'normal');
-          doc.text(report.treatment.diagnosis, col1 + 25, y);
-          y += 6;
-        }
-        if (report.treatment.treatment_plan) {
-          doc.setFont('helvetica', 'bold');
-          doc.text('Treatment Plan:', col1, y);
-          y += 5;
-          doc.setFont('helvetica', 'normal');
-          const lines = doc.splitTextToSize(report.treatment.treatment_plan, pageWidth - 36);
-          doc.text(lines, col1, y);
-          y += lines.length * 4.5 + 2;
+        if (report.risk_history.length > 5) {
+          doc.setFontSize(7);
+          doc.setFont('helvetica', 'italic');
+          doc.setTextColor(100, 116, 139);
+          doc.text(`Showing latest 5 of ${report.risk_history.length} assessments`, col1, y + 1);
+          y += 4.5;
         }
       } else {
+        doc.setFontSize(8);
         doc.setFont('helvetica', 'italic');
         doc.setTextColor(100, 116, 139);
-        doc.text('No treatment information available.', col1, y);
-        y += 6;
+        doc.text('No risk assessment history available.', col1, y);
+        y += 5;
       }
-      y += 4;
+      y += 2;
 
-      // 5. APPOINTMENT INFORMATION
-      drawSectionHeader('Upcoming / Recent Appointments');
+      // --------------------------------------------------
+      // 5. CLINICAL INFORMATION
+      // --------------------------------------------------
+      drawSectionHeader('Clinical Information');
+      drawGridField(
+        'Prior Admissions',
+        report.prior_admissions !== null && report.prior_admissions !== undefined
+          ? String(report.prior_admissions)
+          : 'N/A',
+        col1,
+        col1Val,
+        y
+      );
+      drawGridField(
+        'Length of Stay',
+        report.length_of_stay !== null && report.length_of_stay !== undefined
+          ? `${report.length_of_stay} days`
+          : 'N/A',
+        col2,
+        col2Val,
+        y
+      );
+      y += 4.5;
+
+      drawGridField('Admission Date', report.admission_date || 'N/A', col1, col1Val, y);
+      const dischargeDateVal =
+        (report.treatment && report.treatment.discharge_date) || report.discharge_date || 'N/A';
+      drawGridField('Discharge Date', dischargeDateVal, col2, col2Val, y);
+      y += 4.5;
+
+      drawGridField('Diagnosis', report.diagnosis || 'N/A', col1, col1Val, y);
+      y += 6;
+
+      // --------------------------------------------------
+      // 6. APPOINTMENTS
+      // --------------------------------------------------
+      drawSectionHeader('Appointments');
       if (report.appointments && report.appointments.length > 0) {
-        doc.setFontSize(8);
+        doc.setFontSize(7.5);
         doc.setFont('helvetica', 'bold');
         doc.setFillColor(248, 250, 252);
-        doc.rect(col1, y, pageWidth - 36, 6, 'F');
-        doc.text('Doctor', col1 + 2, y + 4.5);
-        doc.text('Date & Time', col1 + 60, y + 4.5);
-        doc.text('Status', col1 + 110, y + 4.5);
-        doc.text('Reminder', col1 + 140, y + 4.5);
-        y += 8;
+        doc.rect(margin, y, contentWidth, 5, 'F');
+        doc.setTextColor(71, 85, 105);
+        doc.text('Date & Time', col1, y + 3.6);
+        doc.text('Doctor', margin + 60, y + 3.6);
+        doc.text('Status', margin + 130, y + 3.6);
+        y += 6;
 
         doc.setFont('helvetica', 'normal');
+        doc.setTextColor(15, 23, 42);
         report.appointments.forEach((appt) => {
-          if (y > 270) {
-            doc.addPage();
-            y = 20;
-          }
-          doc.text(appt.doctor_name || '—', col1 + 2, y);
-          doc.text(`${appt.appointment_date} ${appt.appointment_time}`, col1 + 60, y);
-          doc.text((appt.status || '').toUpperCase(), col1 + 110, y);
-          doc.text(appt.reminder_timing || 'Standard', col1 + 140, y);
-          y += 5;
+          checkPageOverflow(5);
+          const dateTimeStr = `${appt.appointment_date || 'N/A'} ${appt.appointment_time || ''}`.trim();
+          doc.text(dateTimeStr, col1, y);
+          doc.text(appt.doctor_name || 'N/A', margin + 60, y);
+          doc.text((appt.status || 'N/A').toUpperCase(), margin + 130, y);
+          y += 4.2;
         });
       } else {
-        doc.setFontSize(8.5);
+        doc.setFontSize(8);
         doc.setFont('helvetica', 'italic');
         doc.setTextColor(100, 116, 139);
         doc.text('No upcoming or recent appointments recorded.', col1, y);
-        y += 6;
+        y += 5;
+      }
+      y += 2;
+
+      // --------------------------------------------------
+      // 7. CLINICAL RECOMMENDATIONS
+      // --------------------------------------------------
+      drawSectionHeader('Clinical Recommendations');
+      doc.setFontSize(8);
+      if (report.insights && report.insights.length > 0) {
+        doc.setTextColor(30, 41, 59);
+        report.insights.forEach((insight) => {
+          const lines = doc.splitTextToSize(insight, contentWidth - 8);
+          checkPageOverflow(lines.length * 3.8 + 2);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(37, 99, 235);
+          doc.text('•', col1, y);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(30, 41, 59);
+          doc.text(lines, col1 + 4, y);
+          y += lines.length * 3.8 + 1.8;
+        });
+      } else {
+        doc.setFont('helvetica', 'italic');
+        doc.setTextColor(100, 116, 139);
+        doc.text('No clinical recommendations recorded.', col1, y);
+        y += 5;
       }
 
-      // Page numbers footer
+      // --------------------------------------------------
+      // REPORT FOOTER (ALL PAGES)
+      // --------------------------------------------------
       const totalPages = doc.internal.getNumberOfPages();
       for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.4);
+        doc.line(margin, pageHeight - 11, pageWidth - margin, pageHeight - 11);
+
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7.5);
-        doc.setTextColor(148, 163, 184);
-        doc.line(14, 282, pageWidth - 14, 282);
-        doc.text('CarePulse AI Healthcare Management Platform — Confidential Medical Forecast Report', 14, 287);
-        doc.text(`Page ${i} of ${totalPages}`, pageWidth - 14, 287, { align: 'right' });
+        doc.setTextColor(100, 116, 139);
+        doc.text('CarePulse AI — Patient Forecast Report', margin, pageHeight - 6.5);
+        doc.text(`Generated: ${timeStr}`, pageWidth / 2, pageHeight - 6.5, { align: 'center' });
+        doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 6.5, { align: 'right' });
       }
 
       doc.save(`CarePulse_Patient_Report_${report.patient_id}_${dateStr}.pdf`);
     } catch (pdfErr) {
+      console.error('PDF Generation Error:', pdfErr);
       setError('Unable to generate the PDF. Please try again.');
     } finally {
       setPdfGenerating(false);

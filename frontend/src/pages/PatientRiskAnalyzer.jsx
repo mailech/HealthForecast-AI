@@ -4,6 +4,8 @@ import DashboardLayout from '../layouts/DashboardLayout';
 import Breadcrumb from '../components/common/Breadcrumb';
 import PredictionForm from '../components/forms/PredictionForm';
 import RiskBadge from '../components/common/RiskBadge';
+import PatientRiskTrendChart from '../components/patient/PatientRiskTrendChart';
+import PatientClinicalActivityTimeline from '../components/patient/PatientClinicalActivityTimeline';
 import { FiActivity, FiAlertTriangle, FiCheckCircle, FiClock, FiFileText } from 'react-icons/fi';
 import { predictionService } from '../services/predictionService';
 
@@ -121,8 +123,15 @@ export default function PatientRiskAnalyzer() {
         </div>
       </div>
 
-      {/* Patient Prediction History */}
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xs border border-zinc-200 dark:border-zinc-800 p-6">
+      {/* Patient Prediction History & Timeline */}
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xs border border-zinc-200 dark:border-zinc-800 p-6 space-y-5">
+        {selectedPatient && (
+          <>
+            <PatientRiskTrendChart history={history} loading={loadingHistory} />
+            <PatientClinicalActivityTimeline patientId={selectedPatient.id} />
+          </>
+        )}
+
         <h2 className="text-sm font-bold text-zinc-900 dark:text-white mb-3 flex items-center gap-2">
           <FiClock size={16} className="text-zinc-600 dark:text-zinc-400" />
           Patient Prediction History {selectedPatient ? `(${getPatientFullName(selectedPatient)})` : ''}

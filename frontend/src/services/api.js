@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env?.VITE_API_BASE_URL || 'https://healthforecast-ai-nkmn.onrender.com',
+  baseURL: import.meta.env?.VITE_API_BASE_URL || 'http://127.0.0.1:8000',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -9,6 +9,14 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
+    if (config.baseURL) {
+      config.baseURL = config.baseURL.replace(/\/api\/v1\/?$/, '');
+    }
+
+    if (config.url && !config.url.startsWith('http') && !config.url.startsWith('/api/v1')) {
+      config.url = `/api/v1${config.url.startsWith('/') ? '' : '/'}${config.url}`;
+    }
+
     const token = localStorage.getItem('hf_token');
 
     if (token) {

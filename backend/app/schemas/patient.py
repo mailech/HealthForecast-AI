@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Any, Optional
 from pydantic import BaseModel, ConfigDict
 
 
@@ -23,3 +24,13 @@ class PatientResponse(PatientBase):
     risk_score: float | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class TimelineEvent(BaseModel):
+    id: str
+    event_type: str
+    title: str
+    timestamp: str
+    icon: str
+    description: str
+    details: dict[str, Any] = {}

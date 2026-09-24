@@ -587,8 +587,17 @@ export default function MedicalReportAnalysisModal({ patient, user, onClose, onP
                   </div>
                   <div>
                     <span className="text-zinc-500 block text-[11px] uppercase font-bold">Length of Stay</span>
-                    <span className={`font-bold ${reportData?.extracted_fields?.length_of_stay !== null ? 'text-zinc-900 dark:text-white' : 'text-amber-600 dark:text-amber-400'}`}>
-                      {reportData?.extracted_fields?.length_of_stay !== null && reportData?.extracted_fields?.length_of_stay !== undefined ? `${reportData.extracted_fields.length_of_stay} days` : 'Not Available'}
+                    <span className={`font-bold ${reportData?.extracted_fields?.length_of_stay !== null && reportData?.extracted_fields?.length_of_stay !== undefined ? 'text-zinc-900 dark:text-white' : 'text-amber-600 dark:text-amber-400'}`}>
+                      {reportData?.extracted_fields?.length_of_stay !== null && reportData?.extracted_fields?.length_of_stay !== undefined ? (
+                        <>
+                          {reportData.extracted_fields.length_of_stay} days
+                          {reportData.extracted_fields.length_of_stay_source === "Calculated from admission and discharge dates" && (
+                            <span className="text-[10px] text-zinc-500 font-normal block">(calculated from dates)</span>
+                          )}
+                        </>
+                      ) : (
+                        'Not Available'
+                      )}
                     </span>
                   </div>
                 </div>

@@ -6,12 +6,13 @@ export const authService = {
 
     formData.append('username', (email || '').trim().toLowerCase());
     formData.append('password', password || '');
+
     if (role) {
       formData.append('role', role);
     }
 
     const response = await api.post(
-      '/auth/login',
+      '/api/v1/auth/login',
       formData,
       {
         headers: {
@@ -30,17 +31,21 @@ export const authService = {
       full_name: (data.full_name || '').trim(),
       phone: data.phone ? data.phone.trim() : null,
     };
-    const response = await api.post('/auth/register', payload);
+
+    const response = await api.post(
+      '/api/v1/auth/register',
+      payload
+    );
+
     return response.data;
   },
 
   getMe: async () => {
-    const response = await api.get('/auth/me');
+    const response = await api.get('/api/v1/auth/me');
     return response.data;
   },
 
   forgotPassword: async (email) => {
-    // Backend lo forgot-password endpoint currently available ani confirm cheyyaledu.
     throw new Error('Forgot password is not connected yet.');
   },
 

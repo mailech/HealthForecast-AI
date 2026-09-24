@@ -19,4 +19,9 @@ export const patientService = {
   delete: async (id) => {
     await api.delete(`/patients/${id}`);
   },
-};
+
+  getTimeline: async (id) => {
+    const response = await api.get(`/patients/${id}/timeline`);
+    return response.data;
+  },
+};

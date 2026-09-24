@@ -181,20 +181,31 @@ export default function Landing() {
       <header className="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-white/10 text-white shadow-md transition-all">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           
-          {/* Logo */}
-          <Link to={user ? dashboardPath : "/"} className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-500/30 group-hover:scale-105 transition-transform">
-              <FiActivity size={20} className="stroke-[2.5]" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-extrabold text-xl tracking-tight text-white leading-none">
-                CarePulse <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">AI</span>
-              </span>
-              <span className="text-[10px] font-semibold text-blue-300/80 tracking-wider uppercase mt-0.5">
-                Healthcare Management Platform
-              </span>
-            </div>
-          </Link>
+          {/* Left Container: Hamburger Menu Icon & Logo */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2.5 rounded-xl text-slate-200 hover:bg-white/10 focus:outline-none"
+              aria-label="Toggle Navigation Menu"
+            >
+              {mobileMenuOpen ? <FiX size={22} /> : <FiMenu size={22} />}
+            </button>
+
+            {/* Logo */}
+            <Link to={user ? dashboardPath : "/"} className="flex items-center gap-3 group">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-500/30 group-hover:scale-105 transition-transform">
+                <FiActivity size={20} className="stroke-[2.5]" />
+              </div>
+              <div className="flex flex-col">
+                <span className="font-extrabold text-xl tracking-tight text-white leading-none">
+                  CarePulse <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">AI</span>
+                </span>
+                <span className="text-[10px] font-semibold text-blue-300/80 tracking-wider uppercase mt-0.5">
+                  Healthcare Management Platform
+                </span>
+              </div>
+            </Link>
+          </div>
 
           {/* Center Nav Links (Desktop) */}
           <nav className="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-200">
@@ -255,17 +266,6 @@ export default function Landing() {
                 </Link>
               </>
             )}
-          </div>
-
-          {/* Mobile Menu Toggle Button */}
-          <div className="md:hidden flex items-center">
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2.5 rounded-xl text-slate-200 hover:bg-white/10 focus:outline-none"
-              aria-label="Toggle Navigation Menu"
-            >
-              {mobileMenuOpen ? <FiX size={22} /> : <FiMenu size={22} />}
-            </button>
           </div>
 
         </div>

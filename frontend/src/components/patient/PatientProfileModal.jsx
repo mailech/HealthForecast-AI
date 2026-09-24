@@ -13,6 +13,8 @@ import {
   FiCheckCircle,
 } from 'react-icons/fi';
 import RiskBadge from '../common/RiskBadge';
+import PatientRiskTrendChart from './PatientRiskTrendChart';
+import PatientClinicalActivityTimeline from './PatientClinicalActivityTimeline';
 import { predictionService } from '../../services/predictionService';
 import { reportService } from '../../services/reportService';
 import { getPatientFullName, getPatientMRN } from '../../utils/patientUtils';
@@ -156,6 +158,12 @@ export default function PatientProfileModal({ patient, user, onClose, onOpenAnal
               Upload patient clinical documentation (PDF, DOCX, TXT) to extract clinical parameters (including Prior Admissions and Length of Stay), resolve data conflicts against DB records, and execute the existing ML readmission model.
             </p>
           </div>
+
+          {/* PATIENT RISK TREND FEATURE */}
+          <PatientRiskTrendChart history={riskHistory} loading={loading} />
+
+          {/* PATIENT CLINICAL ACTIVITY TIMELINE */}
+          {patient?.id && <PatientClinicalActivityTimeline patientId={patient.id} />}
 
           {/* RISK HISTORY SECTION */}
           <div className="space-y-3">

@@ -110,7 +110,7 @@ async def predict_readmission(
 )
 async def get_patient_prediction_history(
     patient_id: int,
-    token=Depends(RoleChecker([UserRole.DOCTOR, UserRole.HOSPITAL_ADMIN])),
+    token=Depends(RoleChecker([UserRole.DOCTOR, UserRole.HOSPITAL_ADMIN, UserRole.RESEARCHER, UserRole.SYSTEM_ADMIN])),
     db: AsyncSession = Depends(get_db),
 ):
     """Return persisted prediction history for one patient."""

@@ -6,3 +6,6 @@ backend/__pycache__/
 backend/venv/
 
 ml_pipeline/models/*.joblib
+
+backend/healthforecast.db
+frontend/dist/

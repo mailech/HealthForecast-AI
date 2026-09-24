@@ -9,5 +9,10 @@ export const predictionService = {
     const response = await api.get(`/predictions/patient/${patientId}`);
     return response.data;
   },
+  getPatientHistory: async (patientId) => {
+    const response = await api.get(`/predictions/patient/${patientId}`);
+    return response.data;
+  },
 };
+
 

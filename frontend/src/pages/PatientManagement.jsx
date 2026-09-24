@@ -66,7 +66,7 @@ export default function PatientManagement() {
         admission_date: data.admission_date || null,
       });
 
-      setPatients((current) => [...current, created]);
+      await loadPatients();
       setShowForm(false);
       setEditingPatient(null);
     } catch (e) {

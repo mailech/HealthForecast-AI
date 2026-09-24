@@ -10,7 +10,11 @@ class ExtractedClinicalFields(BaseModel):
     diagnosis: Optional[str] = None
     department: Optional[str] = None
     prior_admissions: Optional[int] = None
+    prior_admissions_source: Optional[str] = None
     length_of_stay: Optional[int] = None
+    length_of_stay_source: Optional[str] = None
+    admission_date: Optional[str] = None
+    discharge_date: Optional[str] = None
     num_lab_procedures: Optional[int] = None
     num_procedures: Optional[int] = None
     num_medications: Optional[int] = None
