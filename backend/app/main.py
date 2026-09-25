@@ -24,7 +24,9 @@ from app.routers import (
     reports,
     notifications,
     search,
+    beds,
 )
+from app.models.bed_ward import Ward, Bed
 
 # Logging Setup
 logging.basicConfig(
@@ -195,3 +197,4 @@ app.include_router(appointments.router, prefix=settings.API_V1_STR)
 app.include_router(reports.router, prefix=settings.API_V1_STR)
 app.include_router(notifications.router, prefix=settings.API_V1_STR)
 app.include_router(search.router, prefix=settings.API_V1_STR)
+app.include_router(beds.router, prefix=settings.API_V1_STR)

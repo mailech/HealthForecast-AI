@@ -18,6 +18,7 @@ import ClinicalRecommendations from './pages/ClinicalRecommendations';
 import PatientManagement from './pages/PatientManagement';
 import Reports from './pages/Reports';
 import Appointments from './pages/Appointments';
+import BedManagement from './pages/BedManagement';
 
 import DoctorDashboard from './pages/dashboards/DoctorDashboard';
 import AdminDashboard from './pages/dashboards/AdminDashboard';
@@ -83,6 +84,8 @@ export default function App() {
           <Route path="/patients" element={<ProtectedRoute allowedRoles={['doctor', 'hospital_admin', 'system_admin']}><PatientManagement /></ProtectedRoute>} />
           <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
           <Route path="/appointments" element={<ProtectedRoute allowedRoles={['doctor', 'hospital_admin', 'system_admin']}><Appointments /></ProtectedRoute>} />
+          <Route path="/beds" element={<ProtectedRoute allowedRoles={['hospital_admin', 'doctor', 'system_admin']}><BedManagement /></ProtectedRoute>} />
+          <Route path="/bed-management" element={<ProtectedRoute allowedRoles={['hospital_admin', 'doctor', 'system_admin']}><BedManagement /></ProtectedRoute>} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

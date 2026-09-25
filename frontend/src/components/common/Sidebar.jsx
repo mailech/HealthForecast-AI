@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiHome, FiSettings, FiUser, FiLogOut, FiX,
   FiActivity, FiChevronLeft, FiChevronRight,
-  FiUsers, FiCalendar, FiBarChart2, FiFileText, FiZap,
+  FiUsers, FiCalendar, FiBarChart2, FiFileText, FiZap, FiLayers,
 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 
@@ -21,6 +21,7 @@ const NAV_LINKS = {
   ],
   hospital_admin: [
     { to: '/dashboard/admin',    icon: FiHome,      label: 'Dashboard' },
+    { to: '/beds',               icon: FiLayers,    label: 'Bed & Ward Mgmt' },
     { to: '/patients',           icon: FiUsers,     label: 'Patients' },
     { to: '/appointments',       icon: FiCalendar,  label: 'Appointments' },
     { to: '/analytics',          icon: FiBarChart2, label: 'Analytics' },

@@ -4,12 +4,14 @@ import { motion } from 'framer-motion';
 import {
   FiUsers, FiActivity, FiClock, FiAlertCircle,
   FiBarChart2, FiDownload, FiCheckCircle,
-  FiCalendar, FiFileText, FiFilter, FiTrendingUp, FiXCircle
+  FiCalendar, FiFileText, FiFilter, FiTrendingUp, FiXCircle,
+  FiLayers, FiGrid, FiUserCheck, FiShield, FiTool
 } from 'react-icons/fi';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import { useAuth } from '../../context/AuthContext';
 import { analyticsService } from '../../services/analyticsService';
 import { notificationService } from '../../services/notificationService';
+import { bedService } from '../../services/bedService';
 
 /* ── helpers ── */
 function getGreeting() {
@@ -52,6 +54,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [period, setPeriod] = useState('this_week');
   const [opsData, setOpsData] = useState(null);
+  const [bedSummary, setBedSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
 
@@ -70,6 +73,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     notificationService.getAll().then(setNotifications).catch(() => setNotifications([]));
+    bedService.getSummary().then(setBedSummary).catch(() => setBedSummary(null));
   }, []);
 
   const greeting = useMemo(() => getGreeting(), []);
@@ -158,6 +162,7 @@ export default function AdminDashboard() {
           className="relative mt-6 flex flex-wrap gap-2.5 pt-4 border-t border-slate-800"
         >
           {[
+            { label: 'Bed & Ward Mgmt', icon: FiLayers, action: () => navigate('/beds') },
             { label: 'Generate Reports', icon: FiDownload, action: () => navigate('/reports') },
             { label: 'Hospital Analytics', icon: FiBarChart2, action: () => navigate('/analytics') },
             { label: 'Patient Directory', icon: FiUsers, action: () => navigate('/patients') },
@@ -205,6 +210,67 @@ export default function AdminDashboard() {
       </motion.div>
 
       {/* ══════════════════════════════════════
+          0. BED & WARD OCCUPANCY SUMMARY
+      ══════════════════════════════════════ */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+            <FiLayers className="text-blue-600 dark:text-blue-400" />
+            BED & WARD OCCUPANCY
+          </h2>
+          <button
+            onClick={() => navigate('/beds')}
+            className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+          >
+            Full Bed & Ward Management &rarr;
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          <KpiCard
+            title="Total Beds"
+            value={bedSummary?.total_beds !== undefined ? bedSummary.total_beds : '—'}
+            icon={FiGrid}
+            sub="Hospital Capacity"
+            delay={0.05}
+            color={{ bg: 'bg-blue-50 dark:bg-blue-950/60', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-100 dark:border-blue-900' }}
+          />
+          <KpiCard
+            title="Available Beds"
+            value={bedSummary?.available_beds !== undefined ? bedSummary.available_beds : '—'}
+            icon={FiCheckCircle}
+            sub="Ready for Patients"
+            delay={0.1}
+            color={{ bg: 'bg-emerald-50 dark:bg-emerald-950/60', text: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-100 dark:border-emerald-900' }}
+          />
+          <KpiCard
+            title="Occupied Beds"
+            value={bedSummary?.occupied_beds !== undefined ? bedSummary.occupied_beds : '—'}
+            icon={FiUserCheck}
+            sub="Currently Admitted"
+            delay={0.15}
+            color={{ bg: 'bg-indigo-50 dark:bg-indigo-950/60', text: 'text-indigo-600 dark:text-indigo-400', border: 'border-indigo-100 dark:border-indigo-900' }}
+          />
+          <KpiCard
+            title="Reserved Beds"
+            value={bedSummary?.reserved_beds !== undefined ? bedSummary.reserved_beds : '—'}
+            icon={FiShield}
+            sub="Incoming Admissions"
+            delay={0.2}
+            color={{ bg: 'bg-amber-50 dark:bg-amber-950/60', text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-100 dark:border-amber-900' }}
+          />
+          <KpiCard
+            title="Maintenance Beds"
+            value={bedSummary?.maintenance_beds !== undefined ? bedSummary.maintenance_beds : '—'}
+            icon={FiTool}
+            sub="Out of Service"
+            delay={0.25}
+            color={{ bg: 'bg-rose-50 dark:bg-rose-950/60', text: 'text-rose-600 dark:text-rose-400', border: 'border-rose-100 dark:border-rose-900' }}
+          />
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════
           1. HOSPITAL OPERATIONS SUMMARY
       ══════════════════════════════════════ */}
       <div className="mb-8">
@@ -223,10 +289,10 @@ export default function AdminDashboard() {
             color={{ bg: 'bg-blue-50 dark:bg-blue-950/60', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-100 dark:border-blue-900' }}
           />
           <KpiCard
-            title="Today's Appointments"
+            title={period === 'today' ? "Today's Appointments" : period === 'this_week' ? "This Week's Appts" : "This Month's Appts"}
             value={summary?.todays_appointments !== undefined ? summary.todays_appointments : '—'}
             icon={FiCalendar}
-            sub="Scheduled For Today"
+            sub={period === 'today' ? "Scheduled For Today" : period === 'this_week' ? "Scheduled This Week" : "Scheduled This Month"}
             delay={0.15}
             color={{ bg: 'bg-indigo-50 dark:bg-indigo-950/60', text: 'text-indigo-600 dark:text-indigo-400', border: 'border-indigo-100 dark:border-indigo-900' }}
           />
@@ -234,7 +300,7 @@ export default function AdminDashboard() {
             title="Pending"
             value={summary?.pending_appointments !== undefined ? summary.pending_appointments : '—'}
             icon={FiClock}
-            sub="Awaiting Consultation"
+            sub={period === 'today' ? "Pending Today" : period === 'this_week' ? "Pending This Week" : "Pending This Month"}
             delay={0.2}
             color={{ bg: 'bg-amber-50 dark:bg-amber-950/60', text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-100 dark:border-amber-900' }}
           />
@@ -242,7 +308,7 @@ export default function AdminDashboard() {
             title="Completed"
             value={summary?.completed_appointments !== undefined ? summary.completed_appointments : '—'}
             icon={FiCheckCircle}
-            sub="Successfully Conducted"
+            sub={period === 'today' ? "Completed Today" : period === 'this_week' ? "Completed This Week" : "Completed This Month"}
             delay={0.25}
             color={{ bg: 'bg-emerald-50 dark:bg-emerald-950/60', text: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-100 dark:border-emerald-900' }}
           />
@@ -250,7 +316,7 @@ export default function AdminDashboard() {
             title="Missed"
             value={summary?.missed_appointments !== undefined ? summary.missed_appointments : '—'}
             icon={FiXCircle}
-            sub="Missed or Cancelled"
+            sub={period === 'today' ? "Missed Today" : period === 'this_week' ? "Missed This Week" : "Missed This Month"}
             delay={0.3}
             color={{ bg: 'bg-rose-50 dark:bg-rose-950/60', text: 'text-rose-600 dark:text-rose-400', border: 'border-rose-100 dark:border-rose-900' }}
           />
