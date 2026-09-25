@@ -1,7 +1,21 @@
 import axios from 'axios';
 
+const getCleanBaseURL = () => {
+  const rawUrl = import.meta.env?.VITE_API_BASE_URL || import.meta.env?.VITE_API_URL || 'https://healthforecast-ai-nkmn.onrender.com/api/v1';
+  let cleaned = (rawUrl || '').trim().replace(/\/+$/, '');
+  if (!cleaned) {
+    return 'https://healthforecast-ai-nkmn.onrender.com/api/v1';
+  }
+  if (!cleaned.endsWith('/api/v1')) {
+    cleaned = `${cleaned}/api/v1`;
+  }
+  return cleaned;
+};
+
+const API_BASE_URL = getCleanBaseURL();
+
 const api = axios.create({
-  baseURL: import.meta.env?.VITE_API_BASE_URL || 'http://127.0.0.1:8000',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -9,12 +23,11 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    if (config.baseURL) {
-      config.baseURL = config.baseURL.replace(/\/api\/v1\/?$/, '');
-    }
-
-    if (config.url && !config.url.startsWith('http') && !config.url.startsWith('/api/v1')) {
-      config.url = `/api/v1${config.url.startsWith('/') ? '' : '/'}${config.url}`;
+    if (config.url && config.url.startsWith('/api/v1')) {
+      config.url = config.url.substring(7);
+      if (!config.url.startsWith('/')) {
+        config.url = '/' + config.url;
+      }
     }
 
     const token = localStorage.getItem('hf_token');
@@ -35,7 +48,7 @@ api.interceptors.response.use(
     if (!error.response) {
       if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
         return Promise.reject(
-          new Error('Cannot connect to backend. Please make sure FastAPI is running on http://127.0.0.1:8000')
+          new Error(`Cannot connect to backend server at ${API_BASE_URL}. Please check network connection.`)
         );
       }
       return Promise.reject(new Error(error.message || 'Connection error. Please check backend server.'));
@@ -59,7 +72,7 @@ api.interceptors.response.use(
       if (status === 400) formattedMsg = 'Bad request. Please verify input data.';
       else if (status === 401) formattedMsg = 'Session expired or not authenticated. Please log in again.';
       else if (status === 403) formattedMsg = 'Permission denied. You do not have authorization for this action.';
-      else if (status === 404) formattedMsg = 'Requested patient or resource not found.';
+      else if (status === 404) formattedMsg = 'Requested resource not found.';
       else if (status >= 500) formattedMsg = `Backend server error (${status}). Please contact administrator.`;
       else formattedMsg = error.message || `Request failed with status ${status}`;
     }

@@ -12,7 +12,7 @@ export const authService = {
     }
 
     const response = await api.post(
-      '/api/v1/auth/login',
+      '/auth/login',
       formData,
       {
         headers: {
@@ -33,7 +33,7 @@ export const authService = {
     };
 
     const response = await api.post(
-      '/api/v1/auth/register',
+      '/auth/register',
       payload
     );
 
@@ -41,19 +41,22 @@ export const authService = {
   },
 
   getMe: async () => {
-    const response = await api.get('/api/v1/auth/me');
+    const response = await api.get('/auth/me');
     return response.data;
   },
 
   forgotPassword: async (email) => {
-    throw new Error('Forgot password is not connected yet.');
+    const response = await api.post('/auth/forgot-password', { email });
+    return response.data;
   },
 
-  verifyOtp: async (otp) => {
-    throw new Error('OTP verification is not connected yet.');
+  verifyOtp: async (email, otp) => {
+    const response = await api.post('/auth/verify-otp', { email, otp });
+    return response.data;
   },
 
-  resetPassword: async (password) => {
-    throw new Error('Password reset is not connected yet.');
+  resetPassword: async (resetToken, password) => {
+    const response = await api.post('/auth/reset-password', { reset_token: resetToken, new_password: password });
+    return response.data;
   },
 };
